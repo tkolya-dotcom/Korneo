@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
+  <meta name="theme-color" content="#0A0A0F"/>
+  <meta name="robots" content="noindex, nofollow"/>
+  <title>Загрузка АТСС — ООО Корнео</title>
+
+  <!-- Supabase SDK (тот же CDN что в index.html) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
+  <!-- SheetJS — чтение .xlsx в браузере -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: #0A0A0F;
+      color: #e0e0e0;
+      font-family: system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Шапка (копия стиля из приложения) ── */
+    .page-header {
+      padding: 16px 20px;
+      background: #12121c;
+      border-bottom: 1px solid #2a2a3e;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .page-header a {
+      color: #5a7ef5;
+      text-decoration: none;
+      font-size: 13px;
+      opacity: .8;
+    }
+    .page-header a:hover { opacity: 1; }
+    .page-header h2 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    /* ── Контент ── */
+    .page-content {
+      flex: 1;
+      padding: 28px 20px;
+      max-width: 620px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    /* ── Карточка-подсказка ── */
+    .info-card {
+      background: #12121c;
+      border: 1px solid #2a2a3e;
+      border-radius: 10px;
+      padding: 16px 18px;
+      margin-bottom: 20px;
+      font-size: 13px;
+      color: #aaa;
+      line-height: 1.6;
+    }
+    .info-card strong { color: #e0e0e0; }
+    .info-card ul { margin: 8px 0 0; padding-left: 18px; }
+    .info-card ul li { margin-bottom: 4px; }
+
+    /* ── Блок не авторизован ── */
+    .auth-required {
+      text-align: center;
+      padding: 40px 20px;
+      color: #888;
+    }
+    .auth-required a {
+      color: #5a7ef5;
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Шапка -->
+  <div class="page-header">
+    <a href="./index.html">← Назад</a>
+    <h2>📋 Загрузка план-графика АТСС</h2>
+  </div>
+
+  <!-- Основной контент -->
+  <div class="page-content">
+
+    <!-- Подсказка -->
+    <div class="info-card">
+      <strong>Как использовать:</strong>
+      <ul>
+        <li>Загрузите файл <strong>.xlsx</strong> с листом «1 квартал 2026»</li>
+        <li>Данные автоматически сгруппируются по площадкам (до 6 СК)</li>
+        <li>Существующие записи обновятся если данные изменились</li>
+        <li>Записи без изменений останутся нетронутыми</li>
+      </ul>
+    </div>
+
+    <!-- Загрузчик — покажется если пользователь авторизован и имеет роль -->
+    <div id="atss-upload-container"></div>
+
+    <!-- Сюда рендерится если не авторизован -->
+    <div id="auth-required" class="auth-required" style="display:none">
+      Необходима авторизация. <a href="./index.html">Войти</a>
+    </div>
+
+  </div>
+
+  <!-- Модуль загрузчика -->
+  <script type="module">
+    import { atssUploadService } from './js/atss-upload.js';
+    import { authService } from './js/auth.js';
+    import { initSupabase } from './js/api.js';
+
+    // Инициализируем Supabase (нужно для api.js)
+    initSupabase();
+
+    // Проверяем авторизацию
+    const session = await authService.checkSession();
+
+    if (!session.authenticated) {
+      document.getElementById('auth-required').style.display = 'block';
+    } else {
+      // Инициализируем UI загрузчика
+      atssUploadService.initUI('atss-upload-container');
+    }
+  </script>
+
+</body>
+</html>
