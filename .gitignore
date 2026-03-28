@@ -1,0 +1,44 @@
+# Зависимости
+node_modules/
+node_modules_f/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Логи
+*.log
+
+# Переменные окружения
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ОС
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Временные файлы
+tmp/
+temp/
+*.tmp
+
+# Сборка (если будет)
+dist/
+build/
+
+# Тесты
+coverage/
+
+# Конфигурационные файлы с секретами
+config.local.js
+secrets.json
