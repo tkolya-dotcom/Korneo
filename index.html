@@ -9,6 +9,7 @@
     <meta name="theme-color" content="#0A0A0F">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="robots" content="noindex, nofollow">
     <title>ООО Корнео</title>
     <link rel="manifest" href="./manifest.json?v=2">
     <link rel="apple-touch-icon" href="./icon-192.png">
@@ -42,7 +43,10 @@
         window.firebaseApp = app;
         window.firebaseMessaging = messaging;
         window.firebase = { messaging: () => messaging }; // Add firebase.messaging() compatibility
-        window.getFirebaseToken = () => getToken(messaging, { vapidKey: "BDhqTgQRiZ69r0YWz6vw5HIEkecDEqLV9NIGfUEpWaPUFGcc4T_WWlaE8OmSO5EMzvOySOYXdpKtI3J1emZXj0s" });
+        window.getFirebaseToken = async () => {
+          const swReg = await navigator.serviceWorker.register('./firebase-messaging-sw.js');
+          return getToken(messaging, { vapidKey: "BDhqTgQRiZ69r0YWz6vw5HIEkecDEqLV9NIGfUEpWaPUFGcc4T_WWlaE8OmSO5EMzvOySOYXdpKtI3J1emZXj0s", serviceWorkerRegistration: swReg });
+        };
         window.onFirebaseMessage = (callback) => onMessage(messaging, callback);
         
         console.log('✅ Firebase initialized');
@@ -7191,7 +7195,7 @@
                     *,
                     items:purchase_request_items!fk_pri_purchase_request(
                         *,
-                        material:materials!fk_pri_material(id, name, default_unit)
+                        material:materials!fk_pri_material(id, name, unit)
                     )
                 `)
                 .eq('task_avr_id', taskId);
@@ -7208,7 +7212,7 @@
                     *,
                     items:purchase_request_items!fk_pri_purchase_request(
                         *,
-                        material:materials!fk_pri_material(id, name, default_unit)
+                        material:materials!fk_pri_material(id, name, unit)
                     )
                 `)
                 .eq('task_id', taskId);
@@ -7398,14 +7402,20 @@
                 
                 const equipmentChangeData = {
                     task_id: taskId,
-                    old_equipment_mark: oldMark,
-                    old_equipment_model: formData.get('old_model'),
-                    old_equipment_serial: formData.get('old_serial'),
-                    old_equipment_inventory: formData.get('old_inventory'),
-                    new_equipment_mark: newMark,
-                    new_equipment_model: formData.get('new_model'),
-                    new_equipment_serial: formData.get('new_serial'),
-                    new_equipment_inventory: formData.get('new_inventory'),
+                    change_type: 'replacement',
+                    field_name: 'equipment',
+                    old_value: JSON.stringify({
+                        mark: oldMark,
+                        model: formData.get('old_model'),
+                        serial: formData.get('old_serial'),
+                        inventory: formData.get('old_inventory')
+                    }),
+                    new_value: JSON.stringify({
+                        mark: newMark,
+                        model: formData.get('new_model'),
+                        serial: formData.get('new_serial'),
+                        inventory: formData.get('new_inventory')
+                    }),
                     changed_by: currentUserProfile.id
                 };
                 
@@ -8579,7 +8589,7 @@
                     *,
                     items:purchase_request_items!fk_pri_purchase_request(
                         *,
-                        material:materials!fk_pri_material(id, name, default_unit)
+                        material:materials!fk_pri_material(id, name, unit)
                     )
                 `)
                 .eq('task_avr_id', taskId);
@@ -9169,7 +9179,7 @@
                     *,
                     items:purchase_request_items!fk_pri_purchase_request(
                         *,
-                        material:materials!fk_pri_material(id, name, default_unit)
+                        material:materials!fk_pri_material(id, name, unit)
                     )
                 `)
                 .eq('installation_id', instId);
@@ -9193,7 +9203,7 @@
                         *,
                         items:purchase_request_items!fk_pri_purchase_request(
                             *,
-                            material:materials!fk_pri_material(id, name, default_unit)
+                            material:materials!fk_pri_material(id, name, unit)
                         )
                     `)
                     .eq('task_avr_id', inst.task_avr_id);
