@@ -6387,7 +6387,7 @@
                 if (allMaterialIds.length > 0) {
                     const { data: materials } = await supabaseClient
                         .from('materials')
-                        .select('id, name, category, unit')
+                        .select('id, name, category, default_unit')
                         .in('id', allMaterialIds);
                     
                     (materials || []).forEach(m => materialMap[m.id] = m);
@@ -6414,7 +6414,7 @@
                                 ${(mr.items || []).slice(0, 3).map(item => `
                                     <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05);font-size:13px">
                                         <span>${item.material?.name || 'Материал'}</span>
-                                        <span>${item.quantity_requested} ${item.material?.unit || 'шт'}</span>
+                                        <span>${item.quantity_requested} ${item.material?.default_unit || 'шт'}</span>
                                     </div>
                                 `).join('')}
                                 ${(mr.items || []).length > 3 ? `<div style="font-size:11px;color:var(--text-muted);padding:4px 0">+ ещё ${(mr.items || []).length - 3} поз.</div>` : ''}
@@ -7178,7 +7178,7 @@
                     *,
                     items:materials_request_items(
                         *,
-                        material:material_id(id, name, unit)
+                        material:material_id(id, name, default_unit)
                     )
                 `)
                 .eq('task_id', taskId);
@@ -7195,7 +7195,7 @@
                     *,
                     items:purchase_request_items!fk_pri_purchase_request(
                         *,
-                        material:materials!fk_pri_material(id, name, unit)
+                        material:materials!fk_pri_material(id, name, default_unit)
                     )
                 `)
                 .eq('task_avr_id', taskId);
@@ -7212,7 +7212,7 @@
                     *,
                     items:purchase_request_items!fk_pri_purchase_request(
                         *,
-                        material:materials!fk_pri_material(id, name, unit)
+                        material:materials!fk_pri_material(id, name, default_unit)
                     )
                 `)
                 .eq('task_id', taskId);
@@ -8589,7 +8589,7 @@
                     *,
                     items:purchase_request_items!fk_pri_purchase_request(
                         *,
-                        material:materials!fk_pri_material(id, name, unit)
+                        material:materials!fk_pri_material(id, name, default_unit)
                     )
                 `)
                 .eq('task_avr_id', taskId);
@@ -8615,7 +8615,7 @@
                 if (allMaterialIds.length > 0) {
                     const { data: materials } = await supabaseClient
                         .from('materials')
-                        .select('id, name, category, unit')
+                        .select('id, name, category, default_unit')
                         .in('id', allMaterialIds);
                     
                     (materials || []).forEach(m => materialMap[m.id] = m);
@@ -8642,7 +8642,7 @@
                                 ${(mr.items || []).slice(0, 3).map(item => `
                                     <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05);font-size:13px">
                                         <span>${item.material?.name || 'Материал'}</span>
-                                        <span>${item.quantity_requested} ${item.material?.unit || 'шт'}</span>
+                                        <span>${item.quantity_requested} ${item.material?.default_unit || 'шт'}</span>
                                     </div>
                                 `).join('')}
                                 ${(mr.items || []).length > 3 ? `<div style="font-size:11px;color:var(--text-muted);padding:4px 0">+ ещё ${(mr.items || []).length - 3} поз.</div>` : ''}
@@ -9179,7 +9179,7 @@
                     *,
                     items:purchase_request_items!fk_pri_purchase_request(
                         *,
-                        material:materials!fk_pri_material(id, name, unit)
+                        material:materials!fk_pri_material(id, name, default_unit)
                     )
                 `)
                 .eq('installation_id', instId);
@@ -9203,7 +9203,7 @@
                         *,
                         items:purchase_request_items!fk_pri_purchase_request(
                             *,
-                            material:materials!fk_pri_material(id, name, unit)
+                            material:materials!fk_pri_material(id, name, default_unit)
                         )
                     `)
                     .eq('task_avr_id', inst.task_avr_id);
