@@ -7889,49 +7889,51 @@
             try {
                 console.log('🔍 Searching for material usage:', materialId, materialName);
                 
-                // Загружаем ВСЕ заявки на материалы
-                const { data: allMaterialsRequests } = await supabaseClient
-                    .from('materials_requests')
-                    .select(`
-                        id,
-                        task_id,
-                        status,
-                        created_at,
-                        items:materials_request_items(
-                            id,
-                            quantity_requested,
-                            quantity_approved,
-                            material_id
-                        )
-                    `);
+                // Загружаем позиции materials_requests с этим материалом
+                const { data: mrItems } = await supabaseClient
+                    .from('materials_request_items')
+                    .select('id, request_id, quantity_requested, quantity_approved, material_id')
+                    .eq('material_id', materialId)
+                    .limit(200);
+
+                const mrIds = [...new Set((mrItems || []).map(i => i.request_id).filter(Boolean))];
                 
-                // Фильтруем вручную
-                const materialsRequests = (allMaterialsRequests || []).filter(req => {
-                    return req.items && req.items.some(i => String(i.material_id) === String(materialId));
-                });
+                let allMaterialsRequests = [];
+                if (mrIds.length > 0) {
+                    const { data: mrs } = await supabaseClient
+                        .from('materials_requests')
+                        .select('id, task_id, status, created_at')
+                        .in('id', mrIds);
+                    allMaterialsRequests = mrs || [];
+                }
+                const materialsRequests = allMaterialsRequests.map(mr => ({
+                    ...mr,
+                    items: (mrItems || []).filter(i => i.request_id === mr.id)
+                })).filter(mr => mr.items.length > 0);
                 
-                // Также загружаем ВСЕ purchase requests
-                const { data: allPurchaseRequests } = await supabaseClient
-                    .from('purchase_requests')
-                    .select(`
-                        id,
-                        task_avr_id,
-                        task_id,
-                        installation_id,
-                        status,
-                        created_at,
-                        items:purchase_request_items!fk_pri_purchase_request(
-                            id,
-                            quantity,
-                            quantity_issued,
-                            material_id
-                        )
-                    `);
+                // Загружаем позиции заявок содержащие этот материал напрямую
+                const { data: prItems } = await supabaseClient
+                    .from('purchase_request_items')
+                    .select('id, purchase_request_id, quantity, material_id')
+                    .eq('material_id', materialId);
+
+                // Получаем уникальные ID заявок
+                const prIds = [...new Set((prItems || []).map(i => i.purchase_request_id).filter(Boolean))];
                 
-                // Фильтруем вручную
-                const purchaseRequests = (allPurchaseRequests || []).filter(req => {
-                    return req.items && req.items.some(i => String(i.material_id) === String(materialId));
-                });
+                let allPurchaseRequests = [];
+                if (prIds.length > 0) {
+                    const { data: prs } = await supabaseClient
+                        .from('purchase_requests')
+                        .select('id, task_avr_id, task_id, installation_id, status, created_at')
+                        .in('id', prIds);
+                    allPurchaseRequests = prs || [];
+                }
+
+                // Присоединяем позиции к заявкам
+                const purchaseRequests = allPurchaseRequests.map(pr => ({
+                    ...pr,
+                    items: (prItems || []).filter(i => i.purchase_request_id === pr.id)
+                })).filter(pr => pr.items.length > 0);
                 
                 console.log('📦 Filtered Materials requests:', materialsRequests);
                 console.log('📦 Filtered Purchase requests:', purchaseRequests);
