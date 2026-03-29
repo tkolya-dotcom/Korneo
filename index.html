@@ -11782,17 +11782,37 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
                 console.log('✅ PR created:', pr);
                 
                 // Add items
+                // Пробуем оба варианта имени FK колонки
                 const itemsWithPRId = items.map(item => ({
                     purchase_request_id: pr.id,
-                    ...item
+                    name: item.name || '',
+                    quantity: item.quantity || 1,
+                    unit: item.unit || 'pcs',
+                    material_id: item.material_id || null
                 }));
                 
-                const { error: itemsError } = await supabaseClient
+                let { error: itemsError } = await supabaseClient
                     .from('purchase_request_items')
                     .insert(itemsWithPRId);
                 
+                // Если не сработало — пробуем с request_id
+                if (itemsError && itemsError.message?.includes('purchase_request_id')) {
+                    console.warn('purchase_request_id failed, trying request_id...');
+                    const itemsAlt = items.map(item => ({
+                        request_id: pr.id,
+                        name: item.name || '',
+                        quantity: item.quantity || 1,
+                        unit: item.unit || 'pcs',
+                        material_id: item.material_id || null
+                    }));
+                    const { error: itemsError2 } = await supabaseClient
+                        .from('purchase_request_items')
+                        .insert(itemsAlt);
+                    itemsError = itemsError2;
+                }
+                
                 if (itemsError) {
-                    console.error('Items error:', itemsError);
+                    console.error('Items error:', JSON.stringify(itemsError));
                     throw itemsError;
                 }
                 
