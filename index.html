@@ -4729,8 +4729,8 @@
                 buttons.push({ id: 'users', label: 'Пользователи', icon: '👥' });
             }
 
-            // Загрузка АТСС — менеджер и зам
-            if (currentUserProfile?.role === 'manager' || currentUserProfile?.role === 'deputy_head') {
+            // Загрузка АТСС — менеджер, зам и поддержка (isElevatedUser)
+            if (isManager) {
                 buttons.push({ id: 'atss', label: 'АТСС', icon: '📋' });
             }
 
