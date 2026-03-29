@@ -10120,7 +10120,7 @@
             // Fetch PR and items in parallel
             const [prResult, itemsResult] = await Promise.all([
                 supabaseClient.from('purchase_requests').select('*').eq('id', prId).single(),
-                supabaseClient.from('purchase_request_items').select('*').eq('purchase_request_id', prId)
+                supabaseClient.from('purchase_request_items').select('*').eq('request_id', prId)
             ]);
             
             const pr = prResult.data;
@@ -10294,7 +10294,7 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
                 const { data: items } = await supabaseClient
                     .from('purchase_request_items')
                     .select('*')
-                    .eq('purchase_request_id', prId);
+                    .eq('request_id', prId);
                 
                 if (items && items.length > 0) {
                     // Добавляем каждую позицию на склад
@@ -10358,7 +10358,7 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
             }
             try {
                 // Delete items first
-                await supabaseClient.from('purchase_request_items').delete().eq('purchase_request_id', prId);
+                await supabaseClient.from('purchase_request_items').delete().eq('request_id', prId);
                 // Then delete the request
                 const { error } = await supabaseClient.from('purchase_requests').delete().eq('id', prId);
                 if (error) throw error;
@@ -10369,7 +10369,7 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
         };
 
         window.editPRModal = async function(prId) {
-            const { data: items } = await supabaseClient.from('purchase_request_items').select('*').eq('purchase_request_id', prId);
+            const { data: items } = await supabaseClient.from('purchase_request_items').select('*').eq('request_id', prId);
             const { data: materials } = await supabaseClient.from('materials').select('*').order('category').order('name');
             const materialOptions = materials?.map(m => `<option value="${m.id}" data-name="${m.name}" data-unit="${m.default_unit}">${m.name} (${m.category})</option>`).join('') || '';
             let itemsHtml = '';
@@ -10392,8 +10392,8 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
             }
             if (items.length === 0) { showToast('Добавьте хотя бы одну позицию'); return; }
             try {
-                await supabaseClient.from('purchase_request_items').delete().eq('purchase_request_id', prId);
-                await supabaseClient.from('purchase_request_items').insert(items.map(item => ({ purchase_request_id: prId, ...item })));
+                await supabaseClient.from('purchase_request_items').delete().eq('request_id', prId);
+                await supabaseClient.from('purchase_request_items').insert(items.map(item => ({ request_id: prId, ...item })));
                 await supabaseClient.from('purchase_requests').update({ status: 'pending', comment: null, updated_at: new Date().toISOString() }).eq('id', prId);
                 closeModal();
                 showToast('Заявка отправлена на рассмотрение');
@@ -10402,7 +10402,7 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
         };
 
         window.editPR = async function(prId) {
-            const { data: items } = await supabaseClient.from('purchase_request_items').select('*').eq('purchase_request_id', prId);
+            const { data: items } = await supabaseClient.from('purchase_request_items').select('*').eq('request_id', prId);
             const { data: materials } = await supabaseClient.from('materials').select('*').order('category').order('name');
             const materialOptions = materials?.map(m => `<option value="${m.id}" data-name="${m.name}" data-unit="${m.default_unit}">${m.name} (${m.category})</option>`).join('') || '';
             let itemsHtml = '';
@@ -10447,8 +10447,8 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
             }
             if (items.length === 0) { showToast('Добавьте хотя бы одну позицию'); return; }
             try {
-                await supabaseClient.from('purchase_request_items').delete().eq('purchase_request_id', prId);
-                await supabaseClient.from('purchase_request_items').insert(items.map(item => ({ purchase_request_id: prId, ...item })));
+                await supabaseClient.from('purchase_request_items').delete().eq('request_id', prId);
+                await supabaseClient.from('purchase_request_items').insert(items.map(item => ({ request_id: prId, ...item })));
                 await supabaseClient.from('purchase_requests').update({ status: 'pending', comment: null, updated_at: new Date().toISOString() }).eq('id', prId);
                 closeModal();
                 showToast('Заявка отправлена на рассмотрение');
@@ -11779,7 +11779,7 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
                 
                 // Add items
                 const itemsWithPRId = items.map(item => ({
-                    purchase_request_id: pr.id,
+                    request_id: pr.id,
                     ...item
                 }));
                 
@@ -16028,7 +16028,7 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
                         renderInstallations(document.getElementById('content'));
                         break;
                     case 'pr':
-                        await supabaseClient.from('purchase_request_items').delete().eq('purchase_request_id', id);
+                        await supabaseClient.from('purchase_request_items').delete().eq('request_id', id);
                         await supabaseClient.from('purchase_requests').delete().eq('id', id);
                         showToast('Заявка удалена');
                         renderPurchaseRequests(document.getElementById('content'));
