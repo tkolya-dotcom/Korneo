@@ -131,24 +131,39 @@ router.post('/', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: error.message });
     }
 
-    // Add items if provided
+    // Add items if provided - RESOLVE material_id
     if (items && items.length > 0) {
-      const itemsWithRequestId = items.map(item => ({
-        purchase_request_id: purchaseRequest.id,
-        name: item.name,
-        quantity: item.quantity,
-        unit: item.unit,
-        note: item.note
-      }));
+      const itemsWithMaterialId = [];
+      for (const item of items) {
+        if (!item.name) continue;
+        
+        // Find material by exact name
+        const { data: material } = await supabase
+          .from('materials')
+          .select('id')
+          .eq('name', item.name)
+          .single();
+          
+        itemsWithMaterialId.push({
+          purchase_request_id: purchaseRequest.id,
+          material_id: material?.id,
+          name: item.name,
+          quantity: parseFloat(item.quantity),
+          unit: item.unit,
+          note: item.note
+        });
+      }
 
-      const { error: itemsError } = await supabase
-        .from('purchase_request_items')
-        .insert(itemsWithRequestId);
+      if (itemsWithMaterialId.length > 0) {
+        const { error: itemsError } = await supabase
+          .from('purchase_request_items')
+          .insert(itemsWithMaterialId);
 
-      if (itemsError) {
-        // Rollback purchase request if items fail
-        await supabase.from('purchase_requests').delete().eq('id', purchaseRequest.id);
-        return res.status(400).json({ error: itemsError.message });
+        if (itemsError) {
+          // Rollback purchase request if items fail
+          await supabase.from('purchase_requests').delete().eq('id', purchaseRequest.id);
+          return res.status(400).json({ error: itemsError.message });
+        }
       }
     }
 
@@ -157,7 +172,10 @@ router.post('/', authenticateToken, async (req, res) => {
       .from('purchase_requests')
       .select(`
         *,
-        items:purchase_request_items(*)
+        items: purchase_request_items (
+          *,
+          material:materials(name, unit)
+        )
       `)
       .eq('id', purchaseRequest.id)
       .single();
@@ -190,6 +208,17 @@ router.put('/:id/status', authenticateToken, requireManager, async (req, res) =>
       return res.status(400).json({ error: 'Дата получения обязательна для статуса "Получено"' });
     }
 
+    // Fetch current request with items BEFORE update
+    const { data: currentRequest } = await supabase
+      .from('purchase_requests')
+      .select('*, items:purchase_request_items(*, material_id)')
+      .eq('id', id)
+      .single();
+
+    if (!currentRequest) {
+      return res.status(404).json({ error: 'Purchase request not found' });
+    }
+
     const updateData = { 
       status, 
       approved_by: req.user.id,
@@ -201,15 +230,50 @@ router.put('/:id/status', authenticateToken, requireManager, async (req, res) =>
       updated_at: new Date().toISOString()
     };
 
-    const { data: purchaseRequest, error } = await supabase
+    // Update status
+    const { data: purchaseRequest, error: updateError } = await supabase
       .from('purchase_requests')
       .update(updateData)
       .eq('id', id)
       .select()
       .single();
 
-    if (error) {
-      return res.status(400).json({ error: error.message });
+    if (updateError) {
+      return res.status(400).json({ error: updateError.message });
+    }
+
+    // Handle warehouse for received/done
+    const items = currentRequest.items || [];
+    for (const item of items) {
+      if (!item.material_id) continue;
+
+      const delta = status === 'received' ? parseFloat(item.quantity) : -parseFloat(item.quantity);
+      
+      // For 'done' check stock first
+      if (status === 'done') {
+        const { data: stockCheck } = await supabase.rpc('get_warehouse_stock', { material_id_param: item.material_id });
+        const currentStock = parseFloat(stockCheck?.total || 0);
+        if (currentStock < parseFloat(item.quantity)) {
+          return res.status(400).json({ error: `Недостаточно ${item.name} на складе. Остаток: ${currentStock}` });
+        }
+      }
+
+      // Update warehouse via API (or direct - here direct for atomicity)
+      const whUpdate = await fetch(`http://localhost:3001/api/warehouse/${item.material_id}/stock`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': req.headers.authorization },
+        body: JSON.stringify({
+          quantity_delta: delta,
+          operation: status === 'received' ? 'receipt' : 'usage',
+          note: `Заявка #${currentRequest.short_id || id.slice(-4)} (${status})`,
+          location: receipt_address || 'Основной склад'
+        })
+      });
+
+      if (!whUpdate.ok) {
+        const whErr = await whUpdate.json();
+        return res.status(400).json({ error: `Склад ошибка: ${whErr.error}` });
+      }
     }
 
     res.json({ purchaseRequest });
@@ -297,12 +361,24 @@ router.post('/:id/items', authenticateToken, async (req, res) => {
       }
     }
 
+    // Find material_id by name
+    const { data: material } = await supabase
+      .from('materials')
+      .select('id')
+      .eq('name', name)
+      .single();
+      
+    if (!material) {
+      return res.status(400).json({ error: `Материал "${name}" не найден в справочнике` });
+    }
+
     const { data: item, error } = await supabase
       .from('purchase_request_items')
       .insert([{ 
         purchase_request_id: id, 
+        material_id: material.id,
         name, 
-        quantity, 
+        quantity: parseFloat(quantity),
         unit, 
         note 
       }])

@@ -57,6 +57,50 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+// Get material by exact name (for purchase requests)
+router.get('/by-name/:name', async (req, res) => {
+  try {
+    const { name } = req.params;
+    
+    const { data, error } = await supabase
+      .from('materials')
+      .select('*')
+      .eq('name', name)
+      .single();
+    
+    if (error && error.code !== 'PGRST116') throw error; // No rows OK
+    
+    if (!data) {
+      return res.status(404).json({ error: 'Material not found by name' });
+    }
+    
+    res.json({ material: data });
+  } catch (err) {
+    console.error('Error fetching material by name:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Search materials by partial name (existing search enhanced)
+router.get('/search/:query', async (req, res) => {
+  try {
+    const { query } = req.params;
+    
+    const { data, error } = await supabase
+      .from('materials')
+      .select('*')
+      .ilike('name', `%${query}%`)
+      .order('name');
+    
+    if (error) throw error;
+    
+    res.json({ materials: data });
+  } catch (err) {
+    console.error('Error searching materials:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Get materials by category
 router.get('/category/:category', async (req, res) => {
   try {

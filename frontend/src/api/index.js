@@ -241,3 +241,6 @@ export const materialsApi = {
     return handleSupabaseResponse(data, error);
   }
 };
+
+// Warehouse API
+export { warehouseApi } from './warehouseApi.js';

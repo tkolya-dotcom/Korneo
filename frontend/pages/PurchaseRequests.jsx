@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { purchaseRequestsApi, tasksApi, installationsApi, materialsApi } from '../api';
+import { purchaseRequestsApi, tasksApi, installationsApi, materialsApi, warehouseApi } from '../api';
+
 
 const PurchaseRequests = () => {
   const { isManager, isWorker, user } = useAuth();
@@ -42,11 +43,30 @@ const PurchaseRequests = () => {
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
   const [showSearchResults, setShowSearchResults] = useState(false);
+  const [warehouseStock, setWarehouseStock] = useState({});
 
   useEffect(() => {
     loadRequests();
     loadRelatedData();
   }, [filter]);
+
+  const loadStockForItems = async (items) => {
+    if (!items || items.length === 0) return;
+    
+    const materialIds = items.map(item => item.material_id).filter(Boolean);
+    if (materialIds.length === 0) return;
+    
+    try {
+      const data = await warehouseApi.getStockByIds(materialIds.join(','));
+      const stockMap = {};
+      data.stock.forEach(stock => {
+        stockMap[stock.material_id] = stock.quantity;
+      });
+      setWarehouseStock(stockMap);
+    } catch (err) {
+      console.error('Load stock error:', err);
+    }
+  };
 
   const loadRequests = async () => {
     try {
@@ -99,6 +119,7 @@ const PurchaseRequests = () => {
       // Refresh the selected request to show new item
       const data = await purchaseRequestsApi.getById(selectedRequest.id);
       setSelectedRequest(data.purchaseRequest);
+      loadStockForItems(data.purchaseRequest.items);
     } catch (err) {
       setError(err.message);
     }
@@ -173,6 +194,7 @@ const PurchaseRequests = () => {
     try {
       const data = await purchaseRequestsApi.getById(request.id);
       setSelectedRequest(data.purchaseRequest);
+      loadStockForItems(data.purchaseRequest.items);
       setShowItemsModal(true);
     } catch (err) {
       setError(err.message);
@@ -708,36 +730,48 @@ const PurchaseRequests = () => {
                     <tr>
                       <th>Название</th>
                       <th>Количество</th>
+                      <th>Остаток на складе</th>
                       <th>Действия</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {selectedRequest.items.map(item => (
-                      <tr key={item.id}>
-                        <td>{item.name}</td>
-                        <td>{item.quantity} {item.unit}</td>
-                        <td>
-                          <div style={{ display: 'flex', gap: '5px' }}>
-                            <button
-                              className="btn btn-primary"
-                              onClick={() => { setEditingItem(item); setItemFormData({ name: item.name, quantity: item.quantity, unit: item.unit }); }}
-                              style={{ padding: '5px 10px', fontSize: '12px' }}
-                            >
-                              Изменить
-                            </button>
-                            <button
-                              className="btn btn-danger"
-                              onClick={() => handleDeleteItem(item.id)}
-                              style={{ padding: '5px 10px', fontSize: '12px' }}
-                            >
-                              Удалить
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                    {selectedRequest.items.map(item => {
+                      const stock = item.material_id ? warehouseStock[item.material_id] || 0 : 0;
+                      const lowStock = stock < parseFloat(item.quantity);
+                      return (
+                        <tr key={item.id}>
+                          <td>{item.name} {item.material?.unit}</td>
+                          <td>{item.quantity} {item.unit}</td>
+                          <td style={{ color: lowStock ? 'red' : 'green' }}>
+                            {stock.toFixed(1)} {item.material?.unit || item.unit}
+                            {lowStock && <span style={{ fontSize: '12px', color: 'orange' }}> (низкий остаток)</span>}
+                          </td>
+                          <td>
+                            <div style={{ display: 'flex', gap: '5px' }}>
+                              <button
+                                className="btn btn-primary"
+                                onClick={() => { setEditingItem(item); setItemFormData({ name: item.name, quantity: item.quantity, unit: item.unit }); }}
+                                style={{ padding: '5px 10px', fontSize: '12px' }}
+                              >
+                                Изменить
+                              </button>
+                              <button
+                                className="btn btn-danger"
+                                onClick={() => handleDeleteItem(item.id)}
+                                style={{ padding: '5px 10px', fontSize: '12px' }}
+                              >
+                                Удалить
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
+              ) : (
+                <p style={{ color: '#757575' }}>Нет items в этой заявке</p>
+              )
               ) : (
                 <p style={{ color: '#757575' }}>Нет items в этой заявке</p>
               )}
