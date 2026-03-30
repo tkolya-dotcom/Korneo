@@ -67,16 +67,22 @@ export class ChatService {
    */
   async addMember(chatId, userId) {
     try {
-      const supabase = window.supabase.createClient(
-        window.SUPABASE_CONFIG.url,
-        window.SUPABASE_CONFIG.anonKey
-      );
+      if (!window.supabaseClient) {
+        throw new Error('Supabase client не инициализирован');
+      }
+
+      const supabase = window.supabaseClient;
 
       const { error } = await supabase
         .from('chat_members')
-        .insert([{ chat_id: chatId, user_id: userId }]);
+        .upsert([{ chat_id: chatId, user_id: userId, joined_at: new Date().toISOString() }]);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error:', error);
+        throw new Error(`Не удалось добавить участника: ${error.message}`);
+      }
+
+      console.log('✅ Участник добавлен:', userId);
       return true;
     } catch (error) {
       console.error('Ошибка добавления участника:', error);
@@ -89,10 +95,11 @@ export class ChatService {
    */
   async removeMember(chatId, userId) {
     try {
-      const supabase = window.supabase.createClient(
-        window.SUPABASE_CONFIG.url,
-        window.SUPABASE_CONFIG.anonKey
-      );
+      if (!window.supabaseClient) {
+        throw new Error('Supabase client не инициализирован');
+      }
+
+      const supabase = window.supabaseClient;
 
       const { error } = await supabase
         .from('chat_members')
@@ -228,10 +235,12 @@ export class ChatService {
    * Подписка на сообщения чата (Realtime)
    */
   subscribeToChat(chatId, callback) {
-    const supabase = window.supabase.createClient(
-      window.SUPABASE_CONFIG.url,
-      window.SUPABASE_CONFIG.anonKey
-    );
+    if (!window.supabaseClient) {
+      console.error('Supabase client не инициализирован');
+      return () => {};
+    }
+
+    const supabase = window.supabaseClient;
 
     const channel = supabase
       .channel(`chat_${chatId}`)
@@ -296,18 +305,27 @@ export class ChatService {
    */
   async getChatMembers(chatId) {
     try {
-      const supabase = window.supabase.createClient(
-        window.SUPABASE_CONFIG.url,
-        window.SUPABASE_CONFIG.anonKey
-      );
+      if (!window.supabaseClient) {
+        throw new Error('Supabase client не инициализирован');
+      }
+
+      const supabase = window.supabaseClient;
 
       const { data, error } = await supabase
         .from('chat_members')
-        .select('user_id, joined_at, role')
+        .select(`
+          user_id,
+          joined_at,
+          role,
+          users!inner(user_id)(id, name, email, role, is_online)
+        `)
         .eq('chat_id', chatId);
 
-      if (error) throw error;
-      return data || [];
+      if (error) {
+        console.error('getChatMembers error:', error);
+        throw error;
+      }
+      return (data || []).map(m => ({ ...m, user: m.users[0] || null }));
     } catch (error) {
       console.error('Ошибка получения участников:', error);
       throw error;
