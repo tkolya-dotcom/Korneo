@@ -11720,6 +11720,13 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
             const items = [];
             let i = 1;
             
+            // Диагностика DOM перед сбором позиций
+            const allMaterialInputs = document.querySelectorAll('[id^="prItem"][id$="Material"]');
+            const allSearchInputs   = document.querySelectorAll('[id^="prItem"][id$="Search"]');
+            console.log('📝 createPR called. Material inputs in DOM:', 
+                [...allMaterialInputs].map(el => el.id + '=' + el.value),
+                'Search inputs:', [...allSearchInputs].map(el => el.id + '=' + el.value));
+            
             while (document.getElementById('prItem' + i + 'Material') || document.getElementById('prItem' + i + 'Name')) {
                 const nameInput      = document.getElementById('prItem' + i + 'Name');
                 const materialHidden = document.getElementById('prItem' + i + 'Material');
