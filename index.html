@@ -13081,14 +13081,9 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
             
             // Async: load participant count / online status for subtitle
             if (isGroup) {
-                // Защита: проверяем что chatId - число, не UUID
-                const numericChatId = parseInt(chatId, 10);
-                if (isNaN(numericChatId)) {
-                    console.warn('Invalid chat_id (not numeric):', chatId);
-                    const sub = document.getElementById('cv-subtitle');
-                    if (sub) sub.textContent = 'Группа';
-                } else {
-                    supabaseClient.from('chat_members').select('id', { count: 'exact', head: true }).eq('chat_id', numericChatId)
+                // Загружаем количество участников (UUID поддерживается)
+                {
+                    supabaseClient.from('chat_members').select('user_id', { count: 'exact', head: true }).eq('chat_id', chatId)
                         .then(({ count, error }) => {
                             if (error) {
                                 console.warn('Error loading member count:', error);
@@ -14289,7 +14284,7 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
                     const userIds = members.map(m => m.user_id);
                     const { data: users, error: userError } = await supabaseClient
                         .from('users')
-                        .select('id, name, role, phone')
+                        .select('id, name, role')
                         .in('id', userIds);
                     
                     console.log('🔵 Loaded users:', users, 'Error:', userError);
@@ -14405,7 +14400,7 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
                         <input type="checkbox" value="${u.id}" data-name="${u.name}" style="margin-right:10px;width:18px;height:18px">
                         <div style="flex:1">
                             <div style="font-weight:500;color:#fff">${u.name}</div>
-                            <div style="font-size:12px;color:var(--text-muted)">${u.role || ''}${u.phone ? ' • ' + u.phone : ''}</div>
+                            <div style="font-size:12px;color:var(--text-muted)">${u.role || ''}</div>
                         </div>
                     </label>
                 `).join('');
@@ -15518,7 +15513,7 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
                 }
                 const userId = checked[0].value;
                 const userName = checked[0].dataset.name;
-                closeModal();
+                document.getElementById('newChatModal')?.remove();
                 await createPrivateChat(userId, userName);
             } else {
                 const groupName = document.getElementById('groupChatName').value.trim();
@@ -15527,7 +15522,7 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
                     return;
                 }
                 const memberIds = checked.map(c => c.value);
-                closeModal();
+                document.getElementById('newChatModal')?.remove();
                 await createGroupChat(groupName, memberIds);
             }
         };
