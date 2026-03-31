@@ -10306,15 +10306,21 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
             
             try {
                 // Получаем позиции заявки
-                const { data: items } = await supabaseClient
+                const { data: items, error: itemsFetchError } = await supabaseClient
                     .from('purchase_request_items')
                     .select('*')
                     .eq('purchase_request_id', prId);
                 
+                console.log('📦 confirmReceived: items=', items?.length, items, 'error=', itemsFetchError);
+                
                 if (items && items.length > 0) {
                     // Добавляем каждую позицию на склад (только если есть material_id)
                     for (const item of items) {
-                        if (!item.material_id) continue; // пропускаем позиции без привязки к справочнику
+                        console.log('📦 Processing item:', item.name, 'material_id:', item.material_id, 'qty:', item.quantity);
+                        if (!item.material_id) {
+                            console.log('⚠️ Skipping item without material_id:', item.name);
+                            continue; // пропускаем позиции без привязки к справочнику
+                        }
                         // Проверяем есть ли уже такой материал на складе
                         const { data: existingWarehouse } = await supabaseClient
                             .from('warehouse')
@@ -10324,16 +10330,17 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
                         
                         if (existingWarehouse) {
                             // Обновляем количество
-                            await supabaseClient
+                            const { error: wErr } = await supabaseClient
                                 .from('warehouse')
                                 .update({
                                     quantity_available: (existingWarehouse.quantity_available || 0) + (item.quantity || 0),
                                     last_updated: new Date().toISOString()
                                 })
                                 .eq('id', existingWarehouse.id);
+                            console.log('📦 Warehouse updated:', item.name, '+', item.quantity, wErr || 'ok');
                         } else {
                             // Создаем новую запись на складе
-                            await supabaseClient
+                            const { error: wErr2 } = await supabaseClient
                                 .from('warehouse')
                                 .insert([{
                                     material_id: item.material_id,
@@ -10342,6 +10349,7 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
                                     location: 'Получено из заявки #' + prId.slice(0, 8),
                                     last_updated: new Date().toISOString()
                                 }]);
+                            console.log('📦 Warehouse inserted:', item.name, item.quantity, wErr2 || 'ok');
                         }
                     }
                 }
