@@ -5,6 +5,9 @@ on:
     branches: [ "main" ]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -42,7 +45,12 @@ jobs:
         with:
           tag_name: "v${{ github.run_number }}"
           name: "Korneo v${{ github.run_number }}"
-          body: "Автосборка APK. Установить: скачать файл .apk и запустить на телефоне."
+          body: |
+            📱 Автосборка APK
+
+            **Установка:**
+            1. Скачай `app-debug.apk`
+            2. На телефоне: Настройки → Безопасность → Разрешить установку из неизвестных источников
+            3. Открой скачанный файл и установи
           files: android/app/build/outputs/apk/debug/app-debug.apk
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
