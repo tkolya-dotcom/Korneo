@@ -8,7 +8,7 @@ CREATE OR REPLACE FUNCTION public.get_warehouse_stock(material_id_param uuid)
 RETURNS TABLE(total numeric) AS $$
 BEGIN
   RETURN QUERY
-  SELECT COALESCE(SUM(quantity), 0)::numeric
+  SELECT COALESCE(SUM(quantity_available), 0)::numeric
   FROM public.warehouse 
   WHERE material_id = material_id_param;
 END;
@@ -70,7 +70,7 @@ DECLARE
   manager_id       uuid;
 BEGIN
   -- Считаем суммарный остаток ПОСЛЕ изменения
-  SELECT COALESCE(SUM(quantity), 0) INTO total_stock
+  SELECT COALESCE(SUM(quantity_available), 0) INTO total_stock
   FROM public.warehouse
   WHERE material_id = NEW.material_id;
 
