@@ -4731,6 +4731,18 @@
                         
                 console.log('Calling showApp()...');
                 showApp();
+
+                // Для нативного Android приложения: сохраняем сессию для
+                // отправки FCM-токена при закрытом приложении
+                if (window.AndroidBridge?.saveUserSession) {
+                    try {
+                        AndroidBridge.saveUserSession(
+                            currentUserProfile.id,
+                            authData.session.access_token
+                        );
+                        console.log('📱 Android session saved for offline push');
+                    } catch(e) { console.warn('AndroidBridge.saveUserSession error:', e); }
+                }
             } catch (error) {
                 console.error('Login error:', error);
                 showAuthError(error.message);
@@ -4977,7 +4989,12 @@
             // Clear local storage
             localStorage.removeItem('token');
             localStorage.removeItem('supabaseClient_session');
-            
+
+            // Для Android: очищаем сохранённую сессию
+            if (window.AndroidBridge?.clearUserSession) {
+                try { AndroidBridge.clearUserSession(); } catch(e) {}
+            }
+
             currentUser = null;
             currentUserProfile = null;
             showLogin();

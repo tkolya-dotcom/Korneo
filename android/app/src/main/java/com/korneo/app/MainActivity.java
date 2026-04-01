@@ -51,6 +51,29 @@ public class MainActivity extends AppCompatActivity {
         public boolean isNativeApp() {
             return true;
         }
+
+        /**
+         * Вызывается из JS после успешной авторизации.
+         * Сохраняет userId и authToken для отправки FCM-токена при закрытом приложении.
+         */
+        @JavascriptInterface
+        public void saveUserSession(String userId, String authToken) {
+            if (userId != null && !userId.isEmpty() && authToken != null && !authToken.isEmpty()) {
+                KorneoMessagingService.saveUserSession(MainActivity.this, userId, authToken);
+                Log.d(TAG, "User session saved: " + userId.substring(0, 8) + "...");
+                // Если уже есть токен — сразу обновим в Supabase
+                injectFCMToken();
+            }
+        }
+
+        /**
+         * Вызывается из JS при выходе из аккаунта.
+         */
+        @JavascriptInterface
+        public void clearUserSession() {
+            KorneoMessagingService.clearUserSession(MainActivity.this);
+            Log.d(TAG, "User session cleared");
+        }
     }
 
     @Override
