@@ -2779,7 +2779,7 @@
            ======================================== */
         @media (max-width: 768px) {
             .stats-grid {
-                display: none !important;
+                grid-template-columns: repeat(2, 1fr);
             }
         }
         
@@ -5128,147 +5128,242 @@
         // ============================================================
         async function renderDashboard(content) {
             const isManager = isElevatedUser();
-            
-            // Show loading state first
-            content.innerHTML = '<h2 style="margin-bottom: 16px">Главная</h2><div id="loading-stats" style="text-align:center;padding:40px;color:var(--text-muted)">Загрузка данных...</div>';
-            
+            const isWorker = isWorkerOrEngineer();
+
+            content.innerHTML = '<h2 style="margin-bottom:16px">Главная</h2><div id="loading-stats" style="text-align:center;padding:40px;color:var(--text-muted)">Загрузка данных...</div>';
+
             try {
-                // Load data with timeout for better UX
-                const [projects, tasks, installations, prs] = await Promise.all([
+                // Load data in parallel
+                const dataPromises = [
                     isManager ? getProjects() : getMyProjects(),
                     isManager ? getTasks() : getMyTasks(),
                     isManager ? getInstallations() : getMyInstallations(),
                     getPurchaseRequests()
-                ]);
-                
-                // Calculate progress
+                ];
+                if (isManager) {
+                    dataPromises.push(
+                        supabaseClient.from('warehouse').select('id', { count: 'exact', head: true }),
+                        supabaseClient.from('users').select('id, name, role, is_online, last_seen_at').order('name')
+                    );
+                }
+
+                const results = await Promise.all(dataPromises);
+                const [projects, tasks, installations, prs] = results;
+                const warehouseResult = isManager ? results[4] : null;
+                const usersData = isManager ? results[5] : null;
+
+                // Progress
                 const totalItems = tasks.length + installations.length;
-                const completedTasks = tasks.filter(t => t.status === 'done').length;
-                const completedInstallations = installations.filter(i => i.status === 'done').length;
-                const completedItems = completedTasks + completedInstallations;
+                const completedItems = tasks.filter(t => t.status === 'done').length + installations.filter(i => i.status === 'done').length;
                 const progressPercent = totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
 
-                // Calculate task status breakdown
-                const taskStatusCounts = { new: 0, planned: 0, in_progress: 0, waiting_materials: 0, done: 0, postponed: 0 };
-                tasks.forEach(t => { if (taskStatusCounts.hasOwnProperty(t.status)) taskStatusCounts[t.status]++; });
+                // Pending PRs
+                const pendingPrs = prs.filter(p => p.status !== 'done' && p.status !== 'rejected');
 
-                // Calculate installation status breakdown
-                const instStatusCounts = { new: 0, planned: 0, in_progress: 0, waiting_materials: 0, done: 0, postponed: 0 };
-                installations.forEach(i => { if (instStatusCounts.hasOwnProperty(i.status)) instStatusCounts[i.status]++; });
+                // Warehouse count
+                const warehouseCount = warehouseResult?.count ?? 0;
 
-                const getStatusLabel = (status) => {
-                    const labels = { 'new': 'Новая', 'planned': 'Запланирована', 'in_progress': 'В работе', 'waiting_materials': 'Ожидает материалов', 'done': 'Выполнена', 'postponed': 'Отложена' };
-                    return labels[status] || status;
-                };
+                // Build stat cards
+                const statCards = [];
 
-                const getInstStatusLabel = (status) => {
-                    const labels = { 'new': 'Новый', 'planned': 'Запланирован', 'in_progress': 'В работе', 'waiting_materials': 'Ожидает материалов', 'done': 'Завершён', 'postponed': 'Отложен' };
-                    return labels[status] || status;
-                };
-
-                const statusColors = {
-                    'new': '#3399ff',
-                    'planned': '#FF6B00',
-                    'in_progress': '#00D9FF',
-                    'waiting_materials': '#ff00cc',
-                    'done': '#00FF88',
-                    'postponed': '#8892a0'
-                };
-
-                let html = `
-                    <div class="stats-grid">
-                        <div class="stat-card">
-                            <div class="stat-value">${projects.length}</div>
-                            <div class="stat-label">Проектов</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-value">${tasks.length}</div>
-                            <div class="stat-label">Задач</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-value">${installations.length}</div>
-                            <div class="stat-label">Монтажей</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-value">${prs.length}</div>
-                            <div class="stat-label">Заявок</div>
-                        </div>
-                    </div>
-
-                    <!-- User Status Card -->
-                    <div class="card" id="userStatusCard">
-                        <h3 class="section-title">Пользователи</h3>
-                        <div id="userStatusLoading" style="text-align:center;padding:20px;color:var(--text-muted)">Загрузка...</div>
-                        <div id="userStatusContent" style="display:none;">
-                            <div style="display:flex;gap:16px;margin-bottom:16px;font-size:14px;">
-                                <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--success);margin-right:6px;box-shadow:0 0 6px var(--success);"></span>Онлайн: <span id="onlineCount">0</span></span>
-                                <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--text-muted);margin-right:6px;"></span>Офлайн: <span id="offlineCount">0</span></span>
-                            </div>
-                            <div id="userStatusList" style="max-height:250px;overflow-y:auto;"></div>
-                        </div>
-                    </div>
-
-                    <!-- Progress Bar -->
-                    <div class="card">
-                        <h3 class="section-title">Общее выполнение</h3>
-                        <div style="background: var(--secondary); height: 24px; border-radius: 12px; overflow: hidden; margin-bottom: 10px;">
-                            <div style="background: linear-gradient(90deg, var(--success), #66bb6a); height: 100%; width: ${progressPercent}%; transition: width 0.3s ease; border-radius: 12px;"></div>
-                        </div>
-                        <div style="display: flex; justify-content: space-between; color: var(--text-muted); font-size: 14px;">
-                            <span>${progressPercent}% выполнено</span>
-                            <span>${completedItems} из ${totalItems} завершено</span>
-                        </div>
-                    </div>
-                `;
-                
-                // Quick actions
+                // Проекты — только elevated
                 if (isManager) {
-                    html += `
-                        <div class="card" style="margin-top:16px">
-                            <h3 class="section-title">Быстрые действия</h3>
-                            <div style="display:flex;flex-wrap:wrap;gap:8px">
-                                <button class="btn" onclick="navigate('projects')">Все проекты</button>
-                                <button class="btn btn-outline" onclick="showCreateProjectModal()">+ Новый проект</button>
-                                <button class="btn btn-outline" onclick="showUsersMap()" style="background:rgba(0,255,136,0.1);border-color:#00FF88;color:#00FF88">📍 Карта сотрудников</button>
+                    statCards.push({
+                        value: projects.length,
+                        label: 'Проектов',
+                        icon: '▣',
+                        nav: 'projects',
+                        color: '#00D9FF'
+                    });
+                }
+
+                // Задачи — все
+                statCards.push({
+                    value: tasks.length,
+                    label: 'Задач',
+                    icon: '☰',
+                    nav: 'tasks',
+                    color: '#3399ff',
+                    sub: tasks.filter(t => t.status === 'in_progress').length > 0 ? `${tasks.filter(t => t.status === 'in_progress').length} в работе` : null
+                });
+
+                // Монтажи — все
+                statCards.push({
+                    value: installations.length,
+                    label: 'Монтажей',
+                    icon: '⚙',
+                    nav: 'installations',
+                    color: '#FF6B00',
+                    sub: installations.filter(i => i.status === 'in_progress').length > 0 ? `${installations.filter(i => i.status === 'in_progress').length} в работе` : null
+                });
+
+                // Заявки — все
+                statCards.push({
+                    value: prs.length,
+                    label: 'Заявок',
+                    icon: '▤',
+                    nav: 'purchaseRequests',
+                    color: '#FF00CC',
+                    sub: pendingPrs.length > 0 ? `${pendingPrs.length} активных` : null
+                });
+
+                // Склад — только elevated
+                if (isManager) {
+                    statCards.push({
+                        value: warehouseCount,
+                        label: 'Позиций склада',
+                        icon: '📦',
+                        nav: 'warehouse',
+                        color: '#00FF88'
+                    });
+                }
+
+                // Render stat cards (3 cols if 3+, else 2)
+                const cols = statCards.length >= 3 ? 3 : 2;
+                const statCardsHtml = statCards.map(c => `
+                    <div onclick="navigate('${c.nav}')" style="background:var(--gradient-card);padding:12px 10px;border-radius:12px;text-align:center;border:1px solid var(--border);cursor:pointer;transition:all 0.2s;position:relative;overflow:hidden;"
+                         onmouseover="this.style.transform='translateY(-2px)';this.style.borderColor='${c.color}';this.style.boxShadow='0 0 16px ${c.color}44'"
+                         onmouseout="this.style.transform='';this.style.borderColor='';this.style.boxShadow=''">
+                        <div style="position:absolute;top:0;left:0;right:0;height:2px;background:${c.color};opacity:0.8"></div>
+                        <div style="font-size:11px;margin-bottom:4px">${c.icon}</div>
+                        <div style="font-size:24px;font-weight:700;color:${c.color};font-family:'Orbitron',sans-serif;text-shadow:0 0 10px ${c.color}44;line-height:1">${c.value}</div>
+                        <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-top:3px">${c.label}</div>
+                        ${c.sub ? `<div style="font-size:10px;color:${c.color};margin-top:2px;opacity:0.8">${c.sub}</div>` : ''}
+                    </div>
+                `).join('');
+
+                // Build users HTML (compact grid) — only elevated
+                let usersBlockHtml = '';
+                if (isManager && usersData?.data) {
+                    const now = new Date();
+                    const users = usersData.data;
+                    const onlineUsers = [];
+                    const offlineUsers = [];
+
+                    users.forEach(user => {
+                        const lastActivity = user.last_seen_at ? new Date(user.last_seen_at) : null;
+                        const isRecentlyActive = lastActivity && (now - lastActivity) < 3 * 60 * 1000;
+                        if (isRecentlyActive || user.is_online) {
+                            onlineUsers.push(user);
+                        } else {
+                            offlineUsers.push(user);
+                        }
+                    });
+
+                    const roleShort = (role) => {
+                        const map = { manager: 'Рук.', deputy_head: 'Зам.', engineer: 'Инж.', support: 'Подд.', worker: 'Исп.' };
+                        return map[role] || role;
+                    };
+
+                    const initials = (name) => name ? name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase() : '?';
+
+                    const renderUserChip = (user, online) => {
+                        const color = online ? '#00FF88' : '#8892a0';
+                        const bg = online ? 'rgba(0,255,136,0.1)' : 'rgba(255,255,255,0.04)';
+                        const lastSeenText = (() => {
+                            if (online) return 'Онлайн';
+                            if (!user.last_seen_at) return 'давно';
+                            const diff = Math.floor((now - new Date(user.last_seen_at)) / 60000);
+                            if (diff < 1) return 'только что';
+                            if (diff < 60) return `${diff} мин`;
+                            if (diff < 1440) return `${Math.floor(diff/60)} ч`;
+                            return `${Math.floor(diff/1440)} дн`;
+                        })();
+                        return `<div style="display:flex;align-items:center;gap:6px;padding:6px 8px;background:${bg};border-radius:8px;border-left:2px solid ${color}">
+                            <div style="width:28px;height:28px;border-radius:50%;background:${bg};border:1px solid ${color};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:${color};flex-shrink:0">${initials(user.name)}</div>
+                            <div style="min-width:0;flex:1">
+                                <div style="font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${user.name}</div>
+                                <div style="font-size:10px;color:var(--text-muted)">${roleShort(user.role)} · ${lastSeenText}</div>
+                            </div>
+                            <span style="width:6px;height:6px;border-radius:50%;background:${color};flex-shrink:0;${online ? 'box-shadow:0 0 6px ' + color : ''}"></span>
+                        </div>`;
+                    };
+
+                    usersBlockHtml = `
+                        <div class="card" style="margin-bottom:12px">
+                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+                                <h3 class="section-title" style="margin:0">Сотрудники</h3>
+                                <div style="display:flex;gap:12px;font-size:12px">
+                                    <span style="color:#00FF88">● ${onlineUsers.length} онлайн</span>
+                                    <span style="color:var(--text-muted)">● ${offlineUsers.length} офлайн</span>
+                                </div>
+                            </div>
+                            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:6px;max-height:280px;overflow-y:auto">
+                                ${onlineUsers.map(u => renderUserChip(u, true)).join('')}
+                                ${offlineUsers.map(u => renderUserChip(u, false)).join('')}
                             </div>
                         </div>
                     `;
-                } else {
-                    // Worker: show my pending items
+                }
+
+                // Progress bar
+                const progressHtml = `
+                    <div class="card" style="margin-bottom:12px">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                            <h3 class="section-title" style="margin:0">Общее выполнение</h3>
+                            <span style="font-size:14px;font-weight:700;color:var(--success)">${progressPercent}%</span>
+                        </div>
+                        <div style="background:var(--secondary);height:10px;border-radius:5px;overflow:hidden;margin-bottom:6px">
+                            <div style="background:linear-gradient(90deg,var(--success),#66bb6a);height:100%;width:${progressPercent}%;transition:width 0.3s ease;border-radius:5px"></div>
+                        </div>
+                        <div style="font-size:12px;color:var(--text-muted)">${completedItems} из ${totalItems} завершено</div>
+                    </div>
+                `;
+
+                // Quick actions (elevated only)
+                let actionsHtml = '';
+                if (isManager) {
+                    actionsHtml = `
+                        <div class="card" style="margin-bottom:12px">
+                            <h3 class="section-title">Быстрые действия</h3>
+                            <div style="display:flex;flex-wrap:wrap;gap:8px">
+                                <button class="btn btn-outline btn-sm" onclick="showCreateProjectModal()">+ Новый проект</button>
+                                <button class="btn btn-outline btn-sm" onclick="navigate('atss')">📋 АТСС</button>
+                                <button class="btn btn-outline btn-sm" onclick="showUsersMap()" style="border-color:#00FF88;color:#00FF88">📍 Карта</button>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                // Worker: my pending tasks/installations
+                let workerHtml = '';
+                if (isWorker) {
                     const myPendingTasks = tasks.filter(t => t.status === 'in_progress' || t.status === 'new');
                     const myPendingInstallations = installations.filter(i => i.status === 'planned' || i.status === 'in_progress');
-                    
+
                     if (myPendingTasks.length > 0) {
-                        html += `<h3 class="section-title">Мои задачи</h3>`;
-                        myPendingTasks.slice(0, 3).forEach(task => {
-                            html += renderTaskCard(task);
-                        });
+                        workerHtml += `<h3 class="section-title">Мои задачи</h3>`;
+                        myPendingTasks.slice(0, 3).forEach(task => { workerHtml += renderTaskCard(task); });
                     }
-                    
                     if (myPendingInstallations.length > 0) {
-                        html += `<h3 class="section-title">Мои монтажи</h3>`;
-                        myPendingInstallations.slice(0, 3).forEach(inst => {
-                            html += renderInstallationCard(inst);
-                        });
+                        workerHtml += `<h3 class="section-title">Мои монтажи</h3>`;
+                        myPendingInstallations.slice(0, 3).forEach(inst => { workerHtml += renderInstallationCard(inst); });
                     }
                 }
-                
-                // Build full HTML and replace content (removes loading indicator)
-                content.innerHTML = html;
+
+                content.innerHTML = `
+                    <h2 style="margin-bottom:12px">Главная</h2>
+                    <div style="display:grid;grid-template-columns:repeat(${cols},1fr);gap:8px;margin-bottom:12px">
+                        ${statCardsHtml}
+                    </div>
+                    ${usersBlockHtml}
+                    ${progressHtml}
+                    ${actionsHtml}
+                    ${workerHtml}
+                `;
                 initSwipeHandlers();
-                loadUserStatus();
-                
+
             } catch (error) {
                 console.error('Dashboard load error:', error);
                 const errMsg = error?.message || error?.details || JSON.stringify(error) || 'Unknown error';
-                content.innerHTML = `<h2 style="margin-bottom: 16px">Главная</h2>
+                content.innerHTML = `<h2 style="margin-bottom:16px">Главная</h2>
                     <div style="background:rgba(239,68,68,0.1);border:1px solid #ef4444;border-radius:8px;padding:16px;margin:16px 0">
                         <div style="color:#ef4444;font-weight:600;margin-bottom:8px">⚠ Ошибка загрузки дашборда:</div>
                         <div style="color:#fff;font-family:monospace;font-size:12px;word-break:break-all">${errMsg}</div>
                     </div>`;
             }
         }
-        
+
         // ============================================================
         // PROJECTS
         // ============================================================
@@ -17058,142 +17153,10 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
         // USER STATUS DISPLAY
         // ============================================================
         
-        // Load and display user statuses on dashboard
-        window.loadUserStatus = async function() {
-            const loadingEl = document.getElementById('userStatusLoading');
-            const contentEl = document.getElementById('userStatusContent');
-            const listEl = document.getElementById('userStatusList');
-            const onlineCountEl = document.getElementById('onlineCount');
-            const offlineCountEl = document.getElementById('offlineCount');
-            
-            if (!loadingEl || !contentEl) {
-                console.log('User status elements not found, skipping...');
-                return;
-            }
-            
-            try {
-                // Fetch all users with their status
-                const { data: users, error } = await supabaseClient
-                    .from('users')
-                    .select('id, name, role, is_online, last_seen_at')
-                    .order('name');
-                
-                if (error) throw error;
-                
-                if (!users || users.length === 0) {
-                    loadingEl.style.display = 'none';
-                    listEl.innerHTML = '<p style="color:var(--text-muted);text-align:center;">Нет пользователей</p>';
-                    contentEl.style.display = 'block';
-                    return;
-                }
-                
-                // Calculate online/offline
-                const now = new Date();
-                const onlineUsers = [];
-                const offlineUsers = [];
-                
-                users.forEach(user => {
-                    // Consider online if updated_at within 3 minutes
-                    const lastActivity = user.updated_at ? new Date(user.updated_at) : null;
-                    const isRecentlyActive = lastActivity && (now - lastActivity) < 3 * 60 * 1000; // 3 minutes
-                    
-                    if (isRecentlyActive) {
-                        onlineUsers.push(user);
-                    } else {
-                        offlineUsers.push(user);
-                    }
-                });
-                
-                // Update counts
-                if (onlineCountEl) onlineCountEl.textContent = onlineUsers.length;
-                if (offlineCountEl) offlineCountEl.textContent = offlineUsers.length;
-                
-                // Build user list HTML
-                let html = '';
-                
-                // Online users first
-                if (onlineUsers.length > 0) {
-                    onlineUsers.forEach(user => {
-                        const roleLabel = user.role === 'manager' ? 'Руководитель' : 
-                                        (user.role === 'deputy_head' ? 'Зам. начальника' : 
-                                        (user.role === 'engineer' ? 'Инженер' : 
-                                        (user.role === 'support' ? 'Техподдержка' : 'Исполнитель')));
-                        html += `
-                            <div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:rgba(0,255,136,0.05);border-radius:8px;margin-bottom:8px;border-left:3px solid var(--success);">
-                                <div>
-                                    <div style="font-weight:500;color:var(--text)">${user.name}</div>
-                                    <div style="font-size:12px;color:var(--text-muted)">${roleLabel}</div>
-                                </div>
-                                <div style="text-align:right;">
-                                    <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--success);box-shadow:0 0 8px var(--success);"></span>
-                                    <span style="font-size:11px;color:var(--success);margin-left:4px;">Онлайн</span>
-                                </div>
-                            </div>
-                        `;
-                    });
-                }
-                
-                // Offline users
-                if (offlineUsers.length > 0) {
-                    offlineUsers.forEach(user => {
-                        const roleLabel = user.role === 'manager' ? 'Руководитель' : 
-                                        (user.role === 'deputy_head' ? 'Зам. начальника' : 
-                                        (user.role === 'engineer' ? 'Инженер' : 
-                                        (user.role === 'support' ? 'Техподдержка' : 'Исполнитель')));
-                        
-                        // Format last seen
-                        let lastSeenText = 'давно';
-                        if (user.updated_at) {
-                            const lastSeen = new Date(user.updated_at);
-                            const diffMs = now - lastSeen;
-                            const diffSecs = Math.floor(diffMs / 1000);
-                            const diffMins = Math.floor(diffMs / 60000);
-                            const diffHours = Math.floor(diffMs / 3600000);
-                            const diffDays = Math.floor(diffMs / 86400000);
-                            
-                            if (diffSecs < 30) {
-                                lastSeenText = 'только что';
-                            } else if (diffMins < 1) {
-                                lastSeenText = `${diffSecs} сек. назад`;
-                            } else if (diffMins < 60) {
-                                lastSeenText = `${diffMins} мин. назад`;
-                            } else if (diffHours < 24) {
-                                lastSeenText = `${diffHours} ч. назад`;
-                            } else {
-                                lastSeenText = `${diffDays} дн. назад`;
-                            }
-                        }
-                        
-                        html += `
-                            <div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:var(--secondary);border-radius:8px;margin-bottom:8px;border-left:3px solid var(--text-muted);">
-                                <div>
-                                    <div style="font-weight:500;color:var(--text)">${user.name}</div>
-                                    <div style="font-size:12px;color:var(--text-muted)">${roleLabel}</div>
-                                </div>
-                                <div style="text-align:right;">
-                                    <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--text-muted);"></span>
-                                    <span style="font-size:11px;color:var(--text-muted);margin-left:4px;">${lastSeenText}</span>
-                                </div>
-                            </div>
-                        `;
-                    });
-                }
-                
-                listEl.innerHTML = html;
-                loadingEl.style.display = 'none';
-                contentEl.style.display = 'block';
-                
-                console.log('User status loaded:', onlineUsers.length, 'online,', offlineUsers.length, 'offline');
-                
-            } catch (error) {
-                console.error('Error loading user status:', error);
-                loadingEl.style.display = 'none';
-                listEl.innerHTML = '<p style="color:var(--danger);text-align:center;">Ошибка загрузки</p>';
-                contentEl.style.display = 'block';
-            }
-        };
-        
-        // === UNREAD COMMENTS HELPERS ===
+        // loadUserStatus — встроен в renderDashboard
+        window.loadUserStatus = async function() { /* встроен в renderDashboard */ };
+
+                // === UNREAD COMMENTS HELPERS ===
         // Храним время последнего просмотра в localStorage
         // Ключ: unread_{type}_{id}  => ISO timestamp
 
