@@ -48,11 +48,14 @@ public class UpdateChecker {
                 String downloadUrl = remote.getString("downloadUrl");
                 String notes = remote.optString("releaseNotes", "Улучшения и исправления");
 
-                Log.d(TAG, "Current: " + currentCode + " / Remote: " + remoteCode);
+                Log.d(TAG, "Current versionCode=" + currentCode + " / Remote versionCode=" + remoteCode);
 
                 if (remoteCode > currentCode) {
+                    Log.d(TAG, "Update available: " + remoteName + " URL: " + downloadUrl);
                     activity.runOnUiThread(() ->
                         showUpdateDialog(remoteName, downloadUrl, notes));
+                } else {
+                    Log.d(TAG, "App is up to date (" + currentCode + " >= " + remoteCode + ")");
                 }
             } catch (Exception e) {
                 Log.e(TAG, "Update check failed", e);
@@ -60,11 +63,23 @@ public class UpdateChecker {
         }).start();
     }
 
+    @SuppressWarnings("deprecation")
     private int getCurrentVersionCode() {
         try {
-            return activity.getPackageManager()
-                .getPackageInfo(activity.getPackageName(), 0).versionCode;
+            PackageManager pm = activity.getPackageManager();
+            String pkg = activity.getPackageName();
+            int code;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                code = (int) pm.getPackageInfo(pkg, PackageManager.PackageInfoFlags.of(0)).getLongVersionCode();
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                code = (int) pm.getPackageInfo(pkg, 0).getLongVersionCode();
+            } else {
+                code = pm.getPackageInfo(pkg, 0).versionCode;
+            }
+            Log.d(TAG, "Current versionCode: " + code);
+            return code;
         } catch (PackageManager.NameNotFoundException e) {
+            Log.e(TAG, "getPackageInfo failed", e);
             return 0;
         }
     }

@@ -8,6 +8,8 @@ import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.webkit.GeolocationPermissions;
 import android.webkit.JavascriptInterface;
 import android.webkit.PermissionRequest;
@@ -125,8 +127,9 @@ public class MainActivity extends AppCompatActivity {
         webView.loadUrl(APP_URL);
         requestAllPermissions();
 
-        // Проверяем обновления через 3 секунды после старта
-        webView.postDelayed(() -> new UpdateChecker(this).checkForUpdate(), 3000);
+        // Проверяем обновления через 5 секунд после старта (Handler надёжнее чем webView.postDelayed)
+        new Handler(Looper.getMainLooper()).postDelayed(
+            () -> new UpdateChecker(this).checkForUpdate(), 5000);
     }
 
     // Получаем FCM токен нативно и передаём в WebView
