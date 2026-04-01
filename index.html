@@ -4193,99 +4193,178 @@
         // ============================================================
         // USER STATUS TRACKING
         // ============================================================
-        
+
         // Update user's online status and last_seen
         async function updateUserStatus(isOnline) {
             if (!currentUserProfile?.id) return;
-            
             try {
-                const { error } = await supabaseClient
+                await supabaseClient
                     .from('users')
-                    .update({ 
-                        is_online: isOnline,
-                        last_seen_at: new Date().toISOString()
-                    })
+                    .update({ is_online: isOnline, last_seen_at: new Date().toISOString() })
                     .eq('id', currentUserProfile.id);
-                
-                if (error) {
-                    console.error('Error updating user status:', error);
-                } else {
-                    console.log('User status updated:', isOnline ? 'online' : 'offline');
-                }
-            } catch (error) {
-                console.error('Error in updateUserStatus:', error);
+            } catch (e) {
+                console.error('updateUserStatus error:', e);
             }
         }
-        
-        // Periodic heartbeat to update last_seen_at
+
+        // Heartbeat: update last_seen every 15s while active
         let heartbeatInterval = null;
         let userStatusInterval = null;
-        
+        let _usersRealtimeSub = null;
+
         function startHeartbeat() {
-            // Update last_seen every 30 seconds while user is active
-            if (heartbeatInterval) {
-                clearInterval(heartbeatInterval);
-            }
-            
+            if (heartbeatInterval) clearInterval(heartbeatInterval);
             heartbeatInterval = setInterval(async () => {
-                if (currentUserProfile?.id) {
-                    await updateUserStatus(true);
-                }
-            }, 8000); // 8 seconds instead of 30 for faster updates
+                if (currentUserProfile?.id) await updateUserStatus(true);
+            }, 15000);
         }
-        
+
         function stopHeartbeat() {
-            if (heartbeatInterval) {
-                clearInterval(heartbeatInterval);
-                heartbeatInterval = null;
-            }
-            // Also stop user status polling
-            if (userStatusInterval) {
-                clearInterval(userStatusInterval);
-                userStatusInterval = null;
+            if (heartbeatInterval) { clearInterval(heartbeatInterval); heartbeatInterval = null; }
+            if (userStatusInterval) { clearInterval(userStatusInterval); userStatusInterval = null; }
+            _stopUsersRealtimeSub();
+        }
+
+        function _stopUsersRealtimeSub() {
+            if (_usersRealtimeSub) {
+                try { _usersRealtimeSub.unsubscribe(); } catch(e) {}
+                _usersRealtimeSub = null;
             }
         }
-        
-        // Start periodic polling for user statuses on dashboard
-        function startUserStatusPolling() {
-            if (userStatusInterval) {
-                clearInterval(userStatusInterval);
-            }
-            
-            // Update user statuses every 15 seconds
-            userStatusInterval = setInterval(() => {
-                if (currentView === 'dashboard') {
-                    loadUserStatus();
+
+        // Subscribe to real-time user status changes — refreshes dashboard block live
+        function startUsersRealtimeSub() {
+            _stopUsersRealtimeSub();
+            if (!isElevatedUser()) return; // only managers see the users block
+            _usersRealtimeSub = supabaseClient
+                .channel('users-online-status')
+                .on('postgres_changes', {
+                    event: 'UPDATE',
+                    schema: 'public',
+                    table: 'users'
+                }, (payload) => {
+                    // Update cached data and re-render the users block if on dashboard
+                    if (currentView === 'dashboard') {
+                        _refreshUsersBlock();
+                    }
+                })
+                .subscribe((status) => {
+                    console.log('Users realtime sub:', status);
+                });
+        }
+
+        // Refresh only the users block on dashboard without full re-render
+        let _usersBlockRefreshTimer = null;
+        async function _refreshUsersBlock() {
+            // Debounce: wait 500ms after last change to avoid flicker
+            clearTimeout(_usersBlockRefreshTimer);
+            _usersBlockRefreshTimer = setTimeout(async () => {
+                try {
+                    const now = new Date();
+                    const { data: users } = await supabaseClient
+                        .from('users')
+                        .select('id, name, role, is_online, last_seen_at')
+                        .order('name');
+                    if (!users) return;
+
+                    const onlineUsers = [];
+                    const offlineUsers = [];
+                    users.forEach(user => {
+                        const lastActivity = user.last_seen_at ? new Date(user.last_seen_at) : null;
+                        if ((lastActivity && (now - lastActivity) < 3 * 60 * 1000) || user.is_online) {
+                            onlineUsers.push(user);
+                        } else {
+                            offlineUsers.push(user);
+                        }
+                    });
+
+                    const roleShort = (role) => ({ manager:'Рук.', deputy_head:'Зам.', engineer:'Инж.', support:'Подд.', worker:'Исп.' }[role] || role);
+                    const initials = (name) => name ? name.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase() : '?';
+
+                    const renderChip = (user, online) => {
+                        const color = online ? '#00FF88' : '#8892a0';
+                        const bg = online ? 'rgba(0,255,136,0.1)' : 'rgba(255,255,255,0.04)';
+                        const lastSeenText = (() => {
+                            if (online) return 'Онлайн';
+                            if (!user.last_seen_at) return 'давно';
+                            const diff = Math.floor((now - new Date(user.last_seen_at)) / 60000);
+                            if (diff < 1) return 'только что';
+                            if (diff < 60) return diff + ' мин';
+                            if (diff < 1440) return Math.floor(diff/60) + ' ч';
+                            return Math.floor(diff/1440) + ' дн';
+                        })();
+                        return `<div style="display:flex;align-items:center;gap:6px;padding:6px 8px;background:${bg};border-radius:8px;border-left:2px solid ${color}">
+                            <div style="width:28px;height:28px;border-radius:50%;background:${bg};border:1px solid ${color};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:${color};flex-shrink:0">${initials(user.name)}</div>
+                            <div style="min-width:0;flex:1">
+                                <div style="font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${user.name}</div>
+                                <div style="font-size:10px;color:var(--text-muted)">${roleShort(user.role)} · ${lastSeenText}</div>
+                            </div>
+                            <span style="width:6px;height:6px;border-radius:50%;background:${color};flex-shrink:0;${online?'box-shadow:0 0 6px '+color:''}"></span>
+                        </div>`;
+                    };
+
+                    // Find the users grid on the dashboard and update it
+                    const grid = document.querySelector('#dashboard-users-grid');
+                    const onlineEl = document.querySelector('#dashboard-online-count');
+                    const offlineEl = document.querySelector('#dashboard-offline-count');
+                    if (grid) {
+                        grid.innerHTML = onlineUsers.map(u => renderChip(u, true)).join('') + offlineUsers.map(u => renderChip(u, false)).join('');
+                    }
+                    if (onlineEl) onlineEl.textContent = onlineUsers.length;
+                    if (offlineEl) offlineEl.textContent = offlineUsers.length;
+                } catch(e) {
+                    console.error('_refreshUsersBlock error:', e);
                 }
-            }, 10000); // 10 seconds instead  updates
+            }, 500);
+        }
+
+        // Polling fallback: refresh every 20s if on dashboard
+        function startUserStatusPolling() {
+            if (userStatusInterval) clearInterval(userStatusInterval);
+            userStatusInterval = setInterval(() => {
+                if (currentView === 'dashboard') _refreshUsersBlock();
+            }, 20000);
         }
         
         // Handle visibility change (tab switching, browser close)
+        let _offlineTimer = null;
         document.addEventListener('visibilitychange', async () => {
             if (!currentUserProfile?.id) return;
-            
             if (document.visibilityState === 'visible') {
-                // User returned to the app - update status to online
+                // Cancel pending offline mark
+                if (_offlineTimer) { clearTimeout(_offlineTimer); _offlineTimer = null; }
                 await updateUserStatus(true);
                 startHeartbeat();
             } else {
-                // User left the app - just update last_seen
-                try {
-                    await supabaseClient
-                        .from('users')
-                        .update({ last_seen_at: new Date().toISOString() })
-                        .eq('id', currentUserProfile.id);
-                } catch (e) {
-                    console.error('Error updating last_seen on visibility change:', e);
-                }
+                // Mark offline after 30s if tab stays hidden (not just a quick switch)
+                _offlineTimer = setTimeout(async () => {
+                    if (document.visibilityState !== 'visible') {
+                        await updateUserStatus(false);
+                    }
+                }, 30000);
             }
         });
         
-        // Handle beforeunload - update status to offline
-        window.addEventListener('beforeunload', async () => {
-            if (currentUserProfile?.id) {
-                await updateUserStatus(false);
-            }
+        // Handle beforeunload - use sendBeacon (sync, works reliably on unload)
+        window.addEventListener('beforeunload', () => {
+            if (!currentUserProfile?.id) return;
+            try {
+                const url = `${SUPABASE_URL}/rest/v1/users?id=eq.${currentUserProfile.id}`;
+                const body = JSON.stringify({ is_online: false, last_seen_at: new Date().toISOString() });
+                const headers = { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}`, 'Prefer': 'return=minimal' };
+                // sendBeacon doesn't support custom headers, use fetch with keepalive
+                fetch(url, { method: 'PATCH', headers, body, keepalive: true }).catch(() => {});
+            } catch(e) {}
+        });
+
+        // Handle pagehide (iOS Safari fires this instead of beforeunload)
+        window.addEventListener('pagehide', () => {
+            if (!currentUserProfile?.id) return;
+            try {
+                const url = `${SUPABASE_URL}/rest/v1/users?id=eq.${currentUserProfile.id}`;
+                const body = JSON.stringify({ is_online: false, last_seen_at: new Date().toISOString() });
+                fetch(url, { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}`, 'Prefer': 'return=minimal' }, body, keepalive: true }).catch(() => {});
+            } catch(e) {}
         });
         
         // ============================================================
@@ -4718,8 +4797,9 @@
             // Start user status tracking (heartbeat)
             startHeartbeat();
             
-            // Start periodic polling for user statuses on dashboard
+            // Start periodic polling + realtime for user statuses on dashboard
             startUserStatusPolling();
+            startUsersRealtimeSub();
             
             // Start location tracking (9:00-18:00)
             startLocationTracking();
@@ -4992,6 +5072,7 @@
                 switch(currentView) {
                     case 'dashboard':
                         await renderDashboard(content);
+                        startUsersRealtimeSub();
                         break;
                     case 'projects':
                         await renderProjects(content);
@@ -5311,11 +5392,11 @@
                             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
                                 <h3 class="section-title" style="margin:0">Сотрудники</h3>
                                 <div style="display:flex;gap:12px;font-size:12px">
-                                    <span style="color:#00FF88">● ${onlineUsers.length} онлайн</span>
-                                    <span style="color:var(--text-muted)">● ${offlineUsers.length} офлайн</span>
+                                    <span style="color:#00FF88">● <span id="dashboard-online-count">${onlineUsers.length}</span> онлайн</span>
+                                    <span style="color:var(--text-muted)">● <span id="dashboard-offline-count">${offlineUsers.length}</span> офлайн</span>
                                 </div>
                             </div>
-                            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:6px;max-height:280px;overflow-y:auto">
+                            <div id="dashboard-users-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:6px;max-height:280px;overflow-y:auto">
                                 ${onlineUsers.map(u => renderUserChip(u, true)).join('')}
                                 ${offlineUsers.map(u => renderUserChip(u, false)).join('')}
                             </div>
