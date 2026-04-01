@@ -11038,6 +11038,7 @@
         async function getPurchaseRequests() {
             const userId = currentUserProfile?.id;
             const isManager = isElevatedUser();
+            if (!isManager && !userId) return [];
 
             // Simple query - just get PRs without heavy joins
             let query = supabaseClient
@@ -17631,7 +17632,11 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
                 const { data: { session } } = await supabaseClient.auth.getSession();
                 const res = await fetch(SUPABASE_URL + '/functions/v1/sync-sites', {
                     method: 'POST',
-                    headers: { 'Authorization': 'Bearer ' + session.access_token, 'Content-Type': 'application/json' },
+                    headers: {
+                        'Authorization': 'Bearer ' + session.access_token,
+                        'x-sync-secret': 'korneo_sync_2026',
+                        'Content-Type': 'application/json'
+                    },
                     body: JSON.stringify({})
                 });
                 const json = await res.json();
