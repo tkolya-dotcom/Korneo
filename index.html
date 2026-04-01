@@ -14332,6 +14332,8 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
 
             await loadMessages(chatId);
             subscribeToMessages(chatId);
+            // Помечаем все сообщения как прочитанные
+            markMessagesAsRead(chatId);
             updateActiveJobsBanner(chatId);
         };
 
@@ -14580,8 +14582,11 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
                     
                     // Read receipts - галочки прочтения
                     const readReceipts = msg.read_receipts || [];
-                    const otherMembersCount = messengerState.chats.find(c => c.chat_id === messengerState.selectedChat?.chat_id)?.membersCount || 1;
-                    const allRead = readReceipts.length >= otherMembersCount;
+                    const chat = messengerState.chats.find(c => c.chat_id === messengerState.selectedChat?.chat_id);
+                    const membersCount = chat?.membersCount || 2;
+                    // Need receipts from all OTHER members (total - 1), excluding sender's own receipt
+                    const otherReceipts = readReceipts.filter(r => r.user_id !== msg.user_id);
+                    const allRead = otherReceipts.length >= (membersCount - 1);
                     const ticksHtml = isOwn ? '<span class="cl-ticks' + (allRead ? ' read' : '') + '" title="' + (allRead ? 'Прочитано' : 'Доставлено') + '">' + (allRead ? '✓✓' : '✓') + '</span>' : '';
                     
                     // Кнопка удаления (только для своих сообщений или manager)
@@ -14620,10 +14625,38 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
         // Отметка сообщений как прочитанных
         async function markMessagesAsRead(chatId) {
             try {
-                await supabaseClient.rpc('mark_chat_messages_as_read', { chat_id_param: chatId });
+                const { error } = await supabaseClient.rpc('mark_chat_messages_as_read', { chat_id_param: chatId });
+                if (error) throw error;
                 console.log('✅ Messages marked as read');
             } catch (e) {
                 console.error('Error marking messages as read:', e);
+            }
+        }
+
+        // Обновляем только галочки конкретного сообщения без полного ре-рендера
+        function _updateMessageTicks(msg) {
+            const bubble = document.querySelector('.msg-bubble[data-msg-id="' + msg.id + '"]');
+            if (!bubble) return;
+            const small = bubble.querySelector('small');
+            if (!small) return;
+
+            const chat = messengerState.chats.find(c => c.chat_id === messengerState.selectedChat?.chat_id);
+            const membersCount = chat?.membersCount || 2;
+            const otherReceipts = (msg.read_receipts || []).filter(r => r.user_id !== msg.user_id);
+            const allRead = otherReceipts.length >= (membersCount - 1);
+
+            // Remove old ticks
+            const oldTick = small.querySelector('.cl-ticks');
+            if (oldTick) oldTick.remove();
+
+            // Add updated ticks
+            const isOwn = msg.user_id === currentUser?.id;
+            if (isOwn) {
+                const span = document.createElement('span');
+                span.className = 'cl-ticks' + (allRead ? ' read' : '');
+                span.title = allRead ? 'Прочитано' : 'Доставлено';
+                span.textContent = allRead ? '✓✓' : '✓';
+                small.appendChild(span);
             }
         }
 
@@ -14677,32 +14710,31 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
                         renderMessages();
                     }
                 })
-                // ---- Realtime: обновления прочтений ----
+                // ---- Realtime: обновления прочтений (слушаем ВСЕ чтения в чате) ----
                 .on('postgres_changes', {
                     event: 'INSERT',
                     schema: 'public',
-                    table: 'message_read_receipts',
-                    filter: 'user_id=eq.' + currentUser.id
+                    table: 'message_read_receipts'
                 }, async (payload) => {
                     const receipt = payload.new;
-                    console.log('📖 Message read by user:', receipt.user_id, 'message:', receipt.message_id);
-                    
-                    // Обновляем read_receipts у сообщения
+                    if (!receipt) return;
+                    // Только обновления от других пользователей (не от себя)
+                    if (receipt.user_id === currentUser?.id) return;
+                    console.log('📖 Message read by:', receipt.user_id, 'msg:', receipt.message_id);
+
                     const msgIndex = messengerState.messages.findIndex(m => m.id === receipt.message_id);
                     if (msgIndex > -1) {
                         const msg = messengerState.messages[msgIndex];
                         if (!msg.read_receipts) msg.read_receipts = [];
-                        
-                        // Проверяем есть ли уже эта запись
                         const exists = msg.read_receipts.some(r => r.user_id === receipt.user_id);
                         if (!exists) {
                             msg.read_receipts.push({
                                 id: receipt.id,
                                 user_id: receipt.user_id,
-                                read_at: receipt.read_at,
-                                users: { name: receipt.users?.name || 'Пользователь' }
+                                read_at: receipt.read_at
                             });
-                            renderMessages();
+                            // Обновляем только галочки затронутого сообщения — без полного re-render
+                            _updateMessageTicks(msg);
                         }
                     }
                 })
