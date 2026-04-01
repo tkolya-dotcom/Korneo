@@ -836,95 +836,162 @@
             100% { transform: rotate(360deg); }
         }
 
-        /* Dancing stick figure */
+        /* ── Dancing figure (SVG-based) ── */
         .dancing-loader {
-            position: relative;
-            width: 60px;
-            height: 80px;
+            width: 90px;
+            height: 110px;
             margin: 0 auto 16px;
+            position: relative;
         }
-        
-        .loader-head {
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            background: var(--accent);
-            position: absolute;
-            top: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            animation: headBounce 0.6s ease-in-out infinite;
-            box-shadow: 0 0 15px var(--accent);
+        .dancing-loader svg {
+            width: 100%;
+            height: 100%;
+            overflow: visible;
         }
-        
-        .loader-body {
-            width: 4px;
-            height: 30px;
-            background: var(--accent);
-            position: absolute;
-            top: 22px;
-            left: 50%;
-            transform: translateX(-50%);
-            border-radius: 2px;
+
+        /* Body bounce */
+        @keyframes bodyBounce {
+            0%,100% { transform: translateY(0px); }
+            25%      { transform: translateY(-10px); }
+            50%      { transform: translateY(-4px); }
+            75%      { transform: translateY(-12px); }
         }
-        
-        .loader-arm-left,
-        .loader-arm-right {
-            width: 20px;
-            height: 4px;
-            background: var(--accent);
-            position: absolute;
-            top: 26px;
-            border-radius: 2px;
-            transform-origin: center;
-            animation: armWave 0.6s ease-in-out infinite;
+        .dl-body-group { animation: bodyBounce 0.7s ease-in-out infinite; }
+
+        /* Head nod */
+        @keyframes headNod {
+            0%,100% { transform: rotate(0deg); }
+            20%      { transform: rotate(-12deg); }
+            50%      { transform: rotate(8deg); }
+            75%      { transform: rotate(-6deg); }
         }
-        
-        .loader-arm-left {
-            left: 26px;
-            transform: rotate(-30deg);
+        .dl-head { 
+            transform-origin: 45px 18px;
+            animation: headNod 0.7s ease-in-out infinite;
         }
-        
-        .loader-arm-right {
-            right: 26px;
-            transform: rotate(30deg);
+
+        /* Eyes blink */
+        @keyframes eyeBlink {
+            0%,90%,100% { transform: scaleY(1); }
+            95%          { transform: scaleY(0.1); }
         }
-        
-        .loader-leg-left,
-        .loader-leg-right {
-            width: 4px;
-            height: 26px;
-            background: var(--accent);
-            position: absolute;
-            top: 50px;
-            border-radius: 2px;
-            transform-origin: top;
-            animation: legDance 0.6s ease-in-out infinite;
+        .dl-eye { animation: eyeBlink 2.1s ease-in-out infinite; transform-origin: center; }
+        .dl-eye-r { animation-delay: 0.05s; }
+
+        /* Smile */
+        @keyframes smileWave {
+            0%,100% { d: path("M39,26 Q45,31 51,26"); }
+            50%      { d: path("M39,28 Q45,32 51,28"); }
         }
-        
-        .loader-leg-left {
-            left: 24px;
-            transform: rotate(15deg);
+
+        /* Left arm — raises up then sweeps */
+        @keyframes armL {
+            0%   { transform: rotate(-20deg); }
+            25%  { transform: rotate(-110deg); }
+            50%  { transform: rotate(-60deg); }
+            75%  { transform: rotate(-130deg); }
+            100% { transform: rotate(-20deg); }
         }
-        
-        .loader-leg-right {
-            right: 24px;
-            transform: rotate(-15deg);
+        /* Right arm — opposite phase */
+        @keyframes armR {
+            0%   { transform: rotate(20deg); }
+            25%  { transform: rotate(130deg); }
+            50%  { transform: rotate(60deg); }
+            75%  { transform: rotate(110deg); }
+            100% { transform: rotate(20deg); }
         }
-        
-        @keyframes headBounce {
-            0%, 100% { transform: translateX(-50%) translateY(0); }
-            50% { transform: translateX(-50%) translateY(-8px); }
+        /* Forearm bend */
+        @keyframes forearmL {
+            0%,100% { transform: rotate(30deg); }
+            40%      { transform: rotate(80deg); }
+            70%      { transform: rotate(10deg); }
         }
-        
-        @keyframes armWave {
-            0%, 100% { transform: rotate(-30deg) translateY(0); }
-            50% { transform: rotate(-50deg) translateY(-3px); }
+        @keyframes forearmR {
+            0%,100% { transform: rotate(-30deg); }
+            40%      { transform: rotate(-80deg); }
+            70%      { transform: rotate(-10deg); }
         }
-        
-        @keyframes legDance {
-            0%, 100% { transform: rotate(15deg); }
-            50% { transform: rotate(-25deg); }
+
+        .dl-upper-arm-l {
+            transform-origin: 33px 43px;
+            animation: armL 0.7s ease-in-out infinite;
+        }
+        .dl-upper-arm-r {
+            transform-origin: 57px 43px;
+            animation: armR 0.7s ease-in-out infinite;
+        }
+        .dl-forearm-l {
+            transform-origin: 0px 0px;
+            animation: forearmL 0.7s ease-in-out infinite;
+        }
+        .dl-forearm-r {
+            transform-origin: 0px 0px;
+            animation: forearmR 0.7s ease-in-out infinite;
+        }
+
+        /* Hip sway */
+        @keyframes hipSway {
+            0%,100% { transform: rotate(0deg); }
+            25%      { transform: rotate(8deg); }
+            75%      { transform: rotate(-8deg); }
+        }
+        .dl-hips { 
+            transform-origin: 45px 68px;
+            animation: hipSway 0.7s ease-in-out infinite;
+        }
+
+        /* Left leg kick */
+        @keyframes legL {
+            0%,100% { transform: rotate(-15deg); }
+            30%      { transform: rotate(-45deg); }
+            60%      { transform: rotate(10deg); }
+        }
+        /* Right leg kick opposite */
+        @keyframes legR {
+            0%,100% { transform: rotate(15deg); }
+            30%      { transform: rotate(45deg); }
+            60%      { transform: rotate(-10deg); }
+        }
+        @keyframes shinL {
+            0%,100% { transform: rotate(10deg); }
+            40%      { transform: rotate(40deg); }
+        }
+        @keyframes shinR {
+            0%,100% { transform: rotate(-10deg); }
+            40%      { transform: rotate(-40deg); }
+        }
+        .dl-thigh-l {
+            transform-origin: 38px 68px;
+            animation: legL 0.7s ease-in-out infinite;
+        }
+        .dl-thigh-r {
+            transform-origin: 52px 68px;
+            animation: legR 0.7s ease-in-out infinite;
+        }
+        .dl-shin-l {
+            transform-origin: 0px 0px;
+            animation: shinL 0.7s ease-in-out infinite;
+        }
+        .dl-shin-r {
+            transform-origin: 0px 0px;
+            animation: shinR 0.7s ease-in-out infinite;
+        }
+
+        /* Glow pulse */
+        @keyframes glowPulse {
+            0%,100% { opacity: 0.5; r: 38; }
+            50%      { opacity: 0.15; r: 45; }
+        }
+        .dl-glow { animation: glowPulse 0.7s ease-in-out infinite; }
+
+        /* Shadow */
+        @keyframes shadowPulse {
+            0%,100% { transform: scaleX(1); opacity: 0.3; }
+            25%,75% { transform: scaleX(0.7); opacity: 0.15; }
+        }
+        .dl-shadow { 
+            transform-origin: 45px 104px;
+            animation: shadowPulse 0.7s ease-in-out infinite;
         }
 
         /* ========================================
@@ -5203,7 +5270,104 @@
         // ============================================================
         async function renderContent() {
             const content = document.getElementById('content');
-            content.innerHTML = '<div class="loading"><div class="dancing-loader"><div class="loader-head"></div><div class="loader-body"></div><div class="loader-arm-left"></div><div class="loader-arm-right"></div><div class="loader-leg-left"></div><div class="loader-leg-right"></div></div></div>';
+            content.innerHTML = '<div class="loading"><div class="dancing-loader"><svg viewBox="0 0 90 110" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="dlGlow">
+      <feGaussianBlur stdDeviation="2.5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Shadow -->
+  <ellipse class="dl-shadow" cx="45" cy="104" rx="18" ry="4" fill="#00D9FF" opacity="0.25"/>
+
+  <!-- Glow halo -->
+  <circle class="dl-glow" cx="45" cy="55" r="38" fill="none" stroke="#00D9FF" stroke-width="1.5" opacity="0.4"/>
+
+  <g class="dl-body-group" filter="url(#dlGlow)">
+
+    <!-- HIPS / LOWER BODY -->
+    <g class="dl-hips">
+      <!-- Thigh L -->
+      <g class="dl-thigh-l">
+        <line x1="38" y1="68" x2="34" y2="85" stroke="#00D9FF" stroke-width="4" stroke-linecap="round"/>
+        <!-- Shin L -->
+        <g class="dl-shin-l" style="transform-origin:34px 85px">
+          <line x1="34" y1="85" x2="31" y2="100" stroke="#00FF88" stroke-width="3.5" stroke-linecap="round"/>
+          <!-- Foot L -->
+          <line x1="31" y1="100" x2="25" y2="102" stroke="#00FF88" stroke-width="3" stroke-linecap="round"/>
+        </g>
+      </g>
+      <!-- Thigh R -->
+      <g class="dl-thigh-r">
+        <line x1="52" y1="68" x2="56" y2="85" stroke="#00D9FF" stroke-width="4" stroke-linecap="round"/>
+        <!-- Shin R -->
+        <g class="dl-shin-r" style="transform-origin:56px 85px">
+          <line x1="56" y1="85" x2="59" y2="100" stroke="#00FF88" stroke-width="3.5" stroke-linecap="round"/>
+          <!-- Foot R -->
+          <line x1="59" y1="100" x2="65" y2="102" stroke="#00FF88" stroke-width="3" stroke-linecap="round"/>
+        </g>
+      </g>
+    </g>
+
+    <!-- TORSO -->
+    <!-- Waist-to-chest curve -->
+    <path d="M36,68 Q45,60 54,68" fill="none" stroke="#00D9FF" stroke-width="4" stroke-linecap="round"/>
+    <!-- Spine -->
+    <line x1="45" y1="43" x2="45" y2="68" stroke="#00D9FF" stroke-width="4.5" stroke-linecap="round"/>
+    <!-- Shoulders -->
+    <line x1="31" y1="43" x2="59" y2="43" stroke="#00D9FF" stroke-width="4" stroke-linecap="round"/>
+
+    <!-- UPPER ARM L -->
+    <g class="dl-upper-arm-l">
+      <line x1="33" y1="43" x2="22" y2="58" stroke="#00D9FF" stroke-width="3.5" stroke-linecap="round"/>
+      <!-- Forearm L -->
+      <g class="dl-forearm-l" style="transform-origin:22px 58px">
+        <line x1="22" y1="58" x2="14" y2="70" stroke="#00FF88" stroke-width="3" stroke-linecap="round"/>
+        <!-- Hand L -->
+        <circle cx="13" cy="72" r="3" fill="#00FF88"/>
+      </g>
+    </g>
+
+    <!-- UPPER ARM R -->
+    <g class="dl-upper-arm-r">
+      <line x1="57" y1="43" x2="68" y2="58" stroke="#00D9FF" stroke-width="3.5" stroke-linecap="round"/>
+      <!-- Forearm R -->
+      <g class="dl-forearm-r" style="transform-origin:68px 58px">
+        <line x1="68" y1="58" x2="76" y2="70" stroke="#00FF88" stroke-width="3" stroke-linecap="round"/>
+        <!-- Hand R -->
+        <circle cx="77" cy="72" r="3" fill="#00FF88"/>
+      </g>
+    </g>
+
+    <!-- NECK -->
+    <line x1="45" y1="30" x2="45" y2="43" stroke="#00D9FF" stroke-width="3.5" stroke-linecap="round"/>
+
+    <!-- HEAD -->
+    <g class="dl-head">
+      <!-- Skull -->
+      <circle cx="45" cy="19" r="13" fill="#0B0B12" stroke="#00D9FF" stroke-width="2.5"/>
+      <!-- Hair spikes -->
+      <line x1="38" y1="8" x2="36" y2="3" stroke="#00D9FF" stroke-width="2" stroke-linecap="round"/>
+      <line x1="43" y1="6" x2="42" y2="1" stroke="#00D9FF" stroke-width="2" stroke-linecap="round"/>
+      <line x1="48" y1="6" x2="49" y2="1" stroke="#00D9FF" stroke-width="2" stroke-linecap="round"/>
+      <line x1="53" y1="8" x2="55" y2="3" stroke="#00D9FF" stroke-width="2" stroke-linecap="round"/>
+      <!-- Eyes -->
+      <ellipse class="dl-eye" cx="40" cy="18" rx="2.5" ry="3" fill="#00D9FF"/>
+      <ellipse class="dl-eye dl-eye-r" cx="50" cy="18" rx="2.5" ry="3" fill="#00D9FF"/>
+      <!-- Pupils -->
+      <circle cx="41" cy="19" r="1" fill="#0B0B12"/>
+      <circle cx="51" cy="19" r="1" fill="#0B0B12"/>
+      <!-- Smile -->
+      <path d="M39,25 Q45,30 51,25" fill="none" stroke="#00FF88" stroke-width="2" stroke-linecap="round"/>
+      <!-- Ear L -->
+      <path d="M32,17 Q29,19 32,22" fill="none" stroke="#00D9FF" stroke-width="2"/>
+      <!-- Ear R -->
+      <path d="M58,17 Q61,19 58,22" fill="none" stroke="#00D9FF" stroke-width="2"/>
+    </g>
+
+  </g>
+</svg></div></div>';
             
             try {
                 switch(currentView) {
@@ -8705,7 +8869,104 @@
 
         // История выдач
         window.showIssueHistory = async function() {
-            showModal('Загрузка...', '<div class="loading"><div class="dancing-loader"><div class="loader-head"></div><div class="loader-body"></div><div class="loader-arm-left"></div><div class="loader-arm-right"></div><div class="loader-leg-left"></div><div class="loader-leg-right"></div></div></div>');
+            showModal('Загрузка...', '<div class="loading"><div class="dancing-loader"><svg viewBox="0 0 90 110" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="dlGlow">
+      <feGaussianBlur stdDeviation="2.5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Shadow -->
+  <ellipse class="dl-shadow" cx="45" cy="104" rx="18" ry="4" fill="#00D9FF" opacity="0.25"/>
+
+  <!-- Glow halo -->
+  <circle class="dl-glow" cx="45" cy="55" r="38" fill="none" stroke="#00D9FF" stroke-width="1.5" opacity="0.4"/>
+
+  <g class="dl-body-group" filter="url(#dlGlow)">
+
+    <!-- HIPS / LOWER BODY -->
+    <g class="dl-hips">
+      <!-- Thigh L -->
+      <g class="dl-thigh-l">
+        <line x1="38" y1="68" x2="34" y2="85" stroke="#00D9FF" stroke-width="4" stroke-linecap="round"/>
+        <!-- Shin L -->
+        <g class="dl-shin-l" style="transform-origin:34px 85px">
+          <line x1="34" y1="85" x2="31" y2="100" stroke="#00FF88" stroke-width="3.5" stroke-linecap="round"/>
+          <!-- Foot L -->
+          <line x1="31" y1="100" x2="25" y2="102" stroke="#00FF88" stroke-width="3" stroke-linecap="round"/>
+        </g>
+      </g>
+      <!-- Thigh R -->
+      <g class="dl-thigh-r">
+        <line x1="52" y1="68" x2="56" y2="85" stroke="#00D9FF" stroke-width="4" stroke-linecap="round"/>
+        <!-- Shin R -->
+        <g class="dl-shin-r" style="transform-origin:56px 85px">
+          <line x1="56" y1="85" x2="59" y2="100" stroke="#00FF88" stroke-width="3.5" stroke-linecap="round"/>
+          <!-- Foot R -->
+          <line x1="59" y1="100" x2="65" y2="102" stroke="#00FF88" stroke-width="3" stroke-linecap="round"/>
+        </g>
+      </g>
+    </g>
+
+    <!-- TORSO -->
+    <!-- Waist-to-chest curve -->
+    <path d="M36,68 Q45,60 54,68" fill="none" stroke="#00D9FF" stroke-width="4" stroke-linecap="round"/>
+    <!-- Spine -->
+    <line x1="45" y1="43" x2="45" y2="68" stroke="#00D9FF" stroke-width="4.5" stroke-linecap="round"/>
+    <!-- Shoulders -->
+    <line x1="31" y1="43" x2="59" y2="43" stroke="#00D9FF" stroke-width="4" stroke-linecap="round"/>
+
+    <!-- UPPER ARM L -->
+    <g class="dl-upper-arm-l">
+      <line x1="33" y1="43" x2="22" y2="58" stroke="#00D9FF" stroke-width="3.5" stroke-linecap="round"/>
+      <!-- Forearm L -->
+      <g class="dl-forearm-l" style="transform-origin:22px 58px">
+        <line x1="22" y1="58" x2="14" y2="70" stroke="#00FF88" stroke-width="3" stroke-linecap="round"/>
+        <!-- Hand L -->
+        <circle cx="13" cy="72" r="3" fill="#00FF88"/>
+      </g>
+    </g>
+
+    <!-- UPPER ARM R -->
+    <g class="dl-upper-arm-r">
+      <line x1="57" y1="43" x2="68" y2="58" stroke="#00D9FF" stroke-width="3.5" stroke-linecap="round"/>
+      <!-- Forearm R -->
+      <g class="dl-forearm-r" style="transform-origin:68px 58px">
+        <line x1="68" y1="58" x2="76" y2="70" stroke="#00FF88" stroke-width="3" stroke-linecap="round"/>
+        <!-- Hand R -->
+        <circle cx="77" cy="72" r="3" fill="#00FF88"/>
+      </g>
+    </g>
+
+    <!-- NECK -->
+    <line x1="45" y1="30" x2="45" y2="43" stroke="#00D9FF" stroke-width="3.5" stroke-linecap="round"/>
+
+    <!-- HEAD -->
+    <g class="dl-head">
+      <!-- Skull -->
+      <circle cx="45" cy="19" r="13" fill="#0B0B12" stroke="#00D9FF" stroke-width="2.5"/>
+      <!-- Hair spikes -->
+      <line x1="38" y1="8" x2="36" y2="3" stroke="#00D9FF" stroke-width="2" stroke-linecap="round"/>
+      <line x1="43" y1="6" x2="42" y2="1" stroke="#00D9FF" stroke-width="2" stroke-linecap="round"/>
+      <line x1="48" y1="6" x2="49" y2="1" stroke="#00D9FF" stroke-width="2" stroke-linecap="round"/>
+      <line x1="53" y1="8" x2="55" y2="3" stroke="#00D9FF" stroke-width="2" stroke-linecap="round"/>
+      <!-- Eyes -->
+      <ellipse class="dl-eye" cx="40" cy="18" rx="2.5" ry="3" fill="#00D9FF"/>
+      <ellipse class="dl-eye dl-eye-r" cx="50" cy="18" rx="2.5" ry="3" fill="#00D9FF"/>
+      <!-- Pupils -->
+      <circle cx="41" cy="19" r="1" fill="#0B0B12"/>
+      <circle cx="51" cy="19" r="1" fill="#0B0B12"/>
+      <!-- Smile -->
+      <path d="M39,25 Q45,30 51,25" fill="none" stroke="#00FF88" stroke-width="2" stroke-linecap="round"/>
+      <!-- Ear L -->
+      <path d="M32,17 Q29,19 32,22" fill="none" stroke="#00D9FF" stroke-width="2"/>
+      <!-- Ear R -->
+      <path d="M58,17 Q61,19 58,22" fill="none" stroke="#00D9FF" stroke-width="2"/>
+    </g>
+
+  </g>
+</svg></div></div>');
 
             const { data: issues } = await supabaseClient
                 .from('warehouse_issues')
@@ -8945,7 +9206,104 @@
         
         // Показ расхода материала по заявкам АВР
         window.showMaterialUsageInAVR = async function(materialId, materialName) {
-            showModal('Загрузка...', '<div class="loading"><div class="dancing-loader"><div class="loader-head"></div><div class="loader-body"></div><div class="loader-arm-left"></div><div class="loader-arm-right"></div><div class="loader-leg-left"></div><div class="loader-leg-right"></div></div></div>');
+            showModal('Загрузка...', '<div class="loading"><div class="dancing-loader"><svg viewBox="0 0 90 110" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="dlGlow">
+      <feGaussianBlur stdDeviation="2.5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Shadow -->
+  <ellipse class="dl-shadow" cx="45" cy="104" rx="18" ry="4" fill="#00D9FF" opacity="0.25"/>
+
+  <!-- Glow halo -->
+  <circle class="dl-glow" cx="45" cy="55" r="38" fill="none" stroke="#00D9FF" stroke-width="1.5" opacity="0.4"/>
+
+  <g class="dl-body-group" filter="url(#dlGlow)">
+
+    <!-- HIPS / LOWER BODY -->
+    <g class="dl-hips">
+      <!-- Thigh L -->
+      <g class="dl-thigh-l">
+        <line x1="38" y1="68" x2="34" y2="85" stroke="#00D9FF" stroke-width="4" stroke-linecap="round"/>
+        <!-- Shin L -->
+        <g class="dl-shin-l" style="transform-origin:34px 85px">
+          <line x1="34" y1="85" x2="31" y2="100" stroke="#00FF88" stroke-width="3.5" stroke-linecap="round"/>
+          <!-- Foot L -->
+          <line x1="31" y1="100" x2="25" y2="102" stroke="#00FF88" stroke-width="3" stroke-linecap="round"/>
+        </g>
+      </g>
+      <!-- Thigh R -->
+      <g class="dl-thigh-r">
+        <line x1="52" y1="68" x2="56" y2="85" stroke="#00D9FF" stroke-width="4" stroke-linecap="round"/>
+        <!-- Shin R -->
+        <g class="dl-shin-r" style="transform-origin:56px 85px">
+          <line x1="56" y1="85" x2="59" y2="100" stroke="#00FF88" stroke-width="3.5" stroke-linecap="round"/>
+          <!-- Foot R -->
+          <line x1="59" y1="100" x2="65" y2="102" stroke="#00FF88" stroke-width="3" stroke-linecap="round"/>
+        </g>
+      </g>
+    </g>
+
+    <!-- TORSO -->
+    <!-- Waist-to-chest curve -->
+    <path d="M36,68 Q45,60 54,68" fill="none" stroke="#00D9FF" stroke-width="4" stroke-linecap="round"/>
+    <!-- Spine -->
+    <line x1="45" y1="43" x2="45" y2="68" stroke="#00D9FF" stroke-width="4.5" stroke-linecap="round"/>
+    <!-- Shoulders -->
+    <line x1="31" y1="43" x2="59" y2="43" stroke="#00D9FF" stroke-width="4" stroke-linecap="round"/>
+
+    <!-- UPPER ARM L -->
+    <g class="dl-upper-arm-l">
+      <line x1="33" y1="43" x2="22" y2="58" stroke="#00D9FF" stroke-width="3.5" stroke-linecap="round"/>
+      <!-- Forearm L -->
+      <g class="dl-forearm-l" style="transform-origin:22px 58px">
+        <line x1="22" y1="58" x2="14" y2="70" stroke="#00FF88" stroke-width="3" stroke-linecap="round"/>
+        <!-- Hand L -->
+        <circle cx="13" cy="72" r="3" fill="#00FF88"/>
+      </g>
+    </g>
+
+    <!-- UPPER ARM R -->
+    <g class="dl-upper-arm-r">
+      <line x1="57" y1="43" x2="68" y2="58" stroke="#00D9FF" stroke-width="3.5" stroke-linecap="round"/>
+      <!-- Forearm R -->
+      <g class="dl-forearm-r" style="transform-origin:68px 58px">
+        <line x1="68" y1="58" x2="76" y2="70" stroke="#00FF88" stroke-width="3" stroke-linecap="round"/>
+        <!-- Hand R -->
+        <circle cx="77" cy="72" r="3" fill="#00FF88"/>
+      </g>
+    </g>
+
+    <!-- NECK -->
+    <line x1="45" y1="30" x2="45" y2="43" stroke="#00D9FF" stroke-width="3.5" stroke-linecap="round"/>
+
+    <!-- HEAD -->
+    <g class="dl-head">
+      <!-- Skull -->
+      <circle cx="45" cy="19" r="13" fill="#0B0B12" stroke="#00D9FF" stroke-width="2.5"/>
+      <!-- Hair spikes -->
+      <line x1="38" y1="8" x2="36" y2="3" stroke="#00D9FF" stroke-width="2" stroke-linecap="round"/>
+      <line x1="43" y1="6" x2="42" y2="1" stroke="#00D9FF" stroke-width="2" stroke-linecap="round"/>
+      <line x1="48" y1="6" x2="49" y2="1" stroke="#00D9FF" stroke-width="2" stroke-linecap="round"/>
+      <line x1="53" y1="8" x2="55" y2="3" stroke="#00D9FF" stroke-width="2" stroke-linecap="round"/>
+      <!-- Eyes -->
+      <ellipse class="dl-eye" cx="40" cy="18" rx="2.5" ry="3" fill="#00D9FF"/>
+      <ellipse class="dl-eye dl-eye-r" cx="50" cy="18" rx="2.5" ry="3" fill="#00D9FF"/>
+      <!-- Pupils -->
+      <circle cx="41" cy="19" r="1" fill="#0B0B12"/>
+      <circle cx="51" cy="19" r="1" fill="#0B0B12"/>
+      <!-- Smile -->
+      <path d="M39,25 Q45,30 51,25" fill="none" stroke="#00FF88" stroke-width="2" stroke-linecap="round"/>
+      <!-- Ear L -->
+      <path d="M32,17 Q29,19 32,22" fill="none" stroke="#00D9FF" stroke-width="2"/>
+      <!-- Ear R -->
+      <path d="M58,17 Q61,19 58,22" fill="none" stroke="#00D9FF" stroke-width="2"/>
+    </g>
+
+  </g>
+</svg></div></div>');
             
             try {
                 console.log('🔍 Searching for material usage:', materialId, materialName);
@@ -11008,7 +11366,104 @@
         };
 
         async function renderArchive(content) {
-            content.innerHTML = '<div class="loading"><div class="dancing-loader"><div class="loader-head"></div><div class="loader-body"></div><div class="loader-arm-left"></div><div class="loader-arm-right"></div><div class="loader-leg-left"></div><div class="loader-leg-right"></div></div></div>';
+            content.innerHTML = '<div class="loading"><div class="dancing-loader"><svg viewBox="0 0 90 110" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="dlGlow">
+      <feGaussianBlur stdDeviation="2.5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Shadow -->
+  <ellipse class="dl-shadow" cx="45" cy="104" rx="18" ry="4" fill="#00D9FF" opacity="0.25"/>
+
+  <!-- Glow halo -->
+  <circle class="dl-glow" cx="45" cy="55" r="38" fill="none" stroke="#00D9FF" stroke-width="1.5" opacity="0.4"/>
+
+  <g class="dl-body-group" filter="url(#dlGlow)">
+
+    <!-- HIPS / LOWER BODY -->
+    <g class="dl-hips">
+      <!-- Thigh L -->
+      <g class="dl-thigh-l">
+        <line x1="38" y1="68" x2="34" y2="85" stroke="#00D9FF" stroke-width="4" stroke-linecap="round"/>
+        <!-- Shin L -->
+        <g class="dl-shin-l" style="transform-origin:34px 85px">
+          <line x1="34" y1="85" x2="31" y2="100" stroke="#00FF88" stroke-width="3.5" stroke-linecap="round"/>
+          <!-- Foot L -->
+          <line x1="31" y1="100" x2="25" y2="102" stroke="#00FF88" stroke-width="3" stroke-linecap="round"/>
+        </g>
+      </g>
+      <!-- Thigh R -->
+      <g class="dl-thigh-r">
+        <line x1="52" y1="68" x2="56" y2="85" stroke="#00D9FF" stroke-width="4" stroke-linecap="round"/>
+        <!-- Shin R -->
+        <g class="dl-shin-r" style="transform-origin:56px 85px">
+          <line x1="56" y1="85" x2="59" y2="100" stroke="#00FF88" stroke-width="3.5" stroke-linecap="round"/>
+          <!-- Foot R -->
+          <line x1="59" y1="100" x2="65" y2="102" stroke="#00FF88" stroke-width="3" stroke-linecap="round"/>
+        </g>
+      </g>
+    </g>
+
+    <!-- TORSO -->
+    <!-- Waist-to-chest curve -->
+    <path d="M36,68 Q45,60 54,68" fill="none" stroke="#00D9FF" stroke-width="4" stroke-linecap="round"/>
+    <!-- Spine -->
+    <line x1="45" y1="43" x2="45" y2="68" stroke="#00D9FF" stroke-width="4.5" stroke-linecap="round"/>
+    <!-- Shoulders -->
+    <line x1="31" y1="43" x2="59" y2="43" stroke="#00D9FF" stroke-width="4" stroke-linecap="round"/>
+
+    <!-- UPPER ARM L -->
+    <g class="dl-upper-arm-l">
+      <line x1="33" y1="43" x2="22" y2="58" stroke="#00D9FF" stroke-width="3.5" stroke-linecap="round"/>
+      <!-- Forearm L -->
+      <g class="dl-forearm-l" style="transform-origin:22px 58px">
+        <line x1="22" y1="58" x2="14" y2="70" stroke="#00FF88" stroke-width="3" stroke-linecap="round"/>
+        <!-- Hand L -->
+        <circle cx="13" cy="72" r="3" fill="#00FF88"/>
+      </g>
+    </g>
+
+    <!-- UPPER ARM R -->
+    <g class="dl-upper-arm-r">
+      <line x1="57" y1="43" x2="68" y2="58" stroke="#00D9FF" stroke-width="3.5" stroke-linecap="round"/>
+      <!-- Forearm R -->
+      <g class="dl-forearm-r" style="transform-origin:68px 58px">
+        <line x1="68" y1="58" x2="76" y2="70" stroke="#00FF88" stroke-width="3" stroke-linecap="round"/>
+        <!-- Hand R -->
+        <circle cx="77" cy="72" r="3" fill="#00FF88"/>
+      </g>
+    </g>
+
+    <!-- NECK -->
+    <line x1="45" y1="30" x2="45" y2="43" stroke="#00D9FF" stroke-width="3.5" stroke-linecap="round"/>
+
+    <!-- HEAD -->
+    <g class="dl-head">
+      <!-- Skull -->
+      <circle cx="45" cy="19" r="13" fill="#0B0B12" stroke="#00D9FF" stroke-width="2.5"/>
+      <!-- Hair spikes -->
+      <line x1="38" y1="8" x2="36" y2="3" stroke="#00D9FF" stroke-width="2" stroke-linecap="round"/>
+      <line x1="43" y1="6" x2="42" y2="1" stroke="#00D9FF" stroke-width="2" stroke-linecap="round"/>
+      <line x1="48" y1="6" x2="49" y2="1" stroke="#00D9FF" stroke-width="2" stroke-linecap="round"/>
+      <line x1="53" y1="8" x2="55" y2="3" stroke="#00D9FF" stroke-width="2" stroke-linecap="round"/>
+      <!-- Eyes -->
+      <ellipse class="dl-eye" cx="40" cy="18" rx="2.5" ry="3" fill="#00D9FF"/>
+      <ellipse class="dl-eye dl-eye-r" cx="50" cy="18" rx="2.5" ry="3" fill="#00D9FF"/>
+      <!-- Pupils -->
+      <circle cx="41" cy="19" r="1" fill="#0B0B12"/>
+      <circle cx="51" cy="19" r="1" fill="#0B0B12"/>
+      <!-- Smile -->
+      <path d="M39,25 Q45,30 51,25" fill="none" stroke="#00FF88" stroke-width="2" stroke-linecap="round"/>
+      <!-- Ear L -->
+      <path d="M32,17 Q29,19 32,22" fill="none" stroke="#00D9FF" stroke-width="2"/>
+      <!-- Ear R -->
+      <path d="M58,17 Q61,19 58,22" fill="none" stroke="#00D9FF" stroke-width="2"/>
+    </g>
+
+  </g>
+</svg></div></div>';
 
             if (currentUserProfile?.role !== 'manager' && currentUserProfile?.role !== 'deputy_head') {
                 content.innerHTML = `<h2 style="margin-bottom:16px">📁 Архив</h2><div class="card"><p>Доступ только для руководителя.</p></div>`;
@@ -11231,7 +11686,104 @@
             // Сбросить бейдж непрочитанных для данной заявки
             markAsRead('pr', prId);
             // Show loading immediately
-            showModal('Загрузка...', '<div class="loading"><div class="dancing-loader"><div class="loader-head"></div><div class="loader-body"></div><div class="loader-arm-left"></div><div class="loader-arm-right"></div><div class="loader-leg-left"></div><div class="loader-leg-right"></div></div></div>', 4000);
+            showModal('Загрузка...', '<div class="loading"><div class="dancing-loader"><svg viewBox="0 0 90 110" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="dlGlow">
+      <feGaussianBlur stdDeviation="2.5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Shadow -->
+  <ellipse class="dl-shadow" cx="45" cy="104" rx="18" ry="4" fill="#00D9FF" opacity="0.25"/>
+
+  <!-- Glow halo -->
+  <circle class="dl-glow" cx="45" cy="55" r="38" fill="none" stroke="#00D9FF" stroke-width="1.5" opacity="0.4"/>
+
+  <g class="dl-body-group" filter="url(#dlGlow)">
+
+    <!-- HIPS / LOWER BODY -->
+    <g class="dl-hips">
+      <!-- Thigh L -->
+      <g class="dl-thigh-l">
+        <line x1="38" y1="68" x2="34" y2="85" stroke="#00D9FF" stroke-width="4" stroke-linecap="round"/>
+        <!-- Shin L -->
+        <g class="dl-shin-l" style="transform-origin:34px 85px">
+          <line x1="34" y1="85" x2="31" y2="100" stroke="#00FF88" stroke-width="3.5" stroke-linecap="round"/>
+          <!-- Foot L -->
+          <line x1="31" y1="100" x2="25" y2="102" stroke="#00FF88" stroke-width="3" stroke-linecap="round"/>
+        </g>
+      </g>
+      <!-- Thigh R -->
+      <g class="dl-thigh-r">
+        <line x1="52" y1="68" x2="56" y2="85" stroke="#00D9FF" stroke-width="4" stroke-linecap="round"/>
+        <!-- Shin R -->
+        <g class="dl-shin-r" style="transform-origin:56px 85px">
+          <line x1="56" y1="85" x2="59" y2="100" stroke="#00FF88" stroke-width="3.5" stroke-linecap="round"/>
+          <!-- Foot R -->
+          <line x1="59" y1="100" x2="65" y2="102" stroke="#00FF88" stroke-width="3" stroke-linecap="round"/>
+        </g>
+      </g>
+    </g>
+
+    <!-- TORSO -->
+    <!-- Waist-to-chest curve -->
+    <path d="M36,68 Q45,60 54,68" fill="none" stroke="#00D9FF" stroke-width="4" stroke-linecap="round"/>
+    <!-- Spine -->
+    <line x1="45" y1="43" x2="45" y2="68" stroke="#00D9FF" stroke-width="4.5" stroke-linecap="round"/>
+    <!-- Shoulders -->
+    <line x1="31" y1="43" x2="59" y2="43" stroke="#00D9FF" stroke-width="4" stroke-linecap="round"/>
+
+    <!-- UPPER ARM L -->
+    <g class="dl-upper-arm-l">
+      <line x1="33" y1="43" x2="22" y2="58" stroke="#00D9FF" stroke-width="3.5" stroke-linecap="round"/>
+      <!-- Forearm L -->
+      <g class="dl-forearm-l" style="transform-origin:22px 58px">
+        <line x1="22" y1="58" x2="14" y2="70" stroke="#00FF88" stroke-width="3" stroke-linecap="round"/>
+        <!-- Hand L -->
+        <circle cx="13" cy="72" r="3" fill="#00FF88"/>
+      </g>
+    </g>
+
+    <!-- UPPER ARM R -->
+    <g class="dl-upper-arm-r">
+      <line x1="57" y1="43" x2="68" y2="58" stroke="#00D9FF" stroke-width="3.5" stroke-linecap="round"/>
+      <!-- Forearm R -->
+      <g class="dl-forearm-r" style="transform-origin:68px 58px">
+        <line x1="68" y1="58" x2="76" y2="70" stroke="#00FF88" stroke-width="3" stroke-linecap="round"/>
+        <!-- Hand R -->
+        <circle cx="77" cy="72" r="3" fill="#00FF88"/>
+      </g>
+    </g>
+
+    <!-- NECK -->
+    <line x1="45" y1="30" x2="45" y2="43" stroke="#00D9FF" stroke-width="3.5" stroke-linecap="round"/>
+
+    <!-- HEAD -->
+    <g class="dl-head">
+      <!-- Skull -->
+      <circle cx="45" cy="19" r="13" fill="#0B0B12" stroke="#00D9FF" stroke-width="2.5"/>
+      <!-- Hair spikes -->
+      <line x1="38" y1="8" x2="36" y2="3" stroke="#00D9FF" stroke-width="2" stroke-linecap="round"/>
+      <line x1="43" y1="6" x2="42" y2="1" stroke="#00D9FF" stroke-width="2" stroke-linecap="round"/>
+      <line x1="48" y1="6" x2="49" y2="1" stroke="#00D9FF" stroke-width="2" stroke-linecap="round"/>
+      <line x1="53" y1="8" x2="55" y2="3" stroke="#00D9FF" stroke-width="2" stroke-linecap="round"/>
+      <!-- Eyes -->
+      <ellipse class="dl-eye" cx="40" cy="18" rx="2.5" ry="3" fill="#00D9FF"/>
+      <ellipse class="dl-eye dl-eye-r" cx="50" cy="18" rx="2.5" ry="3" fill="#00D9FF"/>
+      <!-- Pupils -->
+      <circle cx="41" cy="19" r="1" fill="#0B0B12"/>
+      <circle cx="51" cy="19" r="1" fill="#0B0B12"/>
+      <!-- Smile -->
+      <path d="M39,25 Q45,30 51,25" fill="none" stroke="#00FF88" stroke-width="2" stroke-linecap="round"/>
+      <!-- Ear L -->
+      <path d="M32,17 Q29,19 32,22" fill="none" stroke="#00D9FF" stroke-width="2"/>
+      <!-- Ear R -->
+      <path d="M58,17 Q61,19 58,22" fill="none" stroke="#00D9FF" stroke-width="2"/>
+    </g>
+
+  </g>
+</svg></div></div>', 4000);
             
             // Fetch PR and items in parallel
             const [prResult, itemsResult] = await Promise.all([
