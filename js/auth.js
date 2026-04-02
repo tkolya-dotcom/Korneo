@@ -24,7 +24,10 @@ export class AuthService {
     try {
       const { data, error } = await this.supabase.auth.signInWithPassword({
         email,
-        password
+        password,
+        options: {
+          redirectTo: window.location.origin
+        }
       });
 
       if (error) throw error;
@@ -64,6 +67,7 @@ export class AuthService {
         email,
         password,
         options: {
+          redirectTo: window.location.origin,
           data: {
             name,
             role
