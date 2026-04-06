@@ -1,88 +1,68 @@
-# 🚀 ООО "Корнео" - Система Управления Задачами
+# 🚀 ООО "Корнео" — Система Управления Задачами
 
-Современное PWA-приложение для управления задачами, проектами и монтажами.
+Корпоративная система управления задачами, монтажами, складом и персоналом для ООО «Корнео». Доступна как PWA (веб-приложение) и нативное Android-приложение.
 
-## 🌐 Демо
-
-**GitHub Pages:** 
+**Версия:** 1.38 | **Платформа:** Web (PWA) + Android
 
 ---
 
-## ⚡ Быстрый старт
+## 🌐 Доступ
 
-### 1. Настройка Supabase
+| Платформа | Ссылка |
+|-----------|--------|
+| Web (PWA) | https://tkolya-dotcom.github.io/Korneo/ |
+| Android APK | [GitHub Releases](https://github.com/tkolya-dotcom/Korneo/releases) — файл `app-debug.apk` |
 
-1. Создайте проект на [supabase.com](https://supabase.com)
-2. Выполните SQL дамп из `docs/schema.sql`
-3. Скопируйте реквизиты из `Settings → API`
+---
 
-### 2. Настройка Firebase
+## 📱 Android-приложение
 
-1. Создайте проект в [Firebase Console](https://console.firebase.google.com)
-2. Включите **Authentication** (Email/Password)
-3. Включите **Cloud Messaging**
-4. Скопируйте конфиг из проекта Firebase
+Android-клиент загружает веб-версию в WebView и поддерживает нативные FCM push-уведомления (в том числе при закрытом приложении).
 
-### 3. Обновление конфигурации
+### Установка APK
 
-Откройте `js/config.js` и обновите:
+1. Перейдите в [GitHub Releases](https://github.com/tkolya-dotcom/Korneo/releases)
+2. Скачайте `app-debug.apk` из последнего релиза
+3. На телефоне: **Настройки → Безопасность → Установка из неизвестных источников**
+4. Откройте скачанный файл и установите
 
-```javascript
-export const SUPABASE_CONFIG = {
-  url: 'YOUR_SUPABASE_URL',
-  anonKey: 'YOUR_SUPABASE_ANON_KEY'
-};
+> На Android 8+ разрешение запрашивается автоматически при первой установке.
 
-export const FIREBASE_CONFIG = {
-  apiKey: "YOUR_FIREBASE_API_KEY",
-  // ... остальные поля
-};
-```
+### Автосборка и автообновление
 
-### 4. Запуск на GitHub Pages
+- При каждом `push` в `main` GitHub Actions собирает debug APK, создаёт GitHub Release и обновляет `version.json`
+- Приложение проверяет `version.json` при запуске и предлагает обновление, если доступна новая версия
+- APK скачивается и устанавливается через встроенный `UpdateChecker` + `FileProvider`
 
-```bash
-# Инициализация Git
-git init
-git add .
-git commit -m "Initial commit"
-
-# Создание репозитория и push
-git remote add origin https://github.com/YOUR_USERNAME/task-manager-app.git
-git branch -M main
-git push -u origin main
-```
-
-Включите **GitHub Pages**:
-- Settings → Pages
-- Branch: `main`, Folder: `/ (root)`
-- Save
+Подробнее: [README_ANDROID.md](./README_ANDROID.md)
 
 ---
 
 ## 📁 Структура проекта
 
 ```
-OOO Korneo/
-├── index.html              # Монолитное приложение (16500+ строк)
-├── manifest.json           # PWA манифест
-├── service-worker.js       # Service Worker
-├── js/                     # JavaScript модули
-│   ├── config.js           # Конфигурация
-│   ├── api.js              # Supabase клиент
-│   ├── auth.js             # Аутентификация
-│   ├── tasks.js            # Задачи
-│   ├── projects.js         # Проекты
-│   ├── installations.js    # Монтажи
-│   ├── chat.js             # Чат
-│   ├── notifications.js    # Уведомления
-│   ├── utils.js            # Утилиты
-│   └── app.js              # Главный файл
-├── docs/                   # Документация
-│   ├── schema.sql          # Схема БД
-│   └── SUPABASE_SETUP.md   # Инструкция по настройке
-├── APPLICATION_DOCUMENTATION.md  # Полная документация
-└── README.md               # Этот файл
+Korneo/
+├── .github/workflows/       # CI/CD: сборка APK, деплой GitHub Pages
+├── android/                 # Нативное Android-приложение (Capacitor + FCM)
+├── api/                     # API-слой (Supabase SDK, Firebase)
+├── backend/                 # Серверная логика (безопасность, склад, иконки)
+├── docs/                    # Документация: schema.sql, SUPABASE_SETUP.md
+├── frontend/                # Дополнительные фронтенд-ресурсы
+├── js/                      # JavaScript-модули приложения
+├── supabase/                # Конфигурация и миграции Supabase
+├── sw-services/             # Сервисы Service Worker (FCM, push)
+├── index.html               # Монолитное PWA-приложение
+├── manifest.json            # PWA-манифест
+├── service-worker.js        # Service Worker (кэш, push)
+├── firebase-messaging-sw.js # Firebase FCM Service Worker
+├── capacitor.config.json    # Capacitor (Android WebView)
+├── version.json             # Текущая версия APK для автообновления
+├── atss-upload.html         # Страница загрузки план-графика АТСС
+├── .env.example             # Пример переменных окружения
+├── APPLICATION_DOCUMENTATION.md
+├── DEPLOYMENT_GUIDE.md
+├── PROJECT_SUMMARY.md
+└── README_ANDROID.md
 ```
 
 ---
@@ -90,21 +70,76 @@ OOO Korneo/
 ## 🛠️ Технологический стек
 
 ### Frontend
-- **HTML5/CSS3** - монолитный index.html
-- **Vanilla JavaScript (ES6+)** - модульная архитектура
-- **PWA** - Service Worker + Manifest
-- **Mapbox GL** - интерактивные карты
+- **HTML5 / CSS3 / Vanilla JS (ES6+)** — монолитный `index.html`
+- **PWA** — Service Worker + Web App Manifest
+- **Mapbox GL** — интерактивные карты и маршруты
 
-### Backend (Supabase)
-- **PostgreSQL 15** - основная БД
-- **Supabase Auth** - JWT аутентификация
-- **Realtime** - WebSocket подписки
-- **RLS** - Row Level Security
+### Mobile
+- **Android** (Java) — нативное приложение
+- **Capacitor 6.x** — WebView-обёртка
+- **Firebase Cloud Messaging** — нативные push-уведомления
+- **UpdateChecker + FileProvider** — автоматическое обновление APK
+
+### Backend
+- **Supabase** (PostgreSQL 15) — основная БД
+- **Supabase Auth** — JWT-аутентификация
+- **Supabase Realtime** — WebSocket-подписки
+- **RLS (Row Level Security)** — безопасность на уровне БД (113 политик)
 
 ### Уведомления
-- **Firebase Cloud Messaging (FCM)** - push-уведомления
-- **Web Push API** - браузерные уведомления
-- **Service Worker** - фоновая обработка
+- **Firebase Cloud Messaging (FCM)** — push для Web и Android
+- **Web Push API** — браузерные уведомления
+- **Service Worker** — фоновая обработка
+
+### CI/CD
+- **GitHub Actions** — сборка APK, деплой на GitHub Pages, инкремент версии
+- **GitHub Releases** — хранение APK-файлов (v1–v38+)
+
+---
+
+## 🎯 Основные возможности
+
+### ✅ Управление задачами
+- Создание / редактирование / удаление задач
+- Назначение исполнителей, дедлайны, адреса
+- Статусы: `New` → `In Progress` → `On Hold` → `Completed` → `Archived`
+- Приоритеты: Low / Normal / High / Urgent
+- Короткие автогенерируемые ID
+- Автоархивация через 24 ч после завершения
+
+### 📁 Проекты
+- Карточки с прогрессом и статистикой задач
+- Группировка задач по проектам
+
+### 🔧 Монтажи
+- До 7 единиц оборудования (СК) на монтаж
+- Статусы оборудования, плановые даты
+- Привязка к проектам
+
+### ⚡ Задачи АВР
+- Учёт старого/нового оборудования
+- Причины замены, короткие ID
+
+### 💬 Чат
+- Личные и групповые чаты
+- Чаты рабочих выездов (Jobs)
+- Realtime-сообщения, реакции, закрепление чатов
+- Удаление у себя / у всех, отключение уведомлений
+
+### 📦 Склад и заявки
+- Каталог материалов, управление остатками
+- Заявки на материалы с одобрением менеджером
+- Автосоздание заявок на закупку при отрицательном остатке
+- Выдача со склада
+
+### 🗺️ Площадки и карты
+- Вкладка «Площадки» с объектами
+- Mapbox GL: интерактивные карты, построение маршрутов, отметка адресов
+
+### 🔔 Уведомления
+- Push через FCM (Web + Android, в том числе при закрытом приложении)
+- Realtime-обновления по WebSocket
+- Уведомления о задачах, сообщениях, комментариях
 
 ---
 
@@ -120,139 +155,33 @@ OOO Korneo/
 
 ---
 
-## 🎯 Основные возможности
-
-### ✅ Управление задачами
-- Создание/редактирование/удаление задач
-- Назначение исполнителей
-- Статусы: New, In Progress, On Hold, Completed, Archived
-- Приоритеты: Low, Normal, High, Urgent
-- Дедлайны и адреса
-- Автоматическая архивация через 24ч после завершения
-- Короткие ID (автогенерация)
-
-### 📁 Управление проектами
-- Карточки проектов с прогрессом
-- Статистика по задачам
-- Группировка задач по проектам
-
-### 🔧 Монтажи
-- До 7 единиц оборудования (СК)
-- Статусы оборудования
-- Плановые даты
-- Привязка к проектам
-
-### ⚡ Задачи АВР
-- Короткие ID
-- Учёт оборудования (старое/новое)
-- Причины замены
-
-### 💬 Чат
-- Личные и групповые чаты
-- Чаты рабочих выездов (Jobs)
-- Realtime сообщения
-- Удаление сообщений (у себя/у всех)
-- Реакции (эмодзи)
-- Закрепление чатов
-- Отключение уведомлений
-
-### 📦 Материалы и заявки
-- Каталог материалов
-- Заявки на материалы
-- Одобрение менеджером
-- Выдача со склада
-
-### 🔔 Уведомления
-- Push через FCM
-- Браузерные уведомления
-- Realtime обновления
-- Уведомления о новых задачах, сообщениях, комментариях
-
-### 🗺️ Карты
-- Mapbox GL интеграция
-- Построение маршрутов
-- Отметка адресов
-
----
-
 ## 📊 База данных
 
-### Таблицы (29)
-- users, projects, chats, tasks, tasks_avr
-- installations, jobs, chat_members, messages
-- message_read_receipts, comments, equipment_changes
-- notification_queue, user_push_subs, user_locations
-- materials, warehouse, materials_requests
-- materials_request_items, materials_usage
-- purchase_requests, purchase_request_items
-- id_counters, manual_addresses, archive
-- kasip_azm_q1_2026
+- **29 таблиц**: users, projects, tasks, tasks_avr, installations, jobs, chats, chat_members, messages, message_read_receipts, comments, equipment_changes, notification_queue, user_push_subs, user_locations, materials, warehouse, materials_requests, materials_request_items, materials_usage, purchase_requests, purchase_request_items, id_counters, manual_addresses, archive, kasip_azm_q1_2026 и др.
+- **113 RLS-политик** — все таблицы защищены на уровне БД
+- **13 триггеров**: авто-профиль, `updated_at`, генерация коротких ID, архивация
 
-### RLS Политики (113)
-Все таблицы защищены Row Level Security
-
-### Триггеры (13)
-- Авто-создание профиля пользователя
-- Обновление updated_at
-- Генерация коротких ID
-- Автоматическая архивация
+Схема БД: [`docs/schema.sql`](./docs/schema.sql)
 
 ---
 
-## 🔐 Безопасность
+## ⚡ Быстрый старт
 
-- **JWT токены** - аутентификация
-- **RLS политики** - фильтрация данных на уровне БД
-- **CORS** - ограничение доменов
-- **HTTPS** - шифрование трафика
+### 1. Настройка Supabase
 
----
+1. Создайте проект на [supabase.com](https://supabase.com)
+2. Выполните SQL-дамп из `docs/schema.sql`
+3. Скопируйте реквизиты из **Settings → API**
 
-## 📱 PWA Возможности
+### 2. Настройка Firebase
 
-- ✅ Работа offline (кэширование)
-- ✅ Установка на устройство
-- ✅ Push-уведомления
-- ✅ Адаптивный дизайн
-- ✅ Fast loading
+1. Создайте проект в [Firebase Console](https://console.firebase.google.com)
+2. Включите **Cloud Messaging**
+3. Скопируйте конфиг проекта
 
----
+### 3. Переменные окружения
 
-## 🚀 Развёртывание
-
-### Локальная разработка
-
-```bash
-# Клонируйте репозиторий
-git clone https://github.com/YOUR_USERNAME/task-manager-app.git
-
-# Откройте index.html в браузере
-# Или используйте Live Server (VS Code)
-```
-
-### Продакшн (GitHub Pages)
-
-1. Обновите `js/config.js`
-2. Выполните SQL дамп в Supabase
-3. Задеплойте на GitHub Pages
-4. Включите Firebase Cloud Messaging
-
----
-
-## 📖 Документация
-
-- **[APPLICATION_DOCUMENTATION.md](./APPLICATION_DOCUMENTATION.md)** - полное описание бизнес-процессов
-- **[docs/SUPABASE_SETUP.md](./docs/SUPABASE_SETUP.md)** - настройка Supabase
-- **[docs/schema.sql](./docs/schema.sql)** - схема базы данных
-- **[js/README.md](./js/README.md)** - документация JavaScript модулей
-
----
-
-## 🔧 Конфигурация
-
-### Переменные окружения
-
-Создайте `.env` (не коммитьте в git):
+Создайте `.env` на основе `.env.example`:
 
 ```env
 SUPABASE_URL=https://your-project.supabase.co
@@ -262,40 +191,45 @@ MAPBOX_TOKEN=your-mapbox-token
 VAPID_PUBLIC_KEY=your-vapid-key
 ```
 
-### Обновление конфига
+### 4. Деплой на GitHub Pages
 
-Откройте `js/config.js` и замените значения:
+1. Включите **Settings → Pages → Branch: main / root**
+2. При каждом `push` в `main` GitHub Actions автоматически деплоит сайт и собирает APK
 
-```javascript
-export const SUPABASE_CONFIG = {
-  url: 'https://jmxjbdnqnzkzxgsfywha.supabase.co',
-  anonKey: 'eyJhbGc...' // ваш ключ
-};
-```
+---
+
+## 🔐 Безопасность
+
+- **JWT** — аутентификация через Supabase Auth
+- **RLS** — фильтрация данных на уровне PostgreSQL
+- **HTTPS** — шифрование трафика
+- **CORS** — ограничение разрешённых доменов
+- Конфиденциальные данные хранятся в `.env` (не коммитятся)
 
 ---
 
 ## 🆘 Troubleshooting
 
-### Ошибка CORS
-```
-Access to fetch has been blocked by CORS policy
-```
+**CORS-ошибка** (`Access to fetch has been blocked`) — проверьте настройки CORS в Supabase Dashboard.
 
-**Решение:** Проверьте настройки CORS в Supabase Dashboard
+**RLS блокирует доступ** (`permission denied for table`) — проверьте RLS-политики и роль пользователя.
 
-### RLS блокирует доступ
-```
-permission denied for table
-```
+**Push не работает** — проверьте разрешение браузера, VAPID-ключи и регистрацию Service Worker.
 
-**Решение:** Проверьте RLS политики и роль пользователя
+**Android: push не приходят при закрытом приложении** — нужен настоящий `google-services.json` с Firebase. См. [README_ANDROID.md](./README_ANDROID.md).
 
-### Push не работает
-**Решение:**
-1. Проверьте разрешение браузера
-2. Проверьте VAPID ключи
-3. Перерегистрируйте Service Worker
+---
+
+## 📖 Документация
+
+| Файл | Описание |
+|------|----------|
+| [APPLICATION_DOCUMENTATION.md](./APPLICATION_DOCUMENTATION.md) | Полное описание бизнес-процессов |
+| [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md) | Инструкция по развёртыванию |
+| [PROJECT_SUMMARY.md](./PROJECT_SUMMARY.md) | Сводка по проекту |
+| [README_ANDROID.md](./README_ANDROID.md) | Android: сборка, FCM, автообновление |
+| [docs/schema.sql](./docs/schema.sql) | Схема базы данных |
+| [docs/SUPABASE_SETUP.md](./docs/SUPABASE_SETUP.md) | Настройка Supabase |
 
 ---
 
@@ -308,27 +242,25 @@ permission denied for table
 
 ## 📝 Changelog
 
-### v1.0.0 (27.03.2026)
-- ✅ Монолитное приложение (index.html)
-- ✅ Модульная архитектура JS
-- ✅ Supabase интеграция
-- ✅ Firebase Push уведомления
-- ✅ PWA функционал
-- ✅ Realtime обновления
-- ✅ Чат и комментарии
-- ✅ Материалы и заявки
-- ✅ Монтажи и АВР
+### v1.38 (06.04.2026)
+- Автообновление APK: `version.json`, `UpdateChecker`, `FileProvider`
+- Push-уведомления Android при закрытом приложении
+- Исправлен UUID null в Service Worker
+
+### v1.36 (02.04.2026)
+- Вкладка «Площадки»
+- Склад: автосоздание заявок на закупку при отрицательном остатке
+- Исправлена безопасность backend
+
+### v1.0 (27.03.2026)
+- Первый публичный релиз
+- PWA, Supabase, Firebase FCM, Realtime, чат, монтажи, АВР, материалы
 
 ---
 
 ## 📄 Лицензия
 
-© 2026 ООО "Корнео". Все права защищены.
-
+© 2026 ООО «Корнео». Все права защищены.  
 Конфиденциальная информация. Не подлежит разглашению.
 
----
-
-**Версия:** 1.0.0  
-**Дата обновления:** 27.03.2026  
 **Ответственный:** Технический директор
