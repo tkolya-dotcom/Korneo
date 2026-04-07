@@ -40,9 +40,9 @@ export default function Dashboard() {
           <Text className="text-2xl font-orbitron text-accent text-center mb-2">📋</Text>
           <Text className="text-text-muted text-sm text-center">АВР</Text>
         </TouchableOpacity>
-        <TouchableOpacity className="bg-gradient-card p-6 rounded-xl border border-border shadow-card hover:shadow-glow-cyan" onPress={() => navigateTo('messages')}>
-          <Text className="text-2xl font-orbitron text-accent-2 text-center mb-2">💬</Text>
-          <Text className="text-text-muted text-sm text-center">Чаты</Text>
+        <TouchableOpacity className="bg-gradient-card p-6 rounded-xl border border-border shadow-card" onPress={() => router.push('/(tabs)/profile')}>
+          <Text className="text-2xl font-orbitron text-accent text-center mb-2">👤</Text>
+          <Text className="text-text-muted text-sm text-center">Профиль</Text>
         </TouchableOpacity>
       </View>
 
