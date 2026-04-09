@@ -1,40 +1,28 @@
 {
-  "name": "korneo-app",
-  "version": "1.0.0",
-  "description": "ООО Корнео — мобильное приложение",
-  "main": "index.html",
+  "name": "korneo-monorepo",
+  "version": "1.38.0",
+  "private": true,
+  "description": "ООО Корнео — мобильное приложение и веб-интерфейс (Monorepo)",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
-    "start": "npx http-server -p 8080 -c-1",
-    "serve": "npx live-server --port=8080 --no-browser",
-    "deploy": "npm run build && npx gh-pages -d dist",
-    "build": "echo 'No build step required - using vanilla JS'",
+    "web:start": "yarn workspace web start",
+    "mobile:start": "yarn workspace mobile start",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
     "task-manager",
-    "project-management",
-    "pwa",
-    "supabase",
-    "firebase",
-    "chat",
-    "installations"
+    "monorepo",
+    "expo",
+    "react-native",
+    "supabase"
   ],
   "author": "ООО Корнео",
   "license": "ISC",
-  "dependencies": {
-    "@capacitor/android": "^6.0.0",
-    "@capacitor/core": "^6.0.0",
-    "@capacitor-firebase/messaging": "^6.0.0"
-  },
   "devDependencies": {
-    "@capacitor/cli": "^6.0.0",
-    "web-push": "^3.6.7",
     "http-server": "^14.1.1",
-    "live-server": "^1.2.2",
-    "gh-pages": "^6.1.1"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/tkolya-dotcom/task-manager-app.git"
+    "live-server": "^1.2.2"
   }
 }
