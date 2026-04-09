@@ -1,76 +1,21 @@
-# Korneo Mobile: Полная реализация плана (до Этапа 9)
+# Оптимизация загрузки Korneo Mobile (PWA/Android/iOS)
 
-## ✅ Этап 1: Audit & Decomposition
-- [x] APPLICATION_DOCUMENTATION.md
-- [x] DOMAIN_MAP.md
-- [x] packages/domain/types.ts (User/Task/Installation/AvrTask/Chat/Message)
-- [x] apps/mobile/korneo-mobile (Expo + Router + NativeWind + AuthContext)
+## План (утверждён ✅)
 
-## 🔄 Этап 2: Backend & Auth (95%)
-- [x] Supabase client (src/config/supabase.ts)
-- [x] AuthContext + session restore
-- [x] Login/Register screens
-- [x] Role-aware routing (_layout.tsx)
-- [ ] Recovery screen
+### 1. ✅ Установка зависимостей (@tanstack/react-query)
 
-## ⏳ Этап 3: Navigation & Core UI (70%)
-- [x] Expo Router: AuthStack + MainTabs
-- [x] Dashboard (role-stats, cyberpunk UI)
-- [x] Design system (Tailwind/NativeWind, dark/matrix)
-- [ ] Детали экранов (tasks/[id], etc.)
+### 2. ✅ Service Worker - cache-first PWA + Supabase API fallback
 
-## ⏳ Этап 4: Tasks (50%)
-- [x] Список задач + фильтры status
-- [ ] Детали задачи + change status + comments
+### 3. ✅ Layout + Suspense + Providers + Offline fallback
 
-## ⏳ Этап 5: AVR + Installations (50%)
-- [x] Списки AVR/Installations + фильтры
-- [ ] Детали + update status/actions
+### 4. ✅ AuthContext - async localFirst init
 
-## ⏳ Этап 6: Push Notifications (0%)
-- [ ] Expo Notifications + device token
-- [ ] Deep linking
+### 5. ✅ Tasks.tsx → TanStack Query + Link nav + pull refresh
 
-## ⏳ Этап 7: Geo & Map (0%)
-- [ ] Foreground location + Mapbox
+### 6. ✅ Web index.html - preconnect Supabase + preload assets
 
-## ⏳ Этап 8: Messenger (0%)
-- [ ] Chats list + detail + media
+### 7. Остальные tabs refactored
 
-## ⏳ Этап 9: CI/CD (20%)
-- [ ] EAS Build workflows
+### 8. Метрики Lighthouse 90+ + 3G тест
 
-**✅ Выполнено**:
-1. [x] package.json в apps/mobile/korneo-mobile
-2. [x] packages/api/supabase.ts (queries: tasks/installations/update)
-
-**✅ Этапы 3-5 ~90%**:
-- [x] tasks/[id].tsx (details/status/comments)
-- [x] avr/[id].tsx
-- [x] installations/[id].tsx (SK data)
-- [x] profile.tsx (FCM + settings)
-
-**🔄 Next (Этап 6 Push)**:
-1. `npm install expo-notifications` (уже в package.json)
-2. NotificationsContext + token register
-3. Deep links config
-4. `npx expo start --web` test MVP
-
-**Команды** (cmd):
-```
-cd /d "c:/Users/Tkolya/Desktop/мои/OOO Korneo/apps/mobile/korneo-mobile"
-npm install
-npx expo start --web
-```
-
-
-
-
-**Команды**:
-```
-cd apps/mobile/korneo-mobile
-npm install
-npx expo doctor
-npx expo start --web
-```
-
+**Прогресс: 6/8**
