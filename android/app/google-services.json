@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "884674213029",
+    "project_id": "planner-web-4fec7",
+    "storage_bucket": "planner-web-4fec7.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:884674213029:android:f0166b2a87742e4777894c",
+        "android_client_info": {
+          "package_name": "com.korneo.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDs_gbSwUs68180fVTeylVEfoK04k9wm70"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
