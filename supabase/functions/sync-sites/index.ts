@@ -20,13 +20,6 @@ const SYNC_SECRET  = Deno.env.get("SYNC_SECRET")   ?? "";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")  ?? "";
 const SERVICE_KEY  = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
-// ── CORS-заголовки (добавляются ко ВСЕМ ответам) ─────────────────────────────
-const CORS_HEADERS = {
-  "Access-Control-Allow-Origin":  "*",
-  "Access-Control-Allow-Headers": "authorization, x-sync-secret, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
-
 // Категории устройств по типу (ключевые слова в нижнем регистре)
 const CATEGORY_MAP: Record<string, string> = {
   "коммутатор": "switch",
@@ -262,9 +255,14 @@ function parseDate(s: string): string | null {
 
 // ── Основной обработчик ──────────────────────────────────────────────────────
 Deno.serve(async (req: Request) => {
-  // CORS preflight
+  // CORS для браузерных вызовов
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: CORS_HEADERS });
+    return new Response(null, {
+      headers: {
+        "Access-Control-Allow-Origin":  "*",
+        "Access-Control-Allow-Headers": "authorization, x-sync-secret, content-type",
+      },
+    });
   }
 
   // Аутентификация: service_role token или x-sync-secret
@@ -274,10 +272,7 @@ Deno.serve(async (req: Request) => {
   const isSecretOk    = SYNC_SECRET && syncSecret === SYNC_SECRET;
 
   if (!isServiceRole && !isSecretOk) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
-      status: 401,
-      headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
-    });
+    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
   }
 
   // Инициализируем Supabase с service_role
@@ -309,10 +304,7 @@ Deno.serve(async (req: Request) => {
   }
 
   if (siteIds.length === 0) {
-    return new Response(JSON.stringify({ message: "Нет площадок для синхронизации" }), {
-      status: 200,
-      headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
-    });
+    return new Response(JSON.stringify({ message: "Нет площадок для синхронизации" }), { status: 200 });
   }
 
   const results: Array<{ site_id: number; status: string; error?: string }> = [];
@@ -430,6 +422,6 @@ Deno.serve(async (req: Request) => {
   }
 
   return new Response(JSON.stringify({ synced: results.length, results }), {
-    headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json" },
   });
 });
