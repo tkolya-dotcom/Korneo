@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { authApi } from '../api';
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { authApi, supabase, usersApi } from '../api';
 
 const AuthContext = createContext(null);
 
@@ -15,50 +15,111 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      authApi.getMe()
-        .then(data => {
-          setUser(data.user);
-        })
-        .catch(() => {
-          localStorage.removeItem('token');
-        })
-        .finally(() => {
-          setLoading(false);
-        });
-    } else {
-      setLoading(false);
+  const isAuthLockError = (err) =>
+    typeof err?.message === 'string' &&
+    err.message.includes('auth-token') &&
+    err.message.toLowerCase().includes('lock');
+
+  const safeGetSession = async () => {
+    try {
+      return await supabase.auth.getSession();
+    } catch (err) {
+      if (!isAuthLockError(err)) throw err;
+      await new Promise((resolve) => setTimeout(resolve, 120));
+      return supabase.auth.getSession();
     }
+  };
+
+  const syncSession = async () => {
+    const {
+      data: { session },
+      error,
+    } = await safeGetSession();
+
+    if (error || !session?.access_token) {
+      localStorage.removeItem('token');
+      setUser(null);
+      return;
+    }
+
+    localStorage.setItem('token', session.access_token);
+
+    try {
+      const data = await authApi.getMe();
+      setUser(data.user);
+    } catch (err) {
+      console.error('Failed to restore auth session:', err);
+      localStorage.removeItem('token');
+      setUser(null);
+    }
+  };
+
+  useEffect(() => {
+    let mounted = true;
+
+    const initializeAuth = async () => {
+      await syncSession();
+      if (mounted) {
+        setLoading(false);
+      }
+    };
+
+    initializeAuth();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      try {
+        if (!session?.access_token) {
+          localStorage.removeItem('token');
+          setUser(null);
+          return;
+        }
+
+        localStorage.setItem('token', session.access_token);
+        const data = await authApi.getMe();
+        setUser(data.user);
+      } catch (err) {
+        if (isAuthLockError(err)) {
+          return;
+        }
+        console.error('Auth state sync error:', err);
+        localStorage.removeItem('token');
+        setUser(null);
+      }
+    });
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const login = async (email, password) => {
     const data = await authApi.login(email, password);
-    localStorage.setItem('token', data.token);
+    if (data?.token) {
+      localStorage.setItem('token', data.token);
+    }
     setUser(data.user);
     return data;
   };
 
   const register = async (email, password, name, role) => {
     const data = await authApi.register(email, password, name, role);
-    localStorage.setItem('token', data.token);
+    if (data?.token) {
+      localStorage.setItem('token', data.token);
+    }
     setUser(data.user);
     return data;
   };
 
   const logout = async () => {
     try {
-      // Call the offline API to mark user as offline before logging out
-      await fetch('/api/users/offline', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
+      await usersApi.markOffline();
     } catch (err) {
       console.error('Error marking user offline:', err);
     } finally {
+      await supabase.auth.signOut();
       localStorage.removeItem('token');
       setUser(null);
     }
@@ -71,12 +132,8 @@ export const AuthProvider = ({ children }) => {
     register,
     logout,
     isManager: user?.role === 'manager',
-    isWorker: user?.role === 'worker'
+    isWorker: user?.role === 'worker',
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
