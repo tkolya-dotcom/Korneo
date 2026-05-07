@@ -8,7 +8,6 @@ const urlsToCache = [
   '/assets/adaptive-icon.png',
   '/~/_expo/static/js/bundle.js',
   '/~/_expo/static/js/polyfills.js',
-  // Critical route shells
   '/login',
   '/(tabs)',
   '/(tabs)/index',
@@ -17,7 +16,6 @@ const urlsToCache = [
   '/(tabs)/avr',
 ];
 
-// Install SW
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => {
@@ -28,7 +26,6 @@ self.addEventListener('install', event => {
   self.skipWaiting();
 });
 
-// Activate SW
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(cacheNames => {
@@ -45,11 +42,9 @@ self.addEventListener('activate', event => {
   self.clients.claim();
 });
 
-// Cache-first strategy for assets
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
   
-  // Runtime cache API requests (Supabase)
   if (url.origin === 'jmxjbdnqnzkzxgsfywha.supabase.co' || event.request.destination === 'image') {
     event.respondWith(
       caches.match(event.request).then(response => {
@@ -69,13 +64,11 @@ self.addEventListener('fetch', event => {
           
           return networkResponse;
         }).catch(() => {
-          // Network fail → stale cache for API
           return caches.match(event.request) || new Response('Offline', { status: 503 });
         });
       })
     );
   } else {
-    // Cache-first for app shell
     event.respondWith(
       caches.match(event.request).then(response => {
         return response || fetch(event.request).then(fetchResponse => {
@@ -86,7 +79,6 @@ self.addEventListener('fetch', event => {
           return fetchResponse;
         });
       }).catch(() => {
-        // Offline fallback
         return caches.match('/') || new Response('Korneo Mobile offline', {
           status: 503,
           headers: { 'Content-Type': 'text/html' }
@@ -96,7 +88,6 @@ self.addEventListener('fetch', event => {
   }
 });
 
-// Background sync for tasks (optional)
 self.addEventListener('sync', event => {
   if (event.tag === 'sync-tasks') {
     event.waitUntil(syncPendingTasks());
@@ -104,6 +95,5 @@ self.addEventListener('sync', event => {
 });
 
 async function syncPendingTasks() {
-  // Impl pending mutations from IndexedDB
   console.log('SW: Background sync tasks');
 }

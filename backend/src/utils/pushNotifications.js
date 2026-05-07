@@ -1,5 +1,3 @@
-// Backend function to send push notifications
-// Add this to your backend or use as a Supabase Edge Function
 
 import { createClient } from '@supabase/supabase-js';
 
@@ -12,7 +10,6 @@ export async function sendPushNotification(userId, title, body) {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
     try {
-        // Get user's push subscriptions
         const { data: subscriptions, error: fetchError } = await supabase
             .from('user_push_subscriptions')
             .select('*')
@@ -24,7 +21,6 @@ export async function sendPushNotification(userId, title, body) {
             return false;
         }
         
-        // Send push notification to each subscription
         const webPush = require('web-push');
         
         webPush.setVapidDetails(
@@ -55,7 +51,6 @@ export async function sendPushNotification(userId, title, body) {
                 console.log(`Push sent to ${sub.endpoint}`);
             } catch (error) {
                 console.error(`Failed to send push to ${sub.endpoint}:`, error.message);
-                // Remove invalid subscription
                 if (error.statusCode === 410) {
                     await supabase
                         .from('user_push_subscriptions')
@@ -73,11 +68,9 @@ export async function sendPushNotification(userId, title, body) {
     }
 }
 
-// Example usage in task creation
 export async function notifyTaskAssignment(taskId) {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
-    // Get task with assignee
     const { data: task } = await supabase
         .from('tasks')
         .select('*, creator:users!tasks_created_by_fkey(name), assignee:users!tasks_assignee_id_fkey(email, name)')
@@ -86,13 +79,11 @@ export async function notifyTaskAssignment(taskId) {
     
     if (!task || !task.assignee_id) return;
     
-    const title = '📋 Новая задача';
-    const body = `Вас назначили на задачу: ${task.title}\nСоздал: ${task.creator?.name || 'Руководитель'}`;
+    const title = 'рџ“‹ РќРѕРІР°СЏ Р·Р°РґР°С‡Р°';
+    const body = `Р’Р°СЃ РЅР°Р·РЅР°С‡РёР»Рё РЅР° Р·Р°РґР°С‡Сѓ: ${task.title}\nРЎРѕР·РґР°Р»: ${task.creator?.name || 'Р СѓРєРѕРІРѕРґРёС‚РµР»СЊ'}`;
     
-    // Send push notification
     await sendPushNotification(task.assignee_id, title, body);
     
-    // Also save to notification queue
     await supabase.from('notification_queue').insert({
         user_id: task.assignee_id,
         title,

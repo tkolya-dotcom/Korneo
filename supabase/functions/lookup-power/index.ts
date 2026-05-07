@@ -1,22 +1,3 @@
-/**
- * Edge Function: lookup-power
- *
- * Ищет номинальную мощность оборудования по модели:
- *   1. Сначала проверяет таблицу power_specs (кэш)
- *   2. Если нет — ищет в интернете через Perplexity AI (sonar)
- *   3. Сохраняет найденное в power_specs с source='web'
- *   4. Если нигде нет — возвращает { found: false } → UI показывает ручной ввод
- *
- * POST /functions/v1/lookup-power
- * Body: { "model": "Eltex MES3348", "manufacturer": "Eltex", "device_type": "Коммутатор" }
- *
- * Response:
- *   { found: true,  power_watts, power_va, source, confidence, source_url, snippet }
- *   { found: false }
- *
- * PATCH /functions/v1/lookup-power   — ручное сохранение мощности менеджером
- * Body: { "model": "...", "power_watts": 43, "notes": "..." }
- */
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
@@ -27,14 +8,12 @@ const supabase = createClient(
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
 );
 
-// ── CORS ─────────────────────────────────────────────────────────────────────
 const corsHeaders = {
   "Access-Control-Allow-Origin":  "*",
   "Access-Control-Allow-Headers": "authorization, content-type",
   "Access-Control-Allow-Methods": "POST, PATCH, OPTIONS",
 };
 
-// ── Поиск через Perplexity Sonar ─────────────────────────────────────────────
 async function searchPowerOnline(
   model: string,
   manufacturer: string,
@@ -43,7 +22,7 @@ async function searchPowerOnline(
   if (!PERPLEXITY_KEY) return null;
 
   const query = [
-    `номинальная потребляемая мощность ${manufacturer} ${model}`,
+    `РЅРѕРјРёРЅР°Р»СЊРЅР°СЏ РїРѕС‚СЂРµР±Р»СЏРµРјР°СЏ РјРѕС‰РЅРѕСЃС‚СЊ ${manufacturer} ${model}`,
     `power consumption watts ${manufacturer} ${model} datasheet specifications`,
   ].join(" OR ");
 
@@ -60,18 +39,18 @@ async function searchPowerOnline(
           {
             role:    "system",
             content: [
-              "Ты инженерный справочник. Пользователь спрашивает о потребляемой мощности оборудования.",
-              "Отвечай ТОЛЬКО в формате JSON (без markdown, без пояснений):",
-              '{ "power_watts": <число или null>, "power_va": <число или null>,',
-              '  "confidence": "confirmed|estimated", "snippet": "<1-2 предложения откуда взято>" }',
-              "power_watts — для обычного оборудования (Вт), power_va — для ИБП (ВА).",
-              "Если данные точно из даташита/документации — confidence=confirmed, если из обзоров/форумов — estimated.",
-              "Если данных нет совсем — верни { power_watts: null, power_va: null, confidence: null, snippet: null }",
+              "РўС‹ РёРЅР¶РµРЅРµСЂРЅС‹Р№ СЃРїСЂР°РІРѕС‡РЅРёРє. РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ СЃРїСЂР°С€РёРІР°РµС‚ Рѕ РїРѕС‚СЂРµР±Р»СЏРµРјРѕР№ РјРѕС‰РЅРѕСЃС‚Рё РѕР±РѕСЂСѓРґРѕРІР°РЅРёСЏ.",
+              "РћС‚РІРµС‡Р°Р№ РўРћР›Р¬РљРћ РІ С„РѕСЂРјР°С‚Рµ JSON (Р±РµР· markdown, Р±РµР· РїРѕСЏСЃРЅРµРЅРёР№):",
+              '{ "power_watts": <С‡РёСЃР»Рѕ РёР»Рё null>, "power_va": <С‡РёСЃР»Рѕ РёР»Рё null>,',
+              '  "confidence": "confirmed|estimated", "snippet": "<1-2 РїСЂРµРґР»РѕР¶РµРЅРёСЏ РѕС‚РєСѓРґР° РІР·СЏС‚Рѕ>" }',
+              "power_watts вЂ” РґР»СЏ РѕР±С‹С‡РЅРѕРіРѕ РѕР±РѕСЂСѓРґРѕРІР°РЅРёСЏ (Р’С‚), power_va вЂ” РґР»СЏ РР‘Рџ (Р’Рђ).",
+              "Р•СЃР»Рё РґР°РЅРЅС‹Рµ С‚РѕС‡РЅРѕ РёР· РґР°С‚Р°С€РёС‚Р°/РґРѕРєСѓРјРµРЅС‚Р°С†РёРё вЂ” confidence=confirmed, РµСЃР»Рё РёР· РѕР±Р·РѕСЂРѕРІ/С„РѕСЂСѓРјРѕРІ вЂ” estimated.",
+              "Р•СЃР»Рё РґР°РЅРЅС‹С… РЅРµС‚ СЃРѕРІСЃРµРј вЂ” РІРµСЂРЅРё { power_watts: null, power_va: null, confidence: null, snippet: null }",
             ].join(" "),
           },
           {
             role:    "user",
-            content: `Потребляемая мощность: ${manufacturer} ${model} (тип: ${deviceType})`,
+            content: `РџРѕС‚СЂРµР±Р»СЏРµРјР°СЏ РјРѕС‰РЅРѕСЃС‚СЊ: ${manufacturer} ${model} (С‚РёРї: ${deviceType})`,
           },
         ],
         temperature:  0,
@@ -87,7 +66,6 @@ async function searchPowerOnline(
     const citations  = data.citations ?? [];
     const sourceUrl  = citations[0] ?? "";
 
-    // Парсим JSON из ответа модели
     const jsonMatch = content.match(/\{[\s\S]*\}/);
     if (!jsonMatch) return null;
 
@@ -109,13 +87,11 @@ async function searchPowerOnline(
   }
 }
 
-// ── Основной обработчик ──────────────────────────────────────────────────────
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // ── PATCH: ручное сохранение мощности ──────────────────────────────────────
   if (req.method === "PATCH") {
     const body = await req.json();
     const { model, power_watts, power_va, notes } = body;
@@ -126,7 +102,6 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Определяем кто сохраняет (для updated_by)
     const authHeader = req.headers.get("authorization") ?? "";
     let userId: string | null = null;
     if (authHeader.startsWith("Bearer ")) {
@@ -166,7 +141,6 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  // ── POST: поиск мощности ────────────────────────────────────────────────────
   const { model, manufacturer, device_type } = await req.json();
 
   if (!model) {
@@ -177,7 +151,6 @@ Deno.serve(async (req: Request) => {
 
   const modelClean = model.trim();
 
-  // 1. Проверяем кэш power_specs
   const { data: cached } = await supabase
     .from("power_specs")
     .select("*")
@@ -197,7 +170,6 @@ Deno.serve(async (req: Request) => {
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 
-  // 2. Ищем в интернете
   const webResult = await searchPowerOnline(
     modelClean,
     manufacturer ?? "",
@@ -205,7 +177,6 @@ Deno.serve(async (req: Request) => {
   );
 
   if (webResult) {
-    // Сохраняем в power_specs
     await supabase.from("power_specs").upsert({
       model:          modelClean,
       manufacturer:   manufacturer ?? null,
@@ -230,7 +201,6 @@ Deno.serve(async (req: Request) => {
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 
-  // 3. Нигде не нашли
   return new Response(JSON.stringify({ found: false }), {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });

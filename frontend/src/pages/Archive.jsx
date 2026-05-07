@@ -51,53 +51,53 @@ const Archive = () => {
 
   const getTaskStatusLabel = (status) => {
     const labels = {
-      new: 'Новая',
-      planned: 'Запланирована',
-      in_progress: 'В работе',
-      waiting_materials: 'Ожидает материалов',
-      done: 'Выполнена',
-      postponed: 'Отложена'
+      new: 'РќРѕРІР°СЏ',
+      planned: 'Р—Р°РїР»Р°РЅРёСЂРѕРІР°РЅР°',
+      in_progress: 'Р’ СЂР°Р±РѕС‚Рµ',
+      waiting_materials: 'РћР¶РёРґР°РµС‚ РјР°С‚РµСЂРёР°Р»РѕРІ',
+      done: 'Р’С‹РїРѕР»РЅРµРЅР°',
+      postponed: 'РћС‚Р»РѕР¶РµРЅР°'
     };
     return labels[status] || status;
   };
 
   const getInstallationStatusLabel = (status) => {
     const labels = {
-      new: 'Новый',
-      planned: 'Запланирован',
-      in_progress: 'В работе',
-      waiting_materials: 'Ожидает материалов',
-      in_order: 'В заказе',
-      ready_for_receipt: 'Готов к получению',
-      received: 'Получено',
-      done: 'Завершён',
-      postponed: 'Отложен'
+      new: 'РќРѕРІС‹Р№',
+      planned: 'Р—Р°РїР»Р°РЅРёСЂРѕРІР°РЅ',
+      in_progress: 'Р’ СЂР°Р±РѕС‚Рµ',
+      waiting_materials: 'РћР¶РёРґР°РµС‚ РјР°С‚РµСЂРёР°Р»РѕРІ',
+      in_order: 'Р’ Р·Р°РєР°Р·Рµ',
+      ready_for_receipt: 'Р“РѕС‚РѕРІ Рє РїРѕР»СѓС‡РµРЅРёСЋ',
+      received: 'РџРѕР»СѓС‡РµРЅРѕ',
+      done: 'Р—Р°РІРµСЂС€С‘РЅ',
+      postponed: 'РћС‚Р»РѕР¶РµРЅ'
     };
     return labels[status] || status;
   };
 
   if (loading) {
-    return <div className="loading">Загрузка...</div>;
+    return <div className="loading">Р—Р°РіСЂСѓР·РєР°...</div>;
   }
 
   return (
     <div>
       <header className="header">
-        <h1>Архив</h1>
+        <h1>РђСЂС…РёРІ</h1>
         <nav className="header-nav">
-          <Link to="/">Главная</Link>
-          <Link to="/projects">Проекты</Link>
-          <Link to="/tasks">Задачи</Link>
-          <Link to="/installations">Монтажи</Link>
-          <Link to="/purchase-requests">Заявки</Link>
-          <Link to="/archive">Архив</Link>
+          <Link to="/">Р“Р»Р°РІРЅР°СЏ</Link>
+          <Link to="/projects">РџСЂРѕРµРєС‚С‹</Link>
+          <Link to="/tasks">Р—Р°РґР°С‡Рё</Link>
+          <Link to="/installations">РњРѕРЅС‚Р°Р¶Рё</Link>
+          <Link to="/purchase-requests">Р—Р°СЏРІРєРё</Link>
+          <Link to="/archive">РђСЂС…РёРІ</Link>
         </nav>
       </header>
 
       <main className="container">
         <div className="card">
           <div className="card-header">
-            <h3 className="card-title">Архивные записи</h3>
+            <h3 className="card-title">РђСЂС…РёРІРЅС‹Рµ Р·Р°РїРёСЃРё</h3>
           </div>
 
           {error && <div className="error">{error}</div>}
@@ -108,13 +108,13 @@ const Archive = () => {
               className={`btn ${activeTab === 'tasks' ? 'btn-primary' : 'btn-secondary'}`}
               onClick={() => setActiveTab('tasks')}
             >
-              Задачи ({tasks.length})
+              Р—Р°РґР°С‡Рё ({tasks.length})
             </button>
             <button
               className={`btn ${activeTab === 'installations' ? 'btn-primary' : 'btn-secondary'}`}
               onClick={() => setActiveTab('installations')}
             >
-              Монтажи ({installations.length})
+              РњРѕРЅС‚Р°Р¶Рё ({installations.length})
             </button>
           </div>
 
@@ -123,18 +123,18 @@ const Archive = () => {
             <>
               {tasks.length === 0 ? (
                 <div className="empty-state">
-                  <h3>Нет архивных задач</h3>
+                  <h3>РќРµС‚ Р°СЂС…РёРІРЅС‹С… Р·Р°РґР°С‡</h3>
                 </div>
               ) : (
                 <table className="table">
                   <thead>
                     <tr>
-                      <th>Название</th>
-                      <th>Проект</th>
-                      <th>Исполнитель</th>
-                      <th>Статус</th>
-                      <th>Срок</th>
-                      <th>Действия</th>
+                      <th>РќР°Р·РІР°РЅРёРµ</th>
+                      <th>РџСЂРѕРµРєС‚</th>
+                      <th>РСЃРїРѕР»РЅРёС‚РµР»СЊ</th>
+                      <th>РЎС‚Р°С‚СѓСЃ</th>
+                      <th>РЎСЂРѕРє</th>
+                      <th>Р”РµР№СЃС‚РІРёСЏ</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -155,7 +155,7 @@ const Archive = () => {
                             onClick={() => handleUnarchiveTask(task.id)}
                             style={{ padding: '5px 10px', fontSize: '12px' }}
                           >
-                            Восстановить
+                            Р’РѕСЃСЃС‚Р°РЅРѕРІРёС‚СЊ
                           </button>
                         </td>
                       </tr>
@@ -171,19 +171,19 @@ const Archive = () => {
             <>
               {installations.length === 0 ? (
                 <div className="empty-state">
-                  <h3>Нет архивных монтажей</h3>
+                  <h3>РќРµС‚ Р°СЂС…РёРІРЅС‹С… РјРѕРЅС‚Р°Р¶РµР№</h3>
                 </div>
               ) : (
                 <table className="table">
                   <thead>
                     <tr>
-                      <th>Название</th>
-                      <th>Проект</th>
-                      <th>Исполнитель</th>
-                      <th>Статус</th>
-                      <th>Дата</th>
-                      <th>Адрес</th>
-                      <th>Действия</th>
+                      <th>РќР°Р·РІР°РЅРёРµ</th>
+                      <th>РџСЂРѕРµРєС‚</th>
+                      <th>РСЃРїРѕР»РЅРёС‚РµР»СЊ</th>
+                      <th>РЎС‚Р°С‚СѓСЃ</th>
+                      <th>Р”Р°С‚Р°</th>
+                      <th>РђРґСЂРµСЃ</th>
+                      <th>Р”РµР№СЃС‚РІРёСЏ</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -205,7 +205,7 @@ const Archive = () => {
                             onClick={() => handleUnarchiveInstallation(inst.id)}
                             style={{ padding: '5px 10px', fontSize: '12px' }}
                           >
-                            Восстановить
+                            Р’РѕСЃСЃС‚Р°РЅРѕРІРёС‚СЊ
                           </button>
                         </td>
                       </tr>

@@ -46,14 +46,13 @@ public class UpdateChecker {
                 int remoteCode = remote.getInt("versionCode");
                 String remoteName = remote.getString("versionName");
                 String downloadUrl = remote.getString("downloadUrl");
-                String notes = remote.optString("releaseNotes", "Улучшения и исправления");
+                String notes = remote.optString("releaseNotes", "РЈР»СѓС‡С€РµРЅРёСЏ Рё РёСЃРїСЂР°РІР»РµРЅРёСЏ");
 
                 Log.d(TAG, "Current versionCode=" + currentCode + " / Remote versionCode=" + remoteCode);
 
                 if (remoteCode > currentCode) {
                     Log.d(TAG, "Update available: " + remoteName + " URL: " + downloadUrl);
                     activity.runOnUiThread(() -> {
-                        // Guard against destroyed activity
                         if (activity.isFinishing() || activity.isDestroyed()) {
                             Log.w(TAG, "Activity is finishing, skipping dialog");
                             return;
@@ -118,10 +117,10 @@ public class UpdateChecker {
 
     private void showUpdateDialog(String version, String downloadUrl, String notes) {
         new AlertDialog.Builder(activity)
-            .setTitle("🆕 Доступно обновление v" + version)
-            .setMessage(notes + "\n\nОбновить приложение сейчас?")
-            .setPositiveButton("Обновить", (d, w) -> downloadAndInstall(downloadUrl))
-            .setNegativeButton("Позже", null)
+            .setTitle("рџ†• Р”РѕСЃС‚СѓРїРЅРѕ РѕР±РЅРѕРІР»РµРЅРёРµ v" + version)
+            .setMessage(notes + "\n\nРћР±РЅРѕРІРёС‚СЊ РїСЂРёР»РѕР¶РµРЅРёРµ СЃРµР№С‡Р°СЃ?")
+            .setPositiveButton("РћР±РЅРѕРІРёС‚СЊ", (d, w) -> downloadAndInstall(downloadUrl))
+            .setNegativeButton("РџРѕР·Р¶Рµ", null)
             .setCancelable(true)
             .show();
     }
@@ -129,8 +128,8 @@ public class UpdateChecker {
     private void downloadAndInstall(String downloadUrl) {
         try {
             DownloadManager.Request request = new DownloadManager.Request(Uri.parse(downloadUrl));
-            request.setTitle("Загрузка Корнео");
-            request.setDescription("Обновление приложения...");
+            request.setTitle("Р—Р°РіСЂСѓР·РєР° РљРѕСЂРЅРµРѕ");
+            request.setDescription("РћР±РЅРѕРІР»РµРЅРёРµ РїСЂРёР»РѕР¶РµРЅРёСЏ...");
             request.setNotificationVisibility(
                 DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
             request.setDestinationInExternalPublicDir(
@@ -141,7 +140,6 @@ public class UpdateChecker {
                 activity.getSystemService(Context.DOWNLOAD_SERVICE);
             long downloadId = dm.enqueue(request);
 
-            // Слушаем завершение скачивания
             BroadcastReceiver receiver = new BroadcastReceiver() {
                 @Override
                 public void onReceive(Context ctx, Intent intent) {

@@ -4,14 +4,12 @@ import { authenticateToken, requireManager } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// Get all projects
 router.get('/', authenticateToken, async (req, res) => {
   try {
     const { status } = req.query;
     let query = supabase
       .from('projects')
       .select(`
-        *,
         creator:users!projects_created_by_fkey(id, name, email),
         tasks(id, title, status, assignee_id),
         installations(id, title, status, assignee_id)
@@ -22,7 +20,6 @@ router.get('/', authenticateToken, async (req, res) => {
       query = query.eq('status', status);
     }
 
-    // If worker, only show projects they are assigned to
     if (req.user.role === 'worker') {
       query = query.or(`tasks.assignee_id.eq.${req.user.id},installations.assignee_id.eq.${req.user.id}`);
     }
@@ -40,7 +37,6 @@ router.get('/', authenticateToken, async (req, res) => {
   }
 });
 
-// Get single project
 router.get('/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
@@ -48,7 +44,6 @@ router.get('/:id', authenticateToken, async (req, res) => {
     const { data: project, error } = await supabase
       .from('projects')
       .select(`
-        *,
         creator:users!projects_created_by_fkey(id, name, email)
       `)
       .eq('id', id)
@@ -58,21 +53,17 @@ router.get('/:id', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'Project not found' });
     }
 
-    // Get related tasks
     const { data: tasks } = await supabase
       .from('tasks')
       .select(`
-        *,
         assignee:users!tasks_assignee_id_fkey(id, name, email)
       `)
       .eq('project_id', id)
       .order('created_at', { ascending: false });
 
-    // Get related installations
     const { data: installations } = await supabase
       .from('installations')
       .select(`
-        *,
         assignee:users!installations_assignee_id_fkey(id, name, email)
       `)
       .eq('project_id', id)
@@ -85,7 +76,6 @@ router.get('/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// Create project (manager only)
 router.post('/', authenticateToken, requireManager, async (req, res) => {
   try {
     const { name, description } = req.body;
@@ -115,7 +105,6 @@ router.post('/', authenticateToken, requireManager, async (req, res) => {
   }
 });
 
-// Update project (manager only)
 router.put('/:id', authenticateToken, requireManager, async (req, res) => {
   try {
     const { id } = req.params;
@@ -144,7 +133,6 @@ router.put('/:id', authenticateToken, requireManager, async (req, res) => {
   }
 });
 
-// Delete project (manager only)
 router.delete('/:id', authenticateToken, requireManager, async (req, res) => {
   try {
     const { id } = req.params;

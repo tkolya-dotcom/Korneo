@@ -4,7 +4,6 @@ import { authenticateToken, requireManager } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// Get warehouse stock by material (с остатками)
 router.get('/', authenticateToken, async (req, res) => {
   try {
     const { material_ids } = req.query;
@@ -12,7 +11,6 @@ router.get('/', authenticateToken, async (req, res) => {
     let query = supabase
       .from('warehouse')
       .select(`
-        *,
         material:materials(name, unit, category)
       `)
       .order('updated_at', { ascending: false });
@@ -28,7 +26,6 @@ router.get('/', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: error.message });
     }
 
-    // Группируем по material_id
     const stockByMaterial = {};
     stock.forEach(item => {
       const matId = item.material_id;
@@ -50,7 +47,6 @@ router.get('/', authenticateToken, async (req, res) => {
   }
 });
 
-// Get all warehouse overview
 router.get('/overview', authenticateToken, async (req, res) => {
   try {
     const { search, category } = req.query;
@@ -74,7 +70,6 @@ router.get('/overview', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: error.message });
     }
 
-    // Группируем в JS и фильтруем по поиску
     const byMaterial = {};
     (data || []).forEach(row => {
       const id = row.material_id;
@@ -98,13 +93,10 @@ router.get('/overview', authenticateToken, async (req, res) => {
   }
 });
 
-// Update stock quantity (manager only, для прихода/списания)
 router.put('/:material_id/stock', authenticateToken, requireManager, async (req, res) => {
   try {
     const { material_id } = req.params;
     const { quantity_delta, operation, note, location } = req.body;
-    // quantity_delta: положительное = приход, отрицательное = списание
-    // operation: 'receipt' | 'usage'
 
     if (quantity_delta === undefined || quantity_delta === null) {
       return res.status(400).json({ error: 'quantity_delta required' });
@@ -115,7 +107,6 @@ router.put('/:material_id/stock', authenticateToken, requireManager, async (req,
       return res.status(400).json({ error: 'Invalid quantity_delta' });
     }
 
-    // Получаем текущий остаток для информации в ответе
     let currentQty = 0;
     if (parsedDelta < 0) {
       const { data: stockRows } = await supabase
@@ -125,7 +116,6 @@ router.put('/:material_id/stock', authenticateToken, requireManager, async (req,
       currentQty = (stockRows || []).reduce((s, r) => s + parseFloat(r.quantity || 0), 0);
     }
 
-    // UPSERT warehouse
     const { data: existing, error: fetchError } = await supabase
       .from('warehouse')
       .select('*')
@@ -150,7 +140,7 @@ router.put('/:material_id/stock', authenticateToken, requireManager, async (req,
       newRecord = {
         material_id,
         quantity: parsedDelta,
-        location: location || 'Основной склад',
+        location: location || 'РћСЃРЅРѕРІРЅРѕР№ СЃРєР»Р°Рґ',
         updated_at: new Date().toISOString(),
       };
       const { data: inserted, error: insertError } = await supabase
@@ -164,21 +154,18 @@ router.put('/:material_id/stock', authenticateToken, requireManager, async (req,
       newRecord.id = inserted.id;
     }
 
-    // Логирование в materials_usage при списании
     if (parsedDelta < 0 && operation === 'usage') {
       await supabase.from('materials_usage').insert([{
         material_id,
         quantity: Math.abs(parsedDelta),
         user_id: req.user.id,
-        note: note || `Списание (${operation})`,
+        note: note || `РЎРїРёСЃР°РЅРёРµ (${operation})`,
         used_at: new Date().toISOString(),
       }]);
     }
 
     const newQty = newRecord.quantity;
 
-    // Если ушли в минус — триггер БД (handle_negative_stock) уже создал purchase_request.
-    // Возвращаем предупреждение в ответе, чтобы UI мог показать алерт.
     const response = {
       message: 'Stock updated',
       material_id,
@@ -187,7 +174,7 @@ router.put('/:material_id/stock', authenticateToken, requireManager, async (req,
     };
 
     if (newQty < 0) {
-      response.warning = `Остаток ушёл в минус (${newQty}). Автоматически создана заявка на закупку.`;
+      response.warning = `РћСЃС‚Р°С‚РѕРє СѓС€С‘Р» РІ РјРёРЅСѓСЃ (${newQty}). РђРІС‚РѕРјР°С‚РёС‡РµСЃРєРё СЃРѕР·РґР°РЅР° Р·Р°СЏРІРєР° РЅР° Р·Р°РєСѓРїРєСѓ.`;
       response.deficit = Math.abs(newQty);
     }
 

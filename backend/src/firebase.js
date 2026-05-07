@@ -10,19 +10,16 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Путь к сервисному ключу Firebase
 const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH || 
   join(__dirname, '../../planner-web-4fec7-6982cfde10af.json');
 
 let adminApp;
 let messaging;
 
-// Инициализация Firebase Admin
 export function initializeFirebaseAdmin() {
   try {
-    // Проверяем существует ли файл сервисного ключа
     if (!fs.existsSync(serviceAccountPath)) {
-      console.error('❌ Firebase service account key not found at:', serviceAccountPath);
+      console.error('вќЊ Firebase service account key not found at:', serviceAccountPath);
       return null;
     }
 
@@ -33,22 +30,21 @@ export function initializeFirebaseAdmin() {
         credential: cert(serviceAccount),
         projectId: serviceAccount.project_id
       });
-      console.log('✅ Firebase Admin initialized');
+      console.log('вњ… Firebase Admin initialized');
     } else {
       adminApp = getApps()[0];
     }
 
     messaging = getMessaging(adminApp);
-    console.log('✅ Firebase Messaging initialized');
+    console.log('вњ… Firebase Messaging initialized');
     
     return messaging;
   } catch (error) {
-    console.error('❌ Error initializing Firebase Admin:', error);
+    console.error('вќЊ Error initializing Firebase Admin:', error);
     return null;
   }
 }
 
-// Отправка push уведомления через FCM
 export async function sendPushNotification(token, title, body, data = {}) {
   if (!messaging) {
     console.error('Firebase Admin not initialized');
@@ -66,15 +62,14 @@ export async function sendPushNotification(token, title, body, data = {}) {
     };
 
     const response = await messaging.send(message);
-    console.log('✅ FCM notification sent successfully:', response);
+    console.log('вњ… FCM notification sent successfully:', response);
     return { success: true, messageId: response };
   } catch (error) {
-    console.error('❌ Error sending FCM notification:', error);
+    console.error('вќЊ Error sending FCM notification:', error);
     return { success: false, error: error.message };
   }
 }
 
-// Массовая рассылка уведомлений
 export async function sendMulticastNotification(tokens, title, body, data = {}) {
   if (!messaging) {
     console.error('Firebase Admin not initialized');
@@ -92,7 +87,7 @@ export async function sendMulticastNotification(tokens, title, body, data = {}) 
     };
 
     const response = await messaging.sendEachForMulticast(message);
-    console.log(`✅ FCM multicast sent: ${response.successCount}/${tokens.length}`);
+    console.log(`вњ… FCM multicast sent: ${response.successCount}/${tokens.length}`);
     return { 
       success: true, 
       successCount: response.successCount,
@@ -100,7 +95,7 @@ export async function sendMulticastNotification(tokens, title, body, data = {}) 
       responses: response.responses
     };
   } catch (error) {
-    console.error('❌ Error sending FCM multicast:', error);
+    console.error('вќЊ Error sending FCM multicast:', error);
     return { success: false, error: error.message };
   }
 }

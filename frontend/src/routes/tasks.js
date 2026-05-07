@@ -4,7 +4,6 @@ import { authenticateToken, requireManager } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// Get all tasks with filters
 router.get('/', authenticateToken, async (req, res) => {
   try {
     const { project_id, assignee_id, status } = req.query;
@@ -12,7 +11,6 @@ router.get('/', authenticateToken, async (req, res) => {
     let query = supabase
       .from('tasks')
       .select(`
-        *,
         project:projects(id, name),
         assignee:users!tasks_assignee_id_fkey(id, name, email)
       `)
@@ -30,7 +28,6 @@ router.get('/', authenticateToken, async (req, res) => {
       query = query.eq('status', status);
     }
 
-    // Workers can only see their own tasks
     if (req.user.role === 'worker') {
       query = query.eq('assignee_id', req.user.id);
     }
@@ -48,7 +45,6 @@ router.get('/', authenticateToken, async (req, res) => {
   }
 });
 
-// Get single task
 router.get('/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
@@ -56,7 +52,6 @@ router.get('/:id', authenticateToken, async (req, res) => {
     const { data: task, error } = await supabase
       .from('tasks')
       .select(`
-        *,
         project:projects(id, name),
         assignee:users!tasks_assignee_id_fkey(id, name, email)
       `)
@@ -67,11 +62,9 @@ router.get('/:id', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'Task not found' });
     }
 
-    // Get related purchase requests
     const { data: purchaseRequests } = await supabase
       .from('purchase_requests')
       .select(`
-        *,
         creator:users!purchase_requests_created_by_fkey(id, name),
         approved_by_user:users!purchase_requests_approved_by_fkey(id, name),
         items:purchase_request_items(*)
@@ -86,7 +79,6 @@ router.get('/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// Create task (manager only)
 router.post('/', authenticateToken, requireManager, async (req, res) => {
   try {
     console.log('Creating task, user role:', req.user.role);
@@ -122,13 +114,11 @@ router.post('/', authenticateToken, requireManager, async (req, res) => {
   }
 });
 
-// Update task
 router.put('/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { title, description, assignee_id, status, due_date } = req.body;
 
-    // Check if task exists
     const { data: existingTask } = await supabase
       .from('tasks')
       .select('*')
@@ -139,7 +129,6 @@ router.put('/:id', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'Task not found' });
     }
 
-    // Workers can only update their own tasks
     if (req.user.role === 'worker' && existingTask.assignee_id !== req.user.id) {
       return res.status(403).json({ error: 'You can only update your own tasks' });
     }
@@ -169,7 +158,6 @@ router.put('/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// Delete task (manager only)
 router.delete('/:id', authenticateToken, requireManager, async (req, res) => {
   try {
     const { id } = req.params;

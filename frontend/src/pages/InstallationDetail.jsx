@@ -68,11 +68,11 @@ const InstallationDetail = () => {
   );
 
   if (loading) {
-    return <div className="loading">Загрузка...</div>;
+    return <div className="loading">Р—Р°РіСЂСѓР·РєР°...</div>;
   }
 
   if (!installation) {
-    return <div className="container">Монтаж не найден</div>;
+    return <div className="container">РњРѕРЅС‚Р°Р¶ РЅРµ РЅР°Р№РґРµРЅ</div>;
   }
 
   return (
@@ -80,78 +80,78 @@ const InstallationDetail = () => {
       <header className="header">
         <h1>{installation.title}</h1>
         <nav className="header-nav">
-          <Link to="/">Главная</Link>
-          <Link to="/projects">Проекты</Link>
-          <Link to="/tasks">Задачи</Link>
-          <Link to="/installations">Монтажи</Link>
-          <Link to="/purchase-requests">Заявки</Link>
+          <Link to="/">Р“Р»Р°РІРЅР°СЏ</Link>
+          <Link to="/projects">РџСЂРѕРµРєС‚С‹</Link>
+          <Link to="/tasks">Р—Р°РґР°С‡Рё</Link>
+          <Link to="/installations">РњРѕРЅС‚Р°Р¶Рё</Link>
+          <Link to="/purchase-requests">Р—Р°СЏРІРєРё</Link>
         </nav>
       </header>
 
       <main className="container">
         <div className="card">
           <div className="card-header">
-            <h3 className="card-title">Информация о монтаже</h3>
-            <Link to="/installations" className="btn btn-secondary">Назад к монтажам</Link>
+            <h3 className="card-title">РРЅС„РѕСЂРјР°С†РёСЏ Рѕ РјРѕРЅС‚Р°Р¶Рµ</h3>
+            <Link to="/installations" className="btn btn-secondary">РќР°Р·Р°Рґ Рє РјРѕРЅС‚Р°Р¶Р°Рј</Link>
           </div>
-          <p><strong>Название:</strong> {installation.title}</p>
-          <p><strong>Описание:</strong> {installation.description || '-'}</p>
-          <p><strong>Проект:</strong> {installation.project?.name || '-'}</p>
-          <p><strong>Исполнитель:</strong> {installation.assignee?.name || '-'}</p>
-          <p><strong>Статус:</strong> 
+          <p><strong>РќР°Р·РІР°РЅРёРµ:</strong> {installation.title}</p>
+          <p><strong>РћРїРёСЃР°РЅРёРµ:</strong> {installation.description || '-'}</p>
+          <p><strong>РџСЂРѕРµРєС‚:</strong> {installation.project?.name || '-'}</p>
+          <p><strong>РСЃРїРѕР»РЅРёС‚РµР»СЊ:</strong> {installation.assignee?.name || '-'}</p>
+          <p><strong>РЎС‚Р°С‚СѓСЃ:</strong> 
             <select
               value={installation.status}
               onChange={(e) => handleStatusChange(e.target.value)}
               className={`status-badge status-${installation.status}`}
               style={{ marginLeft: '10px', border: 'none', cursor: 'pointer' }}
             >
-              <option value="new">Новый</option>
-              <option value="planned">Запланирован</option>
-              <option value="in_progress">В работе</option>
-              <option value="waiting_materials">Ожидает материалов</option>
-              <option value="done">Завершён</option>
-              <option value="postponed">Отложен</option>
+              <option value="new">РќРѕРІС‹Р№</option>
+              <option value="planned">Р—Р°РїР»Р°РЅРёСЂРѕРІР°РЅ</option>
+              <option value="in_progress">Р’ СЂР°Р±РѕС‚Рµ</option>
+              <option value="waiting_materials">РћР¶РёРґР°РµС‚ РјР°С‚РµСЂРёР°Р»РѕРІ</option>
+              <option value="done">Р—Р°РІРµСЂС€С‘РЅ</option>
+              <option value="postponed">РћС‚Р»РѕР¶РµРЅ</option>
             </select>
           </p>
-          <p><strong>Дата монтажа:</strong> {installation.scheduled_at ? new Date(installation.scheduled_at).toLocaleString('ru-RU') : '-'}</p>
-          <p><strong>Плановая дата:</strong> {installation.planovaya_data_1_kv_2026 ? new Date(installation.planovaya_data_1_kv_2026).toLocaleDateString('ru-RU') : '-'}</p>
-          <p><strong>Адрес:</strong> {installation.address || '-'}</p>
-          <p><strong>Заявка на материалы:</strong> {installation.purchaseRequests && installation.purchaseRequests.length > 0 
-            ? <span style={{ color: 'green', fontWeight: 'bold' }}>✓ Создана ({installation.purchaseRequests.length})</span>
-            : <span style={{ color: 'orange' }}>⊘ Не создана</span>}</p>
-          <p><strong>Создан:</strong> {new Date(installation.created_at).toLocaleDateString('ru-RU')}</p>
+          <p><strong>Р”Р°С‚Р° РјРѕРЅС‚Р°Р¶Р°:</strong> {installation.scheduled_at ? new Date(installation.scheduled_at).toLocaleString('ru-RU') : '-'}</p>
+          <p><strong>РџР»Р°РЅРѕРІР°СЏ РґР°С‚Р°:</strong> {installation.planovaya_data_1_kv_2026 ? new Date(installation.planovaya_data_1_kv_2026).toLocaleDateString('ru-RU') : '-'}</p>
+          <p><strong>РђРґСЂРµСЃ:</strong> {installation.address || '-'}</p>
+          <p><strong>Р—Р°СЏРІРєР° РЅР° РјР°С‚РµСЂРёР°Р»С‹:</strong> {installation.purchaseRequests && installation.purchaseRequests.length > 0 
+            ? <span style={{ color: 'green', fontWeight: 'bold' }}>вњ“ РЎРѕР·РґР°РЅР° ({installation.purchaseRequests.length})</span>
+            : <span style={{ color: 'orange' }}>вЉ РќРµ СЃРѕР·РґР°РЅР°</span>}</p>
+          <p><strong>РЎРѕР·РґР°РЅ:</strong> {new Date(installation.created_at).toLocaleDateString('ru-RU')}</p>
           
-          {/* SK Fields Display - проверка на существование полей */}
+          {/* SK Fields Display - РїСЂРѕРІРµСЂРєР° РЅР° СЃСѓС‰РµСЃС‚РІРѕРІР°РЅРёРµ РїРѕР»РµР№ */}
           {(installation.id_ploshadki !== null && installation.id_ploshadki !== undefined) || 
            (installation.servisnyy_id !== null && installation.servisnyy_id !== undefined) || 
            (installation.rayon !== null && installation.rayon !== undefined) || 
            (installation.id_sk1 !== null && installation.id_sk1 !== undefined) ? (
             <div style={{ marginTop: '20px', padding: '15px', background: '#f5f5f5', borderRadius: '4px' }}>
-              <h4 style={{ marginTop: 0 }}>Информация о площадке (СК)</h4>
+              <h4 style={{ marginTop: 0 }}>РРЅС„РѕСЂРјР°С†РёСЏ Рѕ РїР»РѕС‰Р°РґРєРµ (РЎРљ)</h4>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                 {installation.id_ploshadki !== null && installation.id_ploshadki !== undefined && (
-                  <p><strong>ID площадки:</strong> {installation.id_ploshadki}</p>
+                  <p><strong>ID РїР»РѕС‰Р°РґРєРё:</strong> {installation.id_ploshadki}</p>
                 )}
                 {installation.servisnyy_id !== null && installation.servisnyy_id !== undefined && (
-                  <p><strong>Сервисный ID:</strong> {installation.servisnyy_id}</p>
+                  <p><strong>РЎРµСЂРІРёСЃРЅС‹Р№ ID:</strong> {installation.servisnyy_id}</p>
                 )}
                 {installation.rayon !== null && installation.rayon !== undefined && (
-                  <p><strong>Район:</strong> {installation.rayon}</p>
+                  <p><strong>Р Р°Р№РѕРЅ:</strong> {installation.rayon}</p>
                 )}
                 {installation.planovaya_data_1_kv_2026 !== null && installation.planovaya_data_1_kv_2026 !== undefined && (
-                  <p><strong>Плановая дата 1 кв. 2026:</strong> {installation.planovaya_data_1_kv_2026}</p>
+                  <p><strong>РџР»Р°РЅРѕРІР°СЏ РґР°С‚Р° 1 РєРІ. 2026:</strong> {installation.planovaya_data_1_kv_2026}</p>
                 )}
               </div>
               
               {/* SK1 */}
               {installation.id_sk1 !== null && installation.id_sk1 !== undefined && (
                 <div style={{ marginTop: '15px', padding: '10px', background: 'white', borderRadius: '4px' }}>
-                  <h5 style={{ marginTop: 0, marginBottom: '10px' }}>СК #1</h5>
+                  <h5 style={{ marginTop: 0, marginBottom: '10px' }}>РЎРљ #1</h5>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                    <p><strong>ID СК:</strong> {installation.id_sk1}</p>
-                    <p><strong>Наименование (марка/модель):</strong> {installation.naimenovanie_sk1 || '-'}</p>
-                    <p><strong>Статус оборудования:</strong> {installation.status_oborudovaniya1 || '-'}</p>
-                    <p><strong>Тип по договору:</strong> {installation.tip_sk_po_dogovoru1 || '-'}</p>
+                    <p><strong>ID РЎРљ:</strong> {installation.id_sk1}</p>
+                    <p><strong>РќР°РёРјРµРЅРѕРІР°РЅРёРµ (РјР°СЂРєР°/РјРѕРґРµР»СЊ):</strong> {installation.naimenovanie_sk1 || '-'}</p>
+                    <p><strong>РЎС‚Р°С‚СѓСЃ РѕР±РѕСЂСѓРґРѕРІР°РЅРёСЏ:</strong> {installation.status_oborudovaniya1 || '-'}</p>
+                    <p><strong>РўРёРї РїРѕ РґРѕРіРѕРІРѕСЂСѓ:</strong> {installation.tip_sk_po_dogovoru1 || '-'}</p>
                   </div>
                 </div>
               )}
@@ -159,12 +159,12 @@ const InstallationDetail = () => {
               {/* SK2 */}
               {installation.id_sk2 !== null && installation.id_sk2 !== undefined && (
                 <div style={{ marginTop: '10px', padding: '10px', background: 'white', borderRadius: '4px' }}>
-                  <h5 style={{ marginTop: 0, marginBottom: '10px' }}>СК #2</h5>
+                  <h5 style={{ marginTop: 0, marginBottom: '10px' }}>РЎРљ #2</h5>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                    <p><strong>ID СК:</strong> {installation.id_sk2}</p>
-                    <p><strong>Наименование (марка/модель):</strong> {installation.naimenovanie_sk2 || '-'}</p>
-                    <p><strong>Статус оборудования:</strong> {installation.status_oborudovaniya2 || '-'}</p>
-                    <p><strong>Тип по договору:</strong> {installation.tip_sk_po_dogovoru2 || '-'}</p>
+                    <p><strong>ID РЎРљ:</strong> {installation.id_sk2}</p>
+                    <p><strong>РќР°РёРјРµРЅРѕРІР°РЅРёРµ (РјР°СЂРєР°/РјРѕРґРµР»СЊ):</strong> {installation.naimenovanie_sk2 || '-'}</p>
+                    <p><strong>РЎС‚Р°С‚СѓСЃ РѕР±РѕСЂСѓРґРѕРІР°РЅРёСЏ:</strong> {installation.status_oborudovaniya2 || '-'}</p>
+                    <p><strong>РўРёРї РїРѕ РґРѕРіРѕРІРѕСЂСѓ:</strong> {installation.tip_sk_po_dogovoru2 || '-'}</p>
                   </div>
                 </div>
               )}
@@ -172,12 +172,12 @@ const InstallationDetail = () => {
               {/* SK3 */}
               {installation.id_sk3 !== null && installation.id_sk3 !== undefined && (
                 <div style={{ marginTop: '10px', padding: '10px', background: 'white', borderRadius: '4px' }}>
-                  <h5 style={{ marginTop: 0, marginBottom: '10px' }}>СК #3</h5>
+                  <h5 style={{ marginTop: 0, marginBottom: '10px' }}>РЎРљ #3</h5>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                    <p><strong>ID СК:</strong> {installation.id_sk3}</p>
-                    <p><strong>Наименование (марка/модель):</strong> {installation.naimenovanie_sk3 || '-'}</p>
-                    <p><strong>Статус оборудования:</strong> {installation.status_oborudovaniya3 || '-'}</p>
-                    <p><strong>Тип по договору:</strong> {installation.tip_sk_po_dogovoru3 || '-'}</p>
+                    <p><strong>ID РЎРљ:</strong> {installation.id_sk3}</p>
+                    <p><strong>РќР°РёРјРµРЅРѕРІР°РЅРёРµ (РјР°СЂРєР°/РјРѕРґРµР»СЊ):</strong> {installation.naimenovanie_sk3 || '-'}</p>
+                    <p><strong>РЎС‚Р°С‚СѓСЃ РѕР±РѕСЂСѓРґРѕРІР°РЅРёСЏ:</strong> {installation.status_oborudovaniya3 || '-'}</p>
+                    <p><strong>РўРёРї РїРѕ РґРѕРіРѕРІРѕСЂСѓ:</strong> {installation.tip_sk_po_dogovoru3 || '-'}</p>
                   </div>
                 </div>
               )}
@@ -185,12 +185,12 @@ const InstallationDetail = () => {
               {/* SK4 */}
               {installation.id_sk4 !== null && installation.id_sk4 !== undefined && (
                 <div style={{ marginTop: '10px', padding: '10px', background: 'white', borderRadius: '4px' }}>
-                  <h5 style={{ marginTop: 0, marginBottom: '10px' }}>СК #4</h5>
+                  <h5 style={{ marginTop: 0, marginBottom: '10px' }}>РЎРљ #4</h5>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                    <p><strong>ID СК:</strong> {installation.id_sk4}</p>
-                    <p><strong>Наименование (марка/модель):</strong> {installation.naimenovanie_sk4 || '-'}</p>
-                    <p><strong>Статус оборудования:</strong> {installation.status_oborudovaniya4 || '-'}</p>
-                    <p><strong>Тип по договору:</strong> {installation.tip_sk_po_dogovoru4 || '-'}</p>
+                    <p><strong>ID РЎРљ:</strong> {installation.id_sk4}</p>
+                    <p><strong>РќР°РёРјРµРЅРѕРІР°РЅРёРµ (РјР°СЂРєР°/РјРѕРґРµР»СЊ):</strong> {installation.naimenovanie_sk4 || '-'}</p>
+                    <p><strong>РЎС‚Р°С‚СѓСЃ РѕР±РѕСЂСѓРґРѕРІР°РЅРёСЏ:</strong> {installation.status_oborudovaniya4 || '-'}</p>
+                    <p><strong>РўРёРї РїРѕ РґРѕРіРѕРІРѕСЂСѓ:</strong> {installation.tip_sk_po_dogovoru4 || '-'}</p>
                   </div>
                 </div>
               )}
@@ -198,12 +198,12 @@ const InstallationDetail = () => {
               {/* SK5 */}
               {installation.id_sk5 !== null && installation.id_sk5 !== undefined && (
                 <div style={{ marginTop: '10px', padding: '10px', background: 'white', borderRadius: '4px' }}>
-                  <h5 style={{ marginTop: 0, marginBottom: '10px' }}>СК #5</h5>
+                  <h5 style={{ marginTop: 0, marginBottom: '10px' }}>РЎРљ #5</h5>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                    <p><strong>ID СК:</strong> {installation.id_sk5}</p>
-                    <p><strong>Наименование (марка/модель):</strong> {installation.naimenovanie_sk5 || '-'}</p>
-                    <p><strong>Статус оборудования:</strong> {installation.status_oborudovaniya5 || '-'}</p>
-                    <p><strong>Тип по договору:</strong> {installation.tip_sk_po_dogovoru5 || '-'}</p>
+                    <p><strong>ID РЎРљ:</strong> {installation.id_sk5}</p>
+                    <p><strong>РќР°РёРјРµРЅРѕРІР°РЅРёРµ (РјР°СЂРєР°/РјРѕРґРµР»СЊ):</strong> {installation.naimenovanie_sk5 || '-'}</p>
+                    <p><strong>РЎС‚Р°С‚СѓСЃ РѕР±РѕСЂСѓРґРѕРІР°РЅРёСЏ:</strong> {installation.status_oborudovaniya5 || '-'}</p>
+                    <p><strong>РўРёРї РїРѕ РґРѕРіРѕРІРѕСЂСѓ:</strong> {installation.tip_sk_po_dogovoru5 || '-'}</p>
                   </div>
                 </div>
               )}
@@ -211,12 +211,12 @@ const InstallationDetail = () => {
               {/* SK6 */}
               {installation.id_sk6 !== null && installation.id_sk6 !== undefined && (
                 <div style={{ marginTop: '10px', padding: '10px', background: 'white', borderRadius: '4px' }}>
-                  <h5 style={{ marginTop: 0, marginBottom: '10px' }}>СК #6</h5>
+                  <h5 style={{ marginTop: 0, marginBottom: '10px' }}>РЎРљ #6</h5>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                    <p><strong>ID СК:</strong> {installation.id_sk6}</p>
-                    <p><strong>Наименование (марка/модель):</strong> {installation.naimenovanie_sk6 || '-'}</p>
-                    <p><strong>Статус оборудования:</strong> {installation.status_oborudovaniya6 || '-'}</p>
-                    <p><strong>Тип по договору:</strong> {installation.tip_sk_po_dogovoru6 || '-'}</p>
+                    <p><strong>ID РЎРљ:</strong> {installation.id_sk6}</p>
+                    <p><strong>РќР°РёРјРµРЅРѕРІР°РЅРёРµ (РјР°СЂРєР°/РјРѕРґРµР»СЊ):</strong> {installation.naimenovanie_sk6 || '-'}</p>
+                    <p><strong>РЎС‚Р°С‚СѓСЃ РѕР±РѕСЂСѓРґРѕРІР°РЅРёСЏ:</strong> {installation.status_oborudovaniya6 || '-'}</p>
+                    <p><strong>РўРёРї РїРѕ РґРѕРіРѕРІРѕСЂСѓ:</strong> {installation.tip_sk_po_dogovoru6 || '-'}</p>
                   </div>
                 </div>
               )}
@@ -229,26 +229,26 @@ const InstallationDetail = () => {
               style={{ marginTop: '15px' }}
               onClick={() => setShowModal(true)}
             >
-              Создать заявку на материалы
+              РЎРѕР·РґР°С‚СЊ Р·Р°СЏРІРєСѓ РЅР° РјР°С‚РµСЂРёР°Р»С‹
             </button>
           )}
         </div>
 
         <div className="card">
           <div className="card-header">
-            <h3 className="card-title">Заявки на материалы ({installation.purchaseRequests?.length || 0})</h3>
+            <h3 className="card-title">Р—Р°СЏРІРєРё РЅР° РјР°С‚РµСЂРёР°Р»С‹ ({installation.purchaseRequests?.length || 0})</h3>
           </div>
           {(!installation.purchaseRequests || installation.purchaseRequests.length === 0) ? (
-            <p>Нет заявок</p>
+            <p>РќРµС‚ Р·Р°СЏРІРѕРє</p>
           ) : (
             <table className="table">
               <thead>
                 <tr>
-                  <th>Статус</th>
-                  <th>Создатель</th>
-                  <th>Подтвердил</th>
-                  <th>Комментарий</th>
-                  <th>Дата</th>
+                  <th>РЎС‚Р°С‚СѓСЃ</th>
+                  <th>РЎРѕР·РґР°С‚РµР»СЊ</th>
+                  <th>РџРѕРґС‚РІРµСЂРґРёР»</th>
+                  <th>РљРѕРјРјРµРЅС‚Р°СЂРёР№</th>
+                  <th>Р”Р°С‚Р°</th>
                 </tr>
               </thead>
               <tbody>
@@ -275,7 +275,7 @@ const InstallationDetail = () => {
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>Создать заявку на материалы</h2>
+              <h2>РЎРѕР·РґР°С‚СЊ Р·Р°СЏРІРєСѓ РЅР° РјР°С‚РµСЂРёР°Р»С‹</h2>
               <button className="modal-close" onClick={() => setShowModal(false)}>&times;</button>
             </div>
             <div>
@@ -283,17 +283,17 @@ const InstallationDetail = () => {
               {items.map((item, index) => (
                 <div key={index} style={{ marginBottom: '15px', padding: '10px', background: '#f5f5f5', borderRadius: '4px' }}>
                   <div className="form-group">
-                    <label>Название материала</label>
+                    <label>РќР°Р·РІР°РЅРёРµ РјР°С‚РµСЂРёР°Р»Р°</label>
                     <input
                       type="text"
                       value={item.name}
                       onChange={(e) => updateItem(index, 'name', e.target.value)}
-                      placeholder="Например: Кабель HDMI"
+                      placeholder="РќР°РїСЂРёРјРµСЂ: РљР°Р±РµР»СЊ HDMI"
                     />
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                     <div className="form-group">
-                      <label>Количество</label>
+                      <label>РљРѕР»РёС‡РµСЃС‚РІРѕ</label>
                       <input
                         type="number"
                         min="1"
@@ -302,43 +302,43 @@ const InstallationDetail = () => {
                       />
                     </div>
                     <div className="form-group">
-                      <label>Единица</label>
+                      <label>Р•РґРёРЅРёС†Р°</label>
                       <select
                         value={item.unit}
                         onChange={(e) => updateItem(index, 'unit', e.target.value)}
                       >
-                        <option value="pcs">шт</option>
-                        <option value="m">м</option>
-                        <option value="m2">м2</option>
-                        <option value="m3">м3</option>
-                        <option value="l">л</option>
-                        <option value="kg">кг</option>
-                        <option value="box">коробка</option>
-                        <option value="pack">упаковка</option>
-                        <option value="set">комплект</option>
+                        <option value="pcs">С€С‚</option>
+                        <option value="m">Рј</option>
+                        <option value="m2">Рј2</option>
+                        <option value="m3">Рј3</option>
+                        <option value="l">Р»</option>
+                        <option value="kg">РєРі</option>
+                        <option value="box">РєРѕСЂРѕР±РєР°</option>
+                        <option value="pack">СѓРїР°РєРѕРІРєР°</option>
+                        <option value="set">РєРѕРјРїР»РµРєС‚</option>
                       </select>
                     </div>
                   </div>
                   <div className="form-group">
-                    <label>Примечание</label>
+                    <label>РџСЂРёРјРµС‡Р°РЅРёРµ</label>
                     <input
                       type="text"
                       value={item.note}
                       onChange={(e) => updateItem(index, 'note', e.target.value)}
-                      placeholder="Дополнительное примечание"
+                      placeholder="Р”РѕРїРѕР»РЅРёС‚РµР»СЊРЅРѕРµ РїСЂРёРјРµС‡Р°РЅРёРµ"
                     />
                   </div>
                 </div>
               ))}
               <button type="button" className="btn btn-secondary" onClick={addItem} style={{ marginBottom: '15px' }}>
-                Добавить позицию
+                Р”РѕР±Р°РІРёС‚СЊ РїРѕР·РёС†РёСЋ
               </button>
               <div className="modal-footer">
                 <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)}>
-                  Отмена
+                  РћС‚РјРµРЅР°
                 </button>
                 <button type="button" className="btn btn-primary" onClick={handleCreateRequest}>
-                  Создать заявку
+                  РЎРѕР·РґР°С‚СЊ Р·Р°СЏРІРєСѓ
                 </button>
               </div>
             </div>

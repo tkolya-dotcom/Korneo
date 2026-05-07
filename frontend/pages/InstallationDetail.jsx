@@ -66,11 +66,11 @@ const InstallationDetail = () => {
   );
 
   if (loading) {
-    return <div className="loading">Загрузка...</div>;
+    return <div className="loading">Р—Р°РіСЂСѓР·РєР°...</div>;
   }
 
   if (!installation) {
-    return <div className="container">Монтаж не найден</div>;
+    return <div className="container">РњРѕРЅС‚Р°Р¶ РЅРµ РЅР°Р№РґРµРЅ</div>;
   }
 
   return (
@@ -78,42 +78,42 @@ const InstallationDetail = () => {
       <header className="header">
         <h1>{installation.title}</h1>
         <nav className="header-nav">
-          <Link to="/">Главная</Link>
-          <Link to="/projects">Проекты</Link>
-          <Link to="/tasks">Задачи</Link>
-          <Link to="/installations">Монтажи</Link>
-          <Link to="/purchase-requests">Заявки</Link>
+          <Link to="/">Р“Р»Р°РІРЅР°СЏ</Link>
+          <Link to="/projects">РџСЂРѕРµРєС‚С‹</Link>
+          <Link to="/tasks">Р—Р°РґР°С‡Рё</Link>
+          <Link to="/installations">РњРѕРЅС‚Р°Р¶Рё</Link>
+          <Link to="/purchase-requests">Р—Р°СЏРІРєРё</Link>
         </nav>
       </header>
 
       <main className="container">
         <div className="card">
           <div className="card-header">
-            <h3 className="card-title">Информация о монтаже</h3>
-            <Link to="/installations" className="btn btn-secondary">Назад к монтажам</Link>
+            <h3 className="card-title">РРЅС„РѕСЂРјР°С†РёСЏ Рѕ РјРѕРЅС‚Р°Р¶Рµ</h3>
+            <Link to="/installations" className="btn btn-secondary">РќР°Р·Р°Рґ Рє РјРѕРЅС‚Р°Р¶Р°Рј</Link>
           </div>
-          <p><strong>Название:</strong> {installation.title}</p>
-          <p><strong>Описание:</strong> {installation.description || '-'}</p>
-          <p><strong>Проект:</strong> {installation.project?.name || '-'}</p>
-          <p><strong>Исполнитель:</strong> {installation.assignee?.name || '-'}</p>
-          <p><strong>Статус:</strong> 
+          <p><strong>РќР°Р·РІР°РЅРёРµ:</strong> {installation.title}</p>
+          <p><strong>РћРїРёСЃР°РЅРёРµ:</strong> {installation.description || '-'}</p>
+          <p><strong>РџСЂРѕРµРєС‚:</strong> {installation.project?.name || '-'}</p>
+          <p><strong>РСЃРїРѕР»РЅРёС‚РµР»СЊ:</strong> {installation.assignee?.name || '-'}</p>
+          <p><strong>РЎС‚Р°С‚СѓСЃ:</strong> 
             <select
               value={installation.status}
               onChange={(e) => handleStatusChange(e.target.value)}
               className={`status-badge status-${installation.status}`}
               style={{ marginLeft: '10px', border: 'none', cursor: 'pointer' }}
             >
-              <option value="new">Новый</option>
-              <option value="planned">Запланирован</option>
-              <option value="in_progress">В работе</option>
-              <option value="waiting_materials">Ожидает материалов</option>
-              <option value="done">Завершён</option>
-              <option value="postponed">Отложен</option>
+              <option value="new">РќРѕРІС‹Р№</option>
+              <option value="planned">Р—Р°РїР»Р°РЅРёСЂРѕРІР°РЅ</option>
+              <option value="in_progress">Р’ СЂР°Р±РѕС‚Рµ</option>
+              <option value="waiting_materials">РћР¶РёРґР°РµС‚ РјР°С‚РµСЂРёР°Р»РѕРІ</option>
+              <option value="done">Р—Р°РІРµСЂС€С‘РЅ</option>
+              <option value="postponed">РћС‚Р»РѕР¶РµРЅ</option>
             </select>
           </p>
-          <p><strong>Дата монтажа:</strong> {installation.scheduled_at ? new Date(installation.scheduled_at).toLocaleString('ru-RU') : '-'}</p>
-          <p><strong>Адрес:</strong> {installation.address || '-'}</p>
-          <p><strong>Создан:</strong> {new Date(installation.created_at).toLocaleDateString('ru-RU')}</p>
+          <p><strong>Р”Р°С‚Р° РјРѕРЅС‚Р°Р¶Р°:</strong> {installation.scheduled_at ? new Date(installation.scheduled_at).toLocaleString('ru-RU') : '-'}</p>
+          <p><strong>РђРґСЂРµСЃ:</strong> {installation.address || '-'}</p>
+          <p><strong>РЎРѕР·РґР°РЅ:</strong> {new Date(installation.created_at).toLocaleDateString('ru-RU')}</p>
           
           {canCreateRequest && (
             <button 
@@ -121,26 +121,26 @@ const InstallationDetail = () => {
               style={{ marginTop: '15px' }}
               onClick={() => setShowModal(true)}
             >
-              Создать заявку на материалы
+              РЎРѕР·РґР°С‚СЊ Р·Р°СЏРІРєСѓ РЅР° РјР°С‚РµСЂРёР°Р»С‹
             </button>
           )}
         </div>
 
         <div className="card">
           <div className="card-header">
-            <h3 className="card-title">Заявки на материалы ({installation.purchaseRequests?.length || 0})</h3>
+            <h3 className="card-title">Р—Р°СЏРІРєРё РЅР° РјР°С‚РµСЂРёР°Р»С‹ ({installation.purchaseRequests?.length || 0})</h3>
           </div>
           {(!installation.purchaseRequests || installation.purchaseRequests.length === 0) ? (
-            <p>Нет заявок</p>
+            <p>РќРµС‚ Р·Р°СЏРІРѕРє</p>
           ) : (
             <table className="table">
               <thead>
                 <tr>
-                  <th>Статус</th>
-                  <th>Создатель</th>
-                  <th>Подтвердил</th>
-                  <th>Комментарий</th>
-                  <th>Дата</th>
+                  <th>РЎС‚Р°С‚СѓСЃ</th>
+                  <th>РЎРѕР·РґР°С‚РµР»СЊ</th>
+                  <th>РџРѕРґС‚РІРµСЂРґРёР»</th>
+                  <th>РљРѕРјРјРµРЅС‚Р°СЂРёР№</th>
+                  <th>Р”Р°С‚Р°</th>
                 </tr>
               </thead>
               <tbody>
@@ -167,7 +167,7 @@ const InstallationDetail = () => {
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>Создать заявку на материалы</h2>
+              <h2>РЎРѕР·РґР°С‚СЊ Р·Р°СЏРІРєСѓ РЅР° РјР°С‚РµСЂРёР°Р»С‹</h2>
               <button className="modal-close" onClick={() => setShowModal(false)}>&times;</button>
             </div>
             <div>
@@ -175,17 +175,17 @@ const InstallationDetail = () => {
               {items.map((item, index) => (
                 <div key={index} style={{ marginBottom: '15px', padding: '10px', background: '#f5f5f5', borderRadius: '4px' }}>
                   <div className="form-group">
-                    <label>Название материала</label>
+                    <label>РќР°Р·РІР°РЅРёРµ РјР°С‚РµСЂРёР°Р»Р°</label>
                     <input
                       type="text"
                       value={item.name}
                       onChange={(e) => updateItem(index, 'name', e.target.value)}
-                      placeholder="Например: Кабель HDMI"
+                      placeholder="РќР°РїСЂРёРјРµСЂ: РљР°Р±РµР»СЊ HDMI"
                     />
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                     <div className="form-group">
-                      <label>Количество</label>
+                      <label>РљРѕР»РёС‡РµСЃС‚РІРѕ</label>
                       <input
                         type="number"
                         min="1"
@@ -194,43 +194,43 @@ const InstallationDetail = () => {
                       />
                     </div>
                     <div className="form-group">
-                      <label>Единица</label>
+                      <label>Р•РґРёРЅРёС†Р°</label>
                       <select
                         value={item.unit}
                         onChange={(e) => updateItem(index, 'unit', e.target.value)}
                       >
-                        <option value="pcs">шт</option>
-                        <option value="m">м</option>
-                        <option value="m2">м2</option>
-                        <option value="m3">м3</option>
-                        <option value="l">л</option>
-                        <option value="kg">кг</option>
-                        <option value="box">коробка</option>
-                        <option value="pack">упаковка</option>
-                        <option value="set">комплект</option>
+                        <option value="pcs">С€С‚</option>
+                        <option value="m">Рј</option>
+                        <option value="m2">Рј2</option>
+                        <option value="m3">Рј3</option>
+                        <option value="l">Р»</option>
+                        <option value="kg">РєРі</option>
+                        <option value="box">РєРѕСЂРѕР±РєР°</option>
+                        <option value="pack">СѓРїР°РєРѕРІРєР°</option>
+                        <option value="set">РєРѕРјРїР»РµРєС‚</option>
                       </select>
                     </div>
                   </div>
                   <div className="form-group">
-                    <label>Примечание</label>
+                    <label>РџСЂРёРјРµС‡Р°РЅРёРµ</label>
                     <input
                       type="text"
                       value={item.note}
                       onChange={(e) => updateItem(index, 'note', e.target.value)}
-                      placeholder="Дополнительное примечание"
+                      placeholder="Р”РѕРїРѕР»РЅРёС‚РµР»СЊРЅРѕРµ РїСЂРёРјРµС‡Р°РЅРёРµ"
                     />
                   </div>
                 </div>
               ))}
               <button type="button" className="btn btn-secondary" onClick={addItem} style={{ marginBottom: '15px' }}>
-                Добавить позицию
+                Р”РѕР±Р°РІРёС‚СЊ РїРѕР·РёС†РёСЋ
               </button>
               <div className="modal-footer">
                 <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)}>
-                  Отмена
+                  РћС‚РјРµРЅР°
                 </button>
                 <button type="button" className="btn btn-primary" onClick={handleCreateRequest}>
-                  Создать заявку
+                  РЎРѕР·РґР°С‚СЊ Р·Р°СЏРІРєСѓ
                 </button>
               </div>
             </div>

@@ -16,7 +16,7 @@ function PrivateRoute({ children }) {
   const { user, loading } = useAuth();
   
   if (loading) {
-    return <div className="loading">Загрузка...</div>;
+    return <div className="loading">Р—Р°РіСЂСѓР·РєР°...</div>;
   }
   
   return user ? children : <Navigate to="/login" />;

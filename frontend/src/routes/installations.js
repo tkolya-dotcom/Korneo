@@ -4,7 +4,6 @@ import { authenticateToken, requireManager } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// Get all installations with filters
 router.get('/', authenticateToken, async (req, res) => {
   try {
     const { project_id, assignee_id, status } = req.query;
@@ -12,7 +11,6 @@ router.get('/', authenticateToken, async (req, res) => {
     let query = supabase
       .from('installations')
       .select(`
-        *,
         project:projects(id, name),
         assignee:users!installations_assignee_id_fkey(id, name, email)
       `)
@@ -30,7 +28,6 @@ router.get('/', authenticateToken, async (req, res) => {
       query = query.eq('status', status);
     }
 
-    // Workers can only see their own installations
     if (req.user.role === 'worker') {
       query = query.eq('assignee_id', req.user.id);
     }
@@ -48,7 +45,6 @@ router.get('/', authenticateToken, async (req, res) => {
   }
 });
 
-// Get single installation
 router.get('/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
@@ -56,7 +52,6 @@ router.get('/:id', authenticateToken, async (req, res) => {
     const { data: installation, error } = await supabase
       .from('installations')
       .select(`
-        *,
         project:projects(id, name),
         assignee:users!installations_assignee_id_fkey(id, name, email)
       `)
@@ -67,11 +62,9 @@ router.get('/:id', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'Installation not found' });
     }
 
-    // Get related purchase requests
     const { data: purchaseRequests } = await supabase
       .from('purchase_requests')
       .select(`
-        *,
         creator:users!purchase_requests_created_by_fkey(id, name),
         approved_by_user:users!purchase_requests_approved_by_fkey(id, name),
         items:purchase_request_items(*)
@@ -86,7 +79,6 @@ router.get('/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// Create installation (manager only)
 router.post('/', authenticateToken, requireManager, async (req, res) => {
   try {
     console.log('Creating installation, user role:', req.user.role);
@@ -123,13 +115,11 @@ router.post('/', authenticateToken, requireManager, async (req, res) => {
   }
 });
 
-// Update installation
 router.put('/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { title, description, assignee_id, status, scheduled_at, address } = req.body;
 
-    // Check if installation exists
     const { data: existingInstallation } = await supabase
       .from('installations')
       .select('*')
@@ -140,7 +130,6 @@ router.put('/:id', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'Installation not found' });
     }
 
-    // Workers can only update their own installations
     if (req.user.role === 'worker' && existingInstallation.assignee_id !== req.user.id) {
       return res.status(403).json({ error: 'You can only update your own installations' });
     }
@@ -171,7 +160,6 @@ router.put('/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// Delete installation (manager only)
 router.delete('/:id', authenticateToken, requireManager, async (req, res) => {
   try {
     const { id } = req.params;

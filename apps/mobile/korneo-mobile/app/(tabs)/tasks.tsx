@@ -14,9 +14,9 @@ export default function TasksScreen() {
   if (error) {
     return (
       <View className="flex-1 bg-primary justify-center items-center p-8">
-        <Text className="text-accent text-xl mb-4">Ошибка загрузки</Text>
+        <Text className="text-accent text-xl mb-4">РћС€РёР±РєР° Р·Р°РіСЂСѓР·РєРё</Text>
         <TouchableOpacity className="bg-accent p-4 rounded-lg" onPress={() => refetch()}>
-          <Text className="text-primary font-semibold">Повторить</Text>
+          <Text className="text-primary font-semibold">РџРѕРІС‚РѕСЂРёС‚СЊ</Text>
         </TouchableOpacity>
       </View>
     );
@@ -37,7 +37,7 @@ export default function TasksScreen() {
             item.status === 'in_progress' ? 'bg-yellow' : 'bg-blue'
           }`}>
             <Text className="font-semibold text-xs uppercase">
-              {item.status === 'new' ? 'NEW' : item.status === 'in_progress' ? 'В РАБОТЕ' : 'СДЕЛАНО'}
+              {item.status === 'new' ? 'NEW' : item.status === 'in_progress' ? 'Р’ Р РђР‘РћРўР•' : 'РЎР”Р•Р›РђРќРћ'}
             </Text>
           </View>
         </View>
@@ -50,7 +50,7 @@ export default function TasksScreen() {
 
   return (
     <View className="flex-1 bg-primary p-6">
-      <Text className="text-2xl font-orbitron text-accent mb-6">Задачи ({data?.total || 0})</Text>
+      <Text className="text-2xl font-orbitron text-accent mb-6">Р—Р°РґР°С‡Рё ({data?.total || 0})</Text>
 
       <View className="flex-row space-x-2 mb-6">
         {(['all', 'new', 'in_progress', 'done'] as const).map((status) => (
@@ -60,7 +60,7 @@ export default function TasksScreen() {
             onPress={() => setStatusFilter(status)}
           >
             <Text className="font-semibold text-sm">
-              {status === 'all' ? 'Все' : status.toUpperCase()}
+              {status === 'all' ? 'Р’СЃРµ' : status.toUpperCase()}
             </Text>
           </TouchableOpacity>
         ))}

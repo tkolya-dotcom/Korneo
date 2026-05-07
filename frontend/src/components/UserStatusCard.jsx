@@ -13,7 +13,6 @@ const UserStatusCard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Function to load users status
   const loadUsersStatus = useCallback(async () => {
     try {
       const data = await usersApi.getStatus();
@@ -26,13 +25,12 @@ const UserStatusCard = () => {
       setError(null);
     } catch (err) {
       console.error('Error loading users status:', err);
-      setError('Ошибка загрузки статусов');
+      setError('РћС€РёР±РєР° Р·Р°РіСЂСѓР·РєРё СЃС‚Р°С‚СѓСЃРѕРІ');
     } finally {
       setLoading(false);
     }
   }, []);
 
-  // Function to send heartbeat
   const sendHeartbeat = useCallback(async () => {
     try {
       await usersApi.heartbeat();
@@ -41,29 +39,21 @@ const UserStatusCard = () => {
     }
   }, []);
 
-  // Initial load and setup polling
   useEffect(() => {
-    // Send initial heartbeat
     sendHeartbeat();
 
-    // Load users status
     loadUsersStatus();
 
-    // Set up polling for status updates (every 15 seconds)
     const statusInterval = setInterval(loadUsersStatus, 15000);
 
-    // Set up heartbeat interval (every 30 seconds)
     const heartbeatInterval = setInterval(sendHeartbeat, 30000);
 
-    // Handle page unload - mark as offline
     const handleBeforeUnload = () => {
       usersApi.markOffline().catch(console.error);
     };
 
-    // Handle visibility change (tab switch)
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        // Tab became visible - refresh status and heartbeat
         sendHeartbeat();
         loadUsersStatus();
       }
@@ -72,7 +62,6 @@ const UserStatusCard = () => {
     window.addEventListener('beforeunload', handleBeforeUnload);
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
-    // Cleanup
     return () => {
       clearInterval(statusInterval);
       clearInterval(heartbeatInterval);
@@ -83,26 +72,26 @@ const UserStatusCard = () => {
 
   const getRoleLabel = (role) => {
     const labels = {
-      manager: 'Руководитель',
-      worker: 'Исполнитель',
-      deputy_head: 'Зам. руководителя'
+      manager: 'Р СѓРєРѕРІРѕРґРёС‚РµР»СЊ',
+      worker: 'РСЃРїРѕР»РЅРёС‚РµР»СЊ',
+      deputy_head: 'Р—Р°Рј. СЂСѓРєРѕРІРѕРґРёС‚РµР»СЏ'
     };
     return labels[role] || role;
   };
 
   const formatLastSeen = (lastSeenAt) => {
-    if (!lastSeenAt) return 'неизвестно';
+    if (!lastSeenAt) return 'РЅРµРёР·РІРµСЃС‚РЅРѕ';
     
     const lastSeen = new Date(lastSeenAt);
     const now = new Date();
     const diffMs = now - lastSeen;
     const diffMins = Math.floor(diffMs / 60000);
     
-    if (diffMins < 1) return 'только что';
-    if (diffMins < 60) return `${diffMins} мин. назад`;
+    if (diffMins < 1) return 'С‚РѕР»СЊРєРѕ С‡С‚Рѕ';
+    if (diffMins < 60) return `${diffMins} РјРёРЅ. РЅР°Р·Р°Рґ`;
     
     const diffHours = Math.floor(diffMins / 60);
-    if (diffHours < 24) return `${diffHours} ч. назад`;
+    if (diffHours < 24) return `${diffHours} С‡. РЅР°Р·Р°Рґ`;
     
     return lastSeen.toLocaleDateString('ru-RU');
   };
@@ -111,9 +100,9 @@ const UserStatusCard = () => {
     return (
       <div className="card">
         <div className="card-header">
-          <h3 className="card-title">Пользователи</h3>
+          <h3 className="card-title">РџРѕР»СЊР·РѕРІР°С‚РµР»Рё</h3>
         </div>
-        <div className="loading">Загрузка...</div>
+        <div className="loading">Р—Р°РіСЂСѓР·РєР°...</div>
       </div>
     );
   }
@@ -121,15 +110,15 @@ const UserStatusCard = () => {
   return (
     <div className="card">
       <div className="card-header">
-        <h3 className="card-title">Пользователи</h3>
+        <h3 className="card-title">РџРѕР»СЊР·РѕРІР°С‚РµР»Рё</h3>
         <div className="user-status-counts">
           <span className="online-count">
             <span className="status-dot online"></span>
-            Онлайн: {usersStatus.onlineCount}
+            РћРЅР»Р°Р№РЅ: {usersStatus.onlineCount}
           </span>
           <span className="offline-count">
             <span className="status-dot offline"></span>
-            Офлайн: {usersStatus.offlineCount}
+            РћС„Р»Р°Р№РЅ: {usersStatus.offlineCount}
           </span>
         </div>
       </div>
@@ -142,7 +131,7 @@ const UserStatusCard = () => {
           <div className="user-status-section">
             <h4 className="user-status-section-title">
               <span className="status-dot online"></span>
-              Онлайн ({usersStatus.onlineCount})
+              РћРЅР»Р°Р№РЅ ({usersStatus.onlineCount})
             </h4>
             <ul className="user-list">
               {usersStatus.onlineUsers.map((u) => (
@@ -150,11 +139,11 @@ const UserStatusCard = () => {
                   <div className="user-info">
                     <span className="user-name">
                       {u.display_name || u.email}
-                      {u.id === user?.id && <span className="you-badge"> (вы)</span>}
+                      {u.id === user?.id && <span className="you-badge"> (РІС‹)</span>}
                     </span>
                     <span className="user-role">{getRoleLabel(u.role)}</span>
                   </div>
-                  <span className="status-indicator online">Онлайн</span>
+                  <span className="status-indicator online">РћРЅР»Р°Р№РЅ</span>
                 </li>
               ))}
             </ul>
@@ -166,7 +155,7 @@ const UserStatusCard = () => {
           <div className="user-status-section">
             <h4 className="user-status-section-title">
               <span className="status-dot offline"></span>
-              Офлайн ({usersStatus.offlineCount})
+              РћС„Р»Р°Р№РЅ ({usersStatus.offlineCount})
             </h4>
             <ul className="user-list">
               {usersStatus.offlineUsers.map((u) => (
@@ -174,7 +163,7 @@ const UserStatusCard = () => {
                   <div className="user-info">
                     <span className="user-name">
                       {u.display_name || u.email}
-                      {u.id === user?.id && <span className="you-badge"> (вы)</span>}
+                      {u.id === user?.id && <span className="you-badge"> (РІС‹)</span>}
                     </span>
                     <span className="user-role">{getRoleLabel(u.role)}</span>
                   </div>
@@ -190,7 +179,7 @@ const UserStatusCard = () => {
         {/* Empty state */}
         {usersStatus.onlineUsers.length === 0 && usersStatus.offlineUsers.length === 0 && (
           <div className="empty-state">
-            <p>Нет пользователей</p>
+            <p>РќРµС‚ РїРѕР»СЊР·РѕРІР°С‚РµР»РµР№</p>
           </div>
         )}
       </div>

@@ -5,7 +5,6 @@ import jwt from 'jsonwebtoken';
 
 const router = express.Router();
 
-// Middleware для проверки авторизации
 const authenticateToken = async (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
@@ -23,7 +22,6 @@ const authenticateToken = async (req, res, next) => {
   }
 };
 
-// POST /api/notifications/send - Отправка уведомления конкретному пользователю
 router.post('/send', authenticateToken, async (req, res) => {
   try {
     const { userId, title, body, data } = req.body;
@@ -32,7 +30,6 @@ router.post('/send', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: 'Missing required fields: userId, title, body' });
     }
     
-    // Получаем FCM токен пользователя из базы данных
     const { data: userData, error: userError } = await supabase
       .from('users')
       .select('fcm_token')
@@ -42,11 +39,10 @@ router.post('/send', authenticateToken, async (req, res) => {
     if (userError || !userData?.fcm_token) {
       return res.status(404).json({ 
         error: 'User FCM token not found',
-        message: 'Пользователь не зарегистрирован для push-уведомлений'
+        message: 'РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РЅРµ Р·Р°СЂРµРіРёСЃС‚СЂРёСЂРѕРІР°РЅ РґР»СЏ push-СѓРІРµРґРѕРјР»РµРЅРёР№'
       });
     }
     
-    // Отправляем уведомление через Firebase Admin SDK
     const result = await sendPushNotification(
       userData.fcm_token,
       title,
@@ -55,7 +51,6 @@ router.post('/send', authenticateToken, async (req, res) => {
     );
     
     if (result.success) {
-      // Сохраняем в историю уведомлений
       await supabase.from('notification_queue').insert([{
         user_id: userId,
         title: title,
@@ -69,13 +64,13 @@ router.post('/send', authenticateToken, async (req, res) => {
       res.json({ 
         success: true, 
         messageId: result.messageId,
-        message: 'Уведомление отправлено успешно'
+        message: 'РЈРІРµРґРѕРјР»РµРЅРёРµ РѕС‚РїСЂР°РІР»РµРЅРѕ СѓСЃРїРµС€РЅРѕ'
       });
     } else {
       res.status(500).json({ 
         success: false, 
         error: result.error,
-        message: 'Ошибка отправки уведомления'
+        message: 'РћС€РёР±РєР° РѕС‚РїСЂР°РІРєРё СѓРІРµРґРѕРјР»РµРЅРёСЏ'
       });
     }
   } catch (error) {
@@ -87,7 +82,6 @@ router.post('/send', authenticateToken, async (req, res) => {
   }
 });
 
-// POST /api/notifications/send-bulk - Массовая рассылка уведомлений
 router.post('/send-bulk', authenticateToken, async (req, res) => {
   try {
     const { userIds, title, body, data } = req.body;
@@ -100,7 +94,6 @@ router.post('/send-bulk', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: 'Missing required fields: title, body' });
     }
     
-    // Получаем FCM токены всех пользователей
     const { data: users, error: usersError } = await supabase
       .from('users')
       .select('id, fcm_token')
@@ -117,11 +110,10 @@ router.post('/send-bulk', authenticateToken, async (req, res) => {
     if (tokens.length === 0) {
       return res.status(404).json({ 
         error: 'No valid FCM tokens found',
-        message: 'Ни один пользователь не зарегистрирован для push-уведомлений'
+        message: 'РќРё РѕРґРёРЅ РїРѕР»СЊР·РѕРІР°С‚РµР»СЊ РЅРµ Р·Р°СЂРµРіРёСЃС‚СЂРёСЂРѕРІР°РЅ РґР»СЏ push-СѓРІРµРґРѕРјР»РµРЅРёР№'
       });
     }
     
-    // Отправляем массовое уведомление
     const result = await sendMulticastNotification(
       tokens,
       title,
@@ -130,7 +122,6 @@ router.post('/send-bulk', authenticateToken, async (req, res) => {
     );
     
     if (result.success) {
-      // Сохраняем в историю
       const notifications = userIds.map(userId => ({
         user_id: userId,
         title: title,
@@ -148,13 +139,13 @@ router.post('/send-bulk', authenticateToken, async (req, res) => {
         successCount: result.successCount,
         failureCount: result.failureCount,
         totalRecipients: userIds.length,
-        message: `Отправлено ${result.successCount} из ${userIds.length}`
+        message: `РћС‚РїСЂР°РІР»РµРЅРѕ ${result.successCount} РёР· ${userIds.length}`
       });
     } else {
       res.status(500).json({ 
         success: false, 
         error: result.error,
-        message: 'Ошибка массовой рассылки'
+        message: 'РћС€РёР±РєР° РјР°СЃСЃРѕРІРѕР№ СЂР°СЃСЃС‹Р»РєРё'
       });
     }
   } catch (error) {
@@ -166,7 +157,6 @@ router.post('/send-bulk', authenticateToken, async (req, res) => {
   }
 });
 
-// GET /api/notifications/status/:userId - Проверка статуса уведомлений пользователя
 router.get('/status/:userId', authenticateToken, async (req, res) => {
   try {
     const { userId } = req.params;

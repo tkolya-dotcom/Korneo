@@ -1,4 +1,3 @@
-// Firebase Messaging Service Worker
 importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js');
 
@@ -14,11 +13,10 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-// Handle background messages
 messaging.onBackgroundMessage((payload) => {
   console.log('[firebase-messaging-sw.js] Background message received:', payload);
   
-  const notificationTitle = payload.notification?.title || 'ООО Корнео';
+  const notificationTitle = payload.notification?.title || 'РћРћРћ РљРѕСЂРЅРµРѕ';
   const notificationOptions = {
     body: payload.notification?.body || '',
     icon: './icon-192.png',
@@ -30,7 +28,6 @@ messaging.onBackgroundMessage((payload) => {
   self.registration.showNotification(notificationTitle, notificationOptions);
 });
 
-// Handle notification click
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   event.waitUntil(

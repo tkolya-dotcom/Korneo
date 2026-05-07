@@ -1,11 +1,8 @@
-// sw-services/pushService.js - Push notification handling for Service Worker
 
 const pushService = {
-  // Default notification icon
   DEFAULT_ICON: '/icons/icon-192x192.png',
   DEFAULT_BADGE: '/icons/badge-72x72.png',
 
-  // Parse push data safely
   parsePushData(event) {
     try {
       if (event.data) {
@@ -17,13 +14,12 @@ const pushService = {
     return {};
   },
 
-  // Handle incoming push event
   async handlePush(event) {
     const data = this.parsePushData(event);
     
-    const title = data.title || 'ООО Корнео';
+    const title = data.title || 'РћРћРћ РљРѕСЂРЅРµРѕ';
     const options = {
-      body: data.body || 'Новое уведомление',
+      body: data.body || 'РќРѕРІРѕРµ СѓРІРµРґРѕРјР»РµРЅРёРµ',
       icon: data.icon || this.DEFAULT_ICON,
       badge: data.badge || this.DEFAULT_BADGE,
       tag: data.tag || 'default',
@@ -41,7 +37,6 @@ const pushService = {
       actions: this.getActions(data)
     };
 
-    // Add vibration pattern for important notifications
     if (data.priority === 'high' || data.priority === 'urgent') {
       options.vibrate = [200, 100, 200];
     }
@@ -50,40 +45,38 @@ const pushService = {
     return self.registration.showNotification(title, options);
   },
 
-  // Get notification actions based on type
   getActions(data) {
     const actions = [];
     
     switch (data.type) {
       case 'chat_message':
         actions.push(
-          { action: 'open_chat', title: 'Открыть чат' },
-          { action: 'reply', title: 'Ответить' }
+          { action: 'open_chat', title: 'РћС‚РєСЂС‹С‚СЊ С‡Р°С‚' },
+          { action: 'reply', title: 'РћС‚РІРµС‚РёС‚СЊ' }
         );
         break;
       case 'task_assigned':
       case 'task_updated':
         actions.push(
-          { action: 'view_task', title: 'Посмотреть задачу' },
-          { action: 'mark_done', title: 'Выполнено' }
+          { action: 'view_task', title: 'РџРѕСЃРјРѕС‚СЂРµС‚СЊ Р·Р°РґР°С‡Сѓ' },
+          { action: 'mark_done', title: 'Р’С‹РїРѕР»РЅРµРЅРѕ' }
         );
         break;
       case 'installation_update':
         actions.push(
-          { action: 'view_installation', title: 'Открыть монтаж' }
+          { action: 'view_installation', title: 'РћС‚РєСЂС‹С‚СЊ РјРѕРЅС‚Р°Р¶' }
         );
         break;
       default:
         actions.push(
-          { action: 'open', title: 'Открыть' },
-          { action: 'close', title: 'Закрыть' }
+          { action: 'open', title: 'РћС‚РєСЂС‹С‚СЊ' },
+          { action: 'close', title: 'Р—Р°РєСЂС‹С‚СЊ' }
         );
     }
     
     return actions;
   },
 
-  // Handle notification click
   async handleClick(event) {
     const notification = event.notification;
     const action = event.action;
@@ -91,13 +84,10 @@ const pushService = {
     
     console.log('[PushService] Notification clicked:', action, data);
     
-    // Close notification
     notification.close();
     
-    // Determine target URL
     let targetUrl = data.url || '/';
     
-    // Handle specific actions
     switch (action) {
       case 'open_chat':
         targetUrl = data.chatId ? `/chat.html?id=${data.chatId}` : '/chat.html';
@@ -109,53 +99,43 @@ const pushService = {
         targetUrl = data.installationId ? `/installations.html?id=${data.installationId}` : '/installations.html';
         break;
       case 'mark_done':
-        // Mark task as done via API
         if (data.taskId) {
           await this.markTaskDone(data.taskId);
         }
         targetUrl = '/tasks.html';
         break;
       case 'close':
-        // Just close, don't open window
         return;
       case 'reply':
-        // Open chat with reply focus
         targetUrl = data.chatId ? `/chat.html?id=${data.chatId}&reply=true` : '/chat.html';
         break;
       case 'open':
       default:
-        // Use default URL from data
         break;
     }
     
-    // Open or focus window
     await this.openWindow(targetUrl);
   },
 
-  // Open or focus existing window
   async openWindow(url) {
     const clients = await self.clients.matchAll({
       type: 'window',
       includeUncontrolled: true
     });
     
-    // Look for existing window with same origin
     for (const client of clients) {
       if (client.url.includes(self.location.origin) && 'focus' in client) {
         await client.focus();
-        // Navigate to target URL
         await client.navigate(url);
         return;
       }
     }
     
-    // Open new window if none exists
     if (self.clients.openWindow) {
       await self.clients.openWindow(url);
     }
   },
 
-  // Mark task as done (background API call)
   async markTaskDone(taskId) {
     try {
       const SUPABASE_URL = 'https://jmxjbdnqnzkzxgsfywha.supabase.co';
@@ -176,12 +156,10 @@ const pushService = {
     }
   },
 
-  // Get subscription info
   async getSubscription() {
     return await self.registration.pushManager.getSubscription();
   },
 
-  // Check if push is supported
   isPushSupported() {
     return 'PushManager' in self;
   }

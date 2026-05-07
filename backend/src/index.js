@@ -6,18 +6,15 @@ import purchaseRequestsRouter from './routes/purchaseRequests.js';
 import materialsRouter from './routes/materials.js';
 import warehouseRouter from './routes/warehouse.js';
 
-// ⚠️ app должен быть объявлен ДО регистрации любых роутов
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 
-// --- Основные роуты ---
 app.use('/api/purchase-requests', purchaseRequestsRouter);
 app.use('/api/materials', materialsRouter);
 app.use('/api/warehouse', warehouseRouter);
 
-// --- Чат API ---
 app.get('/api/chats/:chatId/members', authenticateToken, async (req, res) => {
   try {
     const { chatId } = req.params;
@@ -43,7 +40,6 @@ app.get('/api/chats/:chatId/members', authenticateToken, async (req, res) => {
   }
 });
 
-// --- Health check ---
 app.get('/health', (_req, res) => res.json({ status: 'ok' }));
 
 export default app;

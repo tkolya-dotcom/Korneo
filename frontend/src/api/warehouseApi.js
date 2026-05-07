@@ -9,7 +9,6 @@ const getAuthHeaders = () => {
 };
 
 export const warehouseApi = {
-  // Get stock by material IDs (comma-separated)
   getStockByIds: async (materialIds) => {
     const response = await fetch(`${API_BASE}?material_ids=${materialIds}`, {
       headers: getAuthHeaders()
@@ -23,7 +22,6 @@ export const warehouseApi = {
     return response.json();
   },
   
-  // Get warehouse overview
   getOverview: async (filters = {}) => {
     const params = new URLSearchParams(filters);
     const response = await fetch(`${API_BASE}/overview?${params}`, {
@@ -38,7 +36,6 @@ export const warehouseApi = {
     return response.json();
   },
   
-  // Update stock (direct use for testing)
   updateStock: async (materialId, quantityDelta, operation, note, location) => {
     const response = await fetch(`${API_BASE}/${materialId}/stock`, {
       method: 'PUT',

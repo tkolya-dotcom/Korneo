@@ -12,7 +12,6 @@ serve(async (req) => {
   }
 
   try {
-    // Верифицируем JWT вручную, чтобы не зависеть от Gateway
     const authHeader = req.headers.get('Authorization') ?? ''
     if (!authHeader.startsWith('Bearer ')) {
       return new Response(JSON.stringify({ error: 'Missing token' }), {
@@ -21,7 +20,6 @@ serve(async (req) => {
     }
     const token = authHeader.replace('Bearer ', '')
 
-    // Проверяем токен через Supabase auth
     const supabaseAuth = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
@@ -41,7 +39,6 @@ serve(async (req) => {
 
     const { user_id, subscription } = await req.json()
 
-    // Валидация структуры subscription
     if (!subscription || !subscription.endpoint) {
       return new Response(JSON.stringify({ error: 'Missing subscription.endpoint' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }

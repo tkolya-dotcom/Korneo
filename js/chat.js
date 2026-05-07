@@ -1,54 +1,39 @@
-/**
- * Управление чатом и сообщениями
- */
 
 import { repositories } from './api.js';
 import { authService } from './auth.js';
 import { APP_CONFIG } from './config.js';
 
-/**
- * Сервис управления чатами
- */
 export class ChatService {
   constructor() {
     this.chatsRepo = repositories.chats;
     this.messagesRepo = repositories.messages;
   }
 
-  /**
-   * Получение всех чатов пользователя
-   */
   async getUserChats(userId) {
     try {
       return await this.chatsRepo.getUserChats(userId);
     } catch (error) {
-      console.error('Ошибка получения чатов:', error);
+      console.error('РћС€РёР±РєР° РїРѕР»СѓС‡РµРЅРёСЏ С‡Р°С‚РѕРІ:', error);
       throw error;
     }
   }
 
-  /**
-   * Создание нового чата
-   */
   async createChat(name, type = 'private', memberIds = []) {
     try {
       const currentUser = authService.getCurrentUser();
       
       if (!currentUser) {
-        throw new Error('Пользователь не авторизован');
+        throw new Error('РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РЅРµ Р°РІС‚РѕСЂРёР·РѕРІР°РЅ');
       }
 
-      // Создаём чат
       const chat = await this.chatsRepo.create({
         name,
         type,
         created_by: currentUser.id
       });
 
-      // Добавляем создателя
       await this.addMember(chat.id, currentUser.id);
 
-      // Добавляем остальных участников
       for (const memberId of memberIds) {
         if (memberId !== currentUser.id) {
           await this.addMember(chat.id, memberId);
@@ -57,18 +42,15 @@ export class ChatService {
 
       return chat;
     } catch (error) {
-      console.error('Ошибка создания чата:', error);
+      console.error('РћС€РёР±РєР° СЃРѕР·РґР°РЅРёСЏ С‡Р°С‚Р°:', error);
       throw error;
     }
   }
 
-  /**
-   * Добавление участника в чат
-   */
   async addMember(chatId, userId) {
     try {
       if (!window.supabaseClient) {
-        throw new Error('Supabase client не инициализирован');
+        throw new Error('Supabase client РЅРµ РёРЅРёС†РёР°Р»РёР·РёСЂРѕРІР°РЅ');
       }
 
       const supabase = window.supabaseClient;
@@ -79,24 +61,21 @@ export class ChatService {
 
       if (error) {
         console.error('Supabase error:', error);
-        throw new Error(`Не удалось добавить участника: ${error.message}`);
+        throw new Error(`РќРµ СѓРґР°Р»РѕСЃСЊ РґРѕР±Р°РІРёС‚СЊ СѓС‡Р°СЃС‚РЅРёРєР°: ${error.message}`);
       }
 
-      console.log('✅ Участник добавлен:', userId);
+      console.log('вњ… РЈС‡Р°СЃС‚РЅРёРє РґРѕР±Р°РІР»РµРЅ:', userId);
       return true;
     } catch (error) {
-      console.error('Ошибка добавления участника:', error);
+      console.error('РћС€РёР±РєР° РґРѕР±Р°РІР»РµРЅРёСЏ СѓС‡Р°СЃС‚РЅРёРєР°:', error);
       throw error;
     }
   }
 
-  /**
-   * Удаление участника из чата
-   */
   async removeMember(chatId, userId) {
     try {
       if (!window.supabaseClient) {
-        throw new Error('Supabase client не инициализирован');
+        throw new Error('Supabase client РЅРµ РёРЅРёС†РёР°Р»РёР·РёСЂРѕРІР°РЅ');
       }
 
       const supabase = window.supabaseClient;
@@ -110,20 +89,17 @@ export class ChatService {
       if (error) throw error;
       return true;
     } catch (error) {
-      console.error('Ошибка удаления участника:', error);
+      console.error('РћС€РёР±РєР° СѓРґР°Р»РµРЅРёСЏ СѓС‡Р°СЃС‚РЅРёРєР°:', error);
       throw error;
     }
   }
 
-  /**
-   * Отправка сообщения
-   */
   async sendMessage(chatId, content, type = 'text', replyToId = null) {
     try {
       const currentUser = authService.getCurrentUser();
       
       if (!currentUser) {
-        throw new Error('Пользователь не авторизован');
+        throw new Error('РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РЅРµ Р°РІС‚РѕСЂРёР·РѕРІР°РЅ');
       }
 
       const message = {
@@ -136,26 +112,20 @@ export class ChatService {
 
       return await this.messagesRepo.create(message);
     } catch (error) {
-      console.error('Ошибка отправки сообщения:', error);
+      console.error('РћС€РёР±РєР° РѕС‚РїСЂР°РІРєРё СЃРѕРѕР±С‰РµРЅРёСЏ:', error);
       throw error;
     }
   }
 
-  /**
-   * Получение сообщений чата
-   */
   async getMessages(chatId, limit = 50) {
     try {
       return await this.messagesRepo.getByChat(chatId, limit);
     } catch (error) {
-      console.error('Ошибка получения сообщений:', error);
+      console.error('РћС€РёР±РєР° РїРѕР»СѓС‡РµРЅРёСЏ СЃРѕРѕР±С‰РµРЅРёР№:', error);
       throw error;
     }
   }
 
-  /**
-   * Удаление сообщения (у себя)
-   */
   async deleteMessageForMe(messageId) {
     try {
       const currentUser = authService.getCurrentUser();
@@ -164,7 +134,6 @@ export class ChatService {
         window.SUPABASE_CONFIG.anonKey
       );
 
-      // Добавляем user_id в deleted_for
       const { data: message } = await supabase
         .from('messages')
         .select('deleted_for')
@@ -185,58 +154,48 @@ export class ChatService {
       if (error) throw error;
       return true;
     } catch (error) {
-      console.error('Ошибка удаления сообщения:', error);
+      console.error('РћС€РёР±РєР° СѓРґР°Р»РµРЅРёСЏ СЃРѕРѕР±С‰РµРЅРёСЏ:', error);
       throw error;
     }
   }
 
-  /**
-   * Удаление сообщения у всех (только автор или manager)
-   */
   async deleteMessageForAll(messageId) {
     try {
       const currentUser = authService.getCurrentUser();
       const message = await this.messagesRepo.getById(messageId);
 
       if (!message) {
-        throw new Error('Сообщение не найдено');
+        throw new Error('РЎРѕРѕР±С‰РµРЅРёРµ РЅРµ РЅР°Р№РґРµРЅРѕ');
       }
 
-      // Проверка прав
       const canDelete = 
         message.sender_id === currentUser?.id ||
         authService.hasRole([APP_CONFIG.roles.MANAGER, APP_CONFIG.roles.DEPUTY_HEAD, APP_CONFIG.roles.ADMIN]);
 
       if (!canDelete) {
-        throw new Error('Недостаточно прав');
+        throw new Error('РќРµРґРѕСЃС‚Р°С‚РѕС‡РЅРѕ РїСЂР°РІ');
       }
 
       return await this.messagesRepo.delete(messageId);
     } catch (error) {
-      console.error('Ошибка удаления сообщения у всех:', error);
+      console.error('РћС€РёР±РєР° СѓРґР°Р»РµРЅРёСЏ СЃРѕРѕР±С‰РµРЅРёСЏ Сѓ РІСЃРµС…:', error);
       throw error;
     }
   }
 
-  /**
-   * Отметка сообщения как прочитанное
-   */
   async markAsRead(messageId) {
     try {
       const currentUser = authService.getCurrentUser();
       return await this.messagesRepo.markAsRead(messageId, currentUser.id);
     } catch (error) {
-      console.error('Ошибка отметки прочтения:', error);
+      console.error('РћС€РёР±РєР° РѕС‚РјРµС‚РєРё РїСЂРѕС‡С‚РµРЅРёСЏ:', error);
       throw error;
     }
   }
 
-  /**
-   * Подписка на сообщения чата (Realtime)
-   */
   subscribeToChat(chatId, callback) {
     if (!window.supabaseClient) {
-      console.error('Supabase client не инициализирован');
+      console.error('Supabase client РЅРµ РёРЅРёС†РёР°Р»РёР·РёСЂРѕРІР°РЅ');
       return () => {};
     }
 
@@ -263,9 +222,6 @@ export class ChatService {
     };
   }
 
-  /**
-   * Подписка на новые чаты
-   */
   subscribeToNewChats(userId, callback) {
     const supabase = window.supabase.createClient(
       window.SUPABASE_CONFIG.url,
@@ -284,7 +240,6 @@ export class ChatService {
         async (payload) => {
           const newChatId = payload.new.chat_id;
           
-          // Проверяем, является ли пользователь участником
           const chat = await this.chatsRepo.getById(newChatId);
           const members = await this.getChatMembers(newChatId);
           
@@ -300,13 +255,10 @@ export class ChatService {
     };
   }
 
-  /**
-   * Получение участников чата
-   */
   async getChatMembers(chatId) {
     try {
       if (!window.supabaseClient) {
-        throw new Error('Supabase client не инициализирован');
+        throw new Error('Supabase client РЅРµ РёРЅРёС†РёР°Р»РёР·РёСЂРѕРІР°РЅ');
       }
 
       const supabase = window.supabaseClient;
@@ -327,14 +279,11 @@ export class ChatService {
       }
       return (data || []).map(m => ({ ...m, user: m.users[0] || null }));
     } catch (error) {
-      console.error('Ошибка получения участников:', error);
+      console.error('РћС€РёР±РєР° РїРѕР»СѓС‡РµРЅРёСЏ СѓС‡Р°СЃС‚РЅРёРєРѕРІ:', error);
       throw error;
     }
   }
 
-  /**
-   * Закрепление чата
-   */
   async pinChat(chatId, userId) {
     try {
       const supabase = window.supabase.createClient(
@@ -342,7 +291,6 @@ export class ChatService {
         window.SUPABASE_CONFIG.anonKey
       );
 
-      // Используем upsert для обновления или создания записи
       const { error } = await supabase
         .from('chat_members')
         .upsert({ 
@@ -356,14 +304,11 @@ export class ChatService {
       if (error) throw error;
       return true;
     } catch (error) {
-      console.error('Ошибка закрепления чата:', error);
+      console.error('РћС€РёР±РєР° Р·Р°РєСЂРµРїР»РµРЅРёСЏ С‡Р°С‚Р°:', error);
       throw error;
     }
   }
 
-  /**
-   * Открепление чата
-   */
   async unpinChat(chatId, userId) {
     try {
       const supabase = window.supabase.createClient(
@@ -380,14 +325,11 @@ export class ChatService {
       if (error) throw error;
       return true;
     } catch (error) {
-      console.error('Ошибка открепления чата:', error);
+      console.error('РћС€РёР±РєР° РѕС‚РєСЂРµРїР»РµРЅРёСЏ С‡Р°С‚Р°:', error);
       throw error;
     }
   }
 
-  /**
-   * Отключение уведомлений чата
-   */
   async muteChat(chatId, userId) {
     try {
       const supabase = window.supabase.createClient(
@@ -408,14 +350,11 @@ export class ChatService {
       if (error) throw error;
       return true;
     } catch (error) {
-      console.error('Ошибка отключения уведомлений:', error);
+      console.error('РћС€РёР±РєР° РѕС‚РєР»СЋС‡РµРЅРёСЏ СѓРІРµРґРѕРјР»РµРЅРёР№:', error);
       throw error;
     }
   }
 
-  /**
-   * Включение уведомлений чата
-   */
   async unmuteChat(chatId, userId) {
     try {
       const supabase = window.supabase.createClient(
@@ -432,16 +371,14 @@ export class ChatService {
       if (error) throw error;
       return true;
     } catch (error) {
-      console.error('Ошибка включения уведомлений:', error);
+      console.error('РћС€РёР±РєР° РІРєР»СЋС‡РµРЅРёСЏ СѓРІРµРґРѕРјР»РµРЅРёР№:', error);
       throw error;
     }
   }
 }
 
-// Экспорт экземпляра
 export const chatService = new ChatService();
 
-// Экспорт для совместимости с window
 if (typeof window !== 'undefined') {
   window.chatService = chatService;
 }

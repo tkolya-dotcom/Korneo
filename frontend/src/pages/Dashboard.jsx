@@ -48,7 +48,6 @@ const Dashboard = () => {
     }
   };
 
-  // Calculate task status breakdown
   const getTaskStatusCounts = () => {
     const counts = {
       new: 0,
@@ -66,7 +65,6 @@ const Dashboard = () => {
     return counts;
   };
 
-  // Calculate installation status breakdown
   const getInstallationStatusCounts = () => {
     const counts = {
       new: 0,
@@ -84,7 +82,6 @@ const Dashboard = () => {
     return counts;
   };
 
-  // Calculate overall progress
   const calculateProgress = () => {
     const totalTasks = tasks.length;
     const totalInstallations = installations.length;
@@ -105,82 +102,82 @@ const Dashboard = () => {
 
   const getStatusLabel = (status) => {
     const labels = {
-      new: 'Новая',
-      planned: 'Запланирована',
-      in_progress: 'В работе',
-      waiting_materials: 'Ожидает материалов',
-      done: 'Выполнена',
-      postponed: 'Отложена'
+      new: 'РќРѕРІР°СЏ',
+      planned: 'Р—Р°РїР»Р°РЅРёСЂРѕРІР°РЅР°',
+      in_progress: 'Р’ СЂР°Р±РѕС‚Рµ',
+      waiting_materials: 'РћР¶РёРґР°РµС‚ РјР°С‚РµСЂРёР°Р»РѕРІ',
+      done: 'Р’С‹РїРѕР»РЅРµРЅР°',
+      postponed: 'РћС‚Р»РѕР¶РµРЅР°'
     };
     return labels[status] || status;
   };
 
   const getInstallationStatusLabel = (status) => {
     const labels = {
-      new: 'Новый',
-      planned: 'Запланирован',
-      in_progress: 'В работе',
-      waiting_materials: 'Ожидает материалов',
-      done: 'Завершён',
-      postponed: 'Отложен'
+      new: 'РќРѕРІС‹Р№',
+      planned: 'Р—Р°РїР»Р°РЅРёСЂРѕРІР°РЅ',
+      in_progress: 'Р’ СЂР°Р±РѕС‚Рµ',
+      waiting_materials: 'РћР¶РёРґР°РµС‚ РјР°С‚РµСЂРёР°Р»РѕРІ',
+      done: 'Р—Р°РІРµСЂС€С‘РЅ',
+      postponed: 'РћС‚Р»РѕР¶РµРЅ'
     };
     return labels[status] || status;
   };
 
   if (loading) {
-    return <div className="loading">Загрузка...</div>;
+    return <div className="loading">Р—Р°РіСЂСѓР·РєР°...</div>;
   }
 
   return (
     <div>
       <header className="header">
-        <h1>Система управления задачами</h1>
+        <h1>РЎРёСЃС‚РµРјР° СѓРїСЂР°РІР»РµРЅРёСЏ Р·Р°РґР°С‡Р°РјРё</h1>
         <nav className="header-nav">
-          <Link to="/">Главная</Link>
-          <Link to="/projects">Проекты</Link>
-          <Link to="/tasks">Задачи</Link>
-          <Link to="/installations">Монтажи</Link>
-          <Link to="/purchase-requests">Заявки</Link>
+          <Link to="/">Р“Р»Р°РІРЅР°СЏ</Link>
+          <Link to="/projects">РџСЂРѕРµРєС‚С‹</Link>
+          <Link to="/tasks">Р—Р°РґР°С‡Рё</Link>
+          <Link to="/installations">РњРѕРЅС‚Р°Р¶Рё</Link>
+          <Link to="/purchase-requests">Р—Р°СЏРІРєРё</Link>
         </nav>
         <div className="header-user">
-          <span>{user.name} ({user.role === 'manager' ? 'Руководитель' : 'Исполнитель'})</span>
-          <button onClick={logout}>Выйти</button>
+          <span>{user.name} ({user.role === 'manager' ? 'Р СѓРєРѕРІРѕРґРёС‚РµР»СЊ' : 'РСЃРїРѕР»РЅРёС‚РµР»СЊ'})</span>
+          <button onClick={logout}>Р’С‹Р№С‚Рё</button>
         </div>
       </header>
 
       <main className="container">
-        <h2 style={{ marginBottom: '20px' }}>Добро пожаловать, {user.name}!</h2>
+        <h2 style={{ marginBottom: '20px' }}>Р”РѕР±СЂРѕ РїРѕР¶Р°Р»РѕРІР°С‚СЊ, {user.name}!</h2>
 
         <div className="stats-grid">
           <div className="stat-card">
             <h3>{stats.projects}</h3>
-            <p>Проектов</p>
+            <p>РџСЂРѕРµРєС‚РѕРІ</p>
             <Link to="/projects" className="btn btn-primary" style={{ marginTop: '10px', display: 'inline-block' }}>
-              Подробнее
+              РџРѕРґСЂРѕР±РЅРµРµ
             </Link>
           </div>
 
           <div className="stat-card">
             <h3>{stats.tasks}</h3>
-            <p>Задач</p>
+            <p>Р—Р°РґР°С‡</p>
             <Link to="/tasks" className="btn btn-primary" style={{ marginTop: '10px', display: 'inline-block' }}>
-              Подробнее
+              РџРѕРґСЂРѕР±РЅРµРµ
             </Link>
           </div>
 
           <div className="stat-card">
             <h3>{stats.installations}</h3>
-            <p>Монтажей</p>
+            <p>РњРѕРЅС‚Р°Р¶РµР№</p>
             <Link to="/installations" className="btn btn-primary" style={{ marginTop: '10px', display: 'inline-block' }}>
-              Подробнее
+              РџРѕРґСЂРѕР±РЅРµРµ
             </Link>
           </div>
 
           <div className="stat-card">
             <h3>{stats.pendingRequests}</h3>
-            <p>Ожидающих заявок</p>
+            <p>РћР¶РёРґР°СЋС‰РёС… Р·Р°СЏРІРѕРє</p>
             <Link to="/purchase-requests" className="btn btn-primary" style={{ marginTop: '10px', display: 'inline-block' }}>
-              Подробнее
+              РџРѕРґСЂРѕР±РЅРµРµ
             </Link>
           </div>
 </div>
@@ -191,7 +188,7 @@ const Dashboard = () => {
         {/* Progress Bar Section */}
         <div className="card">
           <div className="card-header">
-            <h3 className="card-title">Общее выполнение</h3>
+            <h3 className="card-title">РћР±С‰РµРµ РІС‹РїРѕР»РЅРµРЅРёРµ</h3>
           </div>
           <div className="progress-container">
             <div className="progress-bar">
@@ -201,9 +198,9 @@ const Dashboard = () => {
               ></div>
             </div>
             <div className="progress-text">
-              <span>{overallProgress}% выполнено</span>
+              <span>{overallProgress}% РІС‹РїРѕР»РЅРµРЅРѕ</span>
               <span>
-                {tasks.filter(t => t.status === 'done').length + installations.filter(i => i.status === 'done').length} из {tasks.length + installations.length} завершено
+                {tasks.filter(t => t.status === 'done').length + installations.filter(i => i.status === 'done').length} РёР· {tasks.length + installations.length} Р·Р°РІРµСЂС€РµРЅРѕ
               </span>
             </div>
           </div>
@@ -212,7 +209,7 @@ const Dashboard = () => {
         {/* Installation Status Breakdown */}
         <div className="card">
           <div className="card-header">
-            <h3 className="card-title">Статусы монтажей</h3>
+            <h3 className="card-title">РЎС‚Р°С‚СѓСЃС‹ РјРѕРЅС‚Р°Р¶РµР№</h3>
           </div>
           <div className="status-breakdown">
             <div className="status-item">
@@ -281,25 +278,25 @@ const Dashboard = () => {
         {isManager && (
           <div className="card">
             <div className="card-header">
-              <h3 className="card-title">Быстрые действия</h3>
+              <h3 className="card-title">Р‘С‹СЃС‚СЂС‹Рµ РґРµР№СЃС‚РІРёСЏ</h3>
             </div>
             <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-              <Link to="/projects" className="btn btn-primary">Создать проект</Link>
-              <Link to="/tasks" className="btn btn-primary">Создать задачу</Link>
-              <Link to="/installations" className="btn btn-primary">Создать монтаж</Link>
+              <Link to="/projects" className="btn btn-primary">РЎРѕР·РґР°С‚СЊ РїСЂРѕРµРєС‚</Link>
+              <Link to="/tasks" className="btn btn-primary">РЎРѕР·РґР°С‚СЊ Р·Р°РґР°С‡Сѓ</Link>
+              <Link to="/installations" className="btn btn-primary">РЎРѕР·РґР°С‚СЊ РјРѕРЅС‚Р°Р¶</Link>
             </div>
           </div>
         )}
 
         <div className="card">
           <div className="card-header">
-            <h3 className="card-title">Информация</h3>
+            <h3 className="card-title">РРЅС„РѕСЂРјР°С†РёСЏ</h3>
           </div>
-          <p>Вы вошли в систему как {user.role === 'manager' ? 'руководитель' : 'исполнитель'}.</p>
+          <p>Р’С‹ РІРѕС€Р»Рё РІ СЃРёСЃС‚РµРјСѓ РєР°Рє {user.role === 'manager' ? 'СЂСѓРєРѕРІРѕРґРёС‚РµР»СЊ' : 'РёСЃРїРѕР»РЅРёС‚РµР»СЊ'}.</p>
           {isManager ? (
-            <p style={{ marginTop: '10px' }}>У вас есть доступ ко всем проектам, задачам и монтажам. Вы можете подтверждать или отклонять заявки на закупку материалов.</p>
+            <p style={{ marginTop: '10px' }}>РЈ РІР°СЃ РµСЃС‚СЊ РґРѕСЃС‚СѓРї РєРѕ РІСЃРµРј РїСЂРѕРµРєС‚Р°Рј, Р·Р°РґР°С‡Р°Рј Рё РјРѕРЅС‚Р°Р¶Р°Рј. Р’С‹ РјРѕР¶РµС‚Рµ РїРѕРґС‚РІРµСЂР¶РґР°С‚СЊ РёР»Рё РѕС‚РєР»РѕРЅСЏС‚СЊ Р·Р°СЏРІРєРё РЅР° Р·Р°РєСѓРїРєСѓ РјР°С‚РµСЂРёР°Р»РѕРІ.</p>
           ) : (
-            <p style={{ marginTop: '10px' }}>Вы видите только задачи и монтажи, назначенные вам. Вы можете создавать заявки на закупку материалов для своих задач.</p>
+            <p style={{ marginTop: '10px' }}>Р’С‹ РІРёРґРёС‚Рµ С‚РѕР»СЊРєРѕ Р·Р°РґР°С‡Рё Рё РјРѕРЅС‚Р°Р¶Рё, РЅР°Р·РЅР°С‡РµРЅРЅС‹Рµ РІР°Рј. Р’С‹ РјРѕР¶РµС‚Рµ СЃРѕР·РґР°РІР°С‚СЊ Р·Р°СЏРІРєРё РЅР° Р·Р°РєСѓРїРєСѓ РјР°С‚РµСЂРёР°Р»РѕРІ РґР»СЏ СЃРІРѕРёС… Р·Р°РґР°С‡.</p>
           )}
         </div>
       </main>

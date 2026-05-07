@@ -1,5 +1,3 @@
-// src/utils/chat.js - Messenger logic + Supabase realtime
-// Импорт: import { initMessenger, getChats, sendMessage, registerPush } from './chat.js'
 
 import { supabase } from '../config/supabase.js'  // adjust path
 
@@ -91,7 +89,6 @@ export const registerPush = async () => {
   }
 }
 
-// https://github.com/web-push-libs/vapid (helper)
 export const urlBase64ToUint8Array = (base64String) => {
   const padding = '='.repeat((4 - base64String.length % 4) % 4)
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
