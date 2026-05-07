@@ -16,20 +16,14 @@ const Login = () => {
 
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
-    e.stopPropagation();
     setError('');
     setLoading(true);
 
-    console.log('Login button clicked, email:', email);
-    console.log('API URL:', import.meta.env.VITE_API_URL || '/api');
-
     try {
-      const result = await login(email, password);
-      console.log('Login successful:', result);
+      await login(email, password);
       navigate('/');
     } catch (err) {
-      console.error('Login error:', err);
-      setError(err.message || 'РћС€РёР±РєР° РІС…РѕРґР°. РџСЂРѕРІРµСЂСЊС‚Рµ РєРѕРЅСЃРѕР»СЊ РґР»СЏ РґРµС‚Р°Р»РµР№.');
+      setError(err.message || 'Login failed. Please check your credentials.');
     } finally {
       setLoading(false);
     }
@@ -37,29 +31,22 @@ const Login = () => {
 
   const handleRegisterSubmit = async (e) => {
     e.preventDefault();
-    e.stopPropagation();
     setError('');
     setSuccess('');
     setLoading(true);
 
-    console.log('Register button clicked, email:', email, 'name:', name, 'role:', role);
-
     if (password.length < 6) {
-      setError('РџР°СЂРѕР»СЊ РґРѕР»Р¶РµРЅ Р±С‹С‚СЊ РЅРµ РјРµРЅРµРµ 6 СЃРёРјРІРѕР»РѕРІ');
+      setError('Password must be at least 6 characters.');
       setLoading(false);
       return;
     }
 
     try {
-      const result = await register(email, password, name, role);
-      console.log('Registration successful:', result);
-      setSuccess('Р РµРіРёСЃС‚СЂР°С†РёСЏ СѓСЃРїРµС€РЅР°! РџРµСЂРµРЅР°РїСЂР°РІР»РµРЅРёРµ...');
-      setTimeout(() => {
-        navigate('/');
-      }, 1500);
+      await register(email, password, name, role);
+      setSuccess('Registration successful. Redirecting...');
+      setTimeout(() => navigate('/'), 1200);
     } catch (err) {
-      console.error('Registration error:', err);
-      setError(err.message || 'РћС€РёР±РєР° СЂРµРіРёСЃС‚СЂР°С†РёРё. РџСЂРѕРІРµСЂСЊС‚Рµ РєРѕРЅСЃРѕР»СЊ РґР»СЏ РґРµС‚Р°Р»РµР№.');
+      setError(err.message || 'Registration failed.');
     } finally {
       setLoading(false);
     }
@@ -78,20 +65,20 @@ const Login = () => {
   return (
     <div className="login-container">
       <form className="login-form" onSubmit={isRegisterMode ? handleRegisterSubmit : handleLoginSubmit}>
-        <h2>{isRegisterMode ? 'Р РµРіРёСЃС‚СЂР°С†РёСЏ' : 'Р’С…РѕРґ РІ СЃРёСЃС‚РµРјСѓ'}</h2>
-        
+        <h2>{isRegisterMode ? 'Register' : 'Sign In'}</h2>
+
         {error && <div className="error">{error}</div>}
         {success && <div className="success">{success}</div>}
 
         {isRegisterMode && (
           <div className="form-group">
-            <label>РРјСЏ</label>
+            <label>Name</label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
-              placeholder="Р’РІРµРґРёС‚Рµ РІР°С€Рµ РёРјСЏ"
+              placeholder="Enter your name"
             />
           </div>
         )}
@@ -103,60 +90,46 @@ const Login = () => {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            placeholder="Р’РІРµРґРёС‚Рµ email"
+            placeholder="Enter email"
           />
         </div>
 
         <div className="form-group">
-          <label>РџР°СЂРѕР»СЊ</label>
+          <label>Password</label>
           <input
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            placeholder={isRegisterMode ? 'РњРёРЅРёРјСѓРј 6 СЃРёРјРІРѕР»РѕРІ' : 'Р’РІРµРґРёС‚Рµ РїР°СЂРѕР»СЊ'}
+            placeholder={isRegisterMode ? 'Minimum 6 characters' : 'Enter password'}
             minLength={isRegisterMode ? 6 : undefined}
           />
         </div>
 
         {isRegisterMode && (
           <div className="form-group">
-            <label>Р РѕР»СЊ</label>
+            <label>Role</label>
             <select value={role} onChange={(e) => setRole(e.target.value)} required>
-              <option value="worker">РСЃРїРѕР»РЅРёС‚РµР»СЊ</option>
-              <option value="manager">Р СѓРєРѕРІРѕРґРёС‚РµР»СЊ</option>
+              <option value="worker">Worker</option>
+              <option value="manager">Manager</option>
             </select>
           </div>
         )}
 
         <button type="submit" className="btn btn-primary" disabled={loading} style={{ width: '100%' }}>
-          {loading 
-            ? (isRegisterMode ? 'Р РµРіРёСЃС‚СЂР°С†РёСЏ...' : 'Р’С…РѕРґ...') 
-            : (isRegisterMode ? 'Р—Р°СЂРµРіРёСЃС‚СЂРёСЂРѕРІР°С‚СЊСЃСЏ' : 'Р’РѕР№С‚Рё')
-          }
+          {loading ? (isRegisterMode ? 'Registering...' : 'Signing in...') : (isRegisterMode ? 'Create account' : 'Sign in')}
         </button>
 
         <div style={{ marginTop: '20px', textAlign: 'center' }}>
-          <button 
-            type="button" 
-            className="btn btn-link" 
+          <button
+            type="button"
+            className="btn btn-link"
             onClick={toggleMode}
             style={{ background: 'none', border: 'none', color: '#1976d2', cursor: 'pointer', textDecoration: 'underline' }}
           >
-            {isRegisterMode 
-              ? 'РЈР¶Рµ РµСЃС‚СЊ Р°РєРєР°СѓРЅС‚? Р’РѕР№С‚Рё' 
-              : 'РќРµС‚ Р°РєРєР°СѓРЅС‚Р°? Р—Р°СЂРµРіРёСЃС‚СЂРёСЂРѕРІР°С‚СЊСЃСЏ'
-            }
+            {isRegisterMode ? 'Already have an account? Sign in' : 'No account? Register'}
           </button>
         </div>
-
-        {!isRegisterMode && (
-          <div style={{ marginTop: '20px', textAlign: 'center', fontSize: '14px', color: '#757575' }}>
-            <p>РўРµСЃС‚РѕРІС‹Рµ Р°РєРєР°СѓРЅС‚С‹:</p>
-            <p>Р СѓРєРѕРІРѕРґРёС‚РµР»СЊ: manager@test.com</p>
-            <p>РСЃРїРѕР»РЅРёС‚РµР»СЊ: worker@test.com</p>
-          </div>
-        )}
       </form>
     </div>
   );
