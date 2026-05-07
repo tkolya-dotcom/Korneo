@@ -13,6 +13,19 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      (function () {
+        var repoBase = '/Korneo';
+        var path = window.location.pathname;
+        var hash = window.location.hash;
+        if (path.indexOf(repoBase + '/') === 0 && !hash) {
+          var route = path.slice(repoBase.length);
+          if (route && route !== '/') {
+            window.location.replace(repoBase + '/#' + route + window.location.search);
+          }
+        }
+      })();
+    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
