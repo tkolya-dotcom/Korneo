@@ -14,7 +14,7 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const AUTH_INIT_TIMEOUT_MS = 8000;
+  const AUTH_INIT_TIMEOUT_MS = 4000;
 
   const isAuthLockError = (err) =>
     typeof err?.message === 'string' &&
@@ -71,7 +71,6 @@ export const AuthProvider = ({ children }) => {
           ),
         ]);
       } catch (err) {
-        console.warn('Auth initialization fallback:', err?.message || err);
         localStorage.removeItem('token');
         setUser(null);
       } finally {
