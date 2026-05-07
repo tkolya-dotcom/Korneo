@@ -2,6 +2,15 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
+const humanizeAuthError = (message = '') => {
+  const m = String(message).toLowerCase();
+  if (m.includes('invalid login credentials')) return 'Неверный email или пароль.';
+  if (m.includes('email not confirmed')) return 'Email не подтверждён. Подтвердите почту и попробуйте снова.';
+  if (m.includes('too many requests')) return 'Слишком много попыток входа. Подождите немного.';
+  if (m.includes('network')) return 'Проблема сети. Проверьте интернет и попробуйте снова.';
+  return message || 'Ошибка авторизации.';
+};
+
 const Login = () => {
   const [isRegisterMode, setIsRegisterMode] = useState(false);
   const [email, setEmail] = useState('');
@@ -23,7 +32,7 @@ const Login = () => {
       await login(email, password);
       navigate('/');
     } catch (err) {
-      setError(err.message || 'Login failed. Please check your credentials.');
+      setError(humanizeAuthError(err?.message));
     } finally {
       setLoading(false);
     }
@@ -36,17 +45,17 @@ const Login = () => {
     setLoading(true);
 
     if (password.length < 6) {
-      setError('Password must be at least 6 characters.');
+      setError('Пароль должен быть не менее 6 символов.');
       setLoading(false);
       return;
     }
 
     try {
       await register(email, password, name, role);
-      setSuccess('Registration successful. Redirecting...');
+      setSuccess('Регистрация успешна. Перенаправление...');
       setTimeout(() => navigate('/'), 1200);
     } catch (err) {
-      setError(err.message || 'Registration failed.');
+      setError(humanizeAuthError(err?.message));
     } finally {
       setLoading(false);
     }
@@ -65,20 +74,20 @@ const Login = () => {
   return (
     <div className="login-container">
       <form className="login-form" onSubmit={isRegisterMode ? handleRegisterSubmit : handleLoginSubmit}>
-        <h2>{isRegisterMode ? 'Register' : 'Sign In'}</h2>
+        <h2>{isRegisterMode ? 'Регистрация' : 'Вход в систему'}</h2>
 
         {error && <div className="error">{error}</div>}
         {success && <div className="success">{success}</div>}
 
         {isRegisterMode && (
           <div className="form-group">
-            <label>Name</label>
+            <label>Имя</label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
-              placeholder="Enter your name"
+              placeholder="Введите ваше имя"
             />
           </div>
         )}
@@ -90,34 +99,34 @@ const Login = () => {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            placeholder="Enter email"
+            placeholder="Введите email"
           />
         </div>
 
         <div className="form-group">
-          <label>Password</label>
+          <label>Пароль</label>
           <input
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            placeholder={isRegisterMode ? 'Minimum 6 characters' : 'Enter password'}
+            placeholder={isRegisterMode ? 'Минимум 6 символов' : 'Введите пароль'}
             minLength={isRegisterMode ? 6 : undefined}
           />
         </div>
 
         {isRegisterMode && (
           <div className="form-group">
-            <label>Role</label>
+            <label>Роль</label>
             <select value={role} onChange={(e) => setRole(e.target.value)} required>
-              <option value="worker">Worker</option>
-              <option value="manager">Manager</option>
+              <option value="worker">Исполнитель</option>
+              <option value="manager">Руководитель</option>
             </select>
           </div>
         )}
 
         <button type="submit" className="btn btn-primary" disabled={loading} style={{ width: '100%' }}>
-          {loading ? (isRegisterMode ? 'Registering...' : 'Signing in...') : (isRegisterMode ? 'Create account' : 'Sign in')}
+          {loading ? (isRegisterMode ? 'Регистрация...' : 'Вход...') : (isRegisterMode ? 'Зарегистрироваться' : 'Войти')}
         </button>
 
         <div style={{ marginTop: '20px', textAlign: 'center' }}>
@@ -127,7 +136,7 @@ const Login = () => {
             onClick={toggleMode}
             style={{ background: 'none', border: 'none', color: '#1976d2', cursor: 'pointer', textDecoration: 'underline' }}
           >
-            {isRegisterMode ? 'Already have an account? Sign in' : 'No account? Register'}
+            {isRegisterMode ? 'Уже есть аккаунт? Войти' : 'Нет аккаунта? Зарегистрироваться'}
           </button>
         </div>
       </form>
