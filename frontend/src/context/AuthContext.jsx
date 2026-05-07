@@ -59,6 +59,10 @@ export const AuthProvider = ({ children }) => {
     let mounted = true;
 
     const initializeAuth = async () => {
+      if (!localStorage.getItem('token')) {
+        if (mounted) setLoading(false);
+        return;
+      }
       try {
         await Promise.race([
           syncSession(),
@@ -67,7 +71,7 @@ export const AuthProvider = ({ children }) => {
           ),
         ]);
       } catch (err) {
-        console.error('Auth initialization failed:', err);
+        console.warn('Auth initialization fallback:', err?.message || err);
         localStorage.removeItem('token');
         setUser(null);
       } finally {
