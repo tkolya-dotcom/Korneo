@@ -18,7 +18,6 @@ const handleResponse = async (response) => {
   return data;
 };
 
-// Auth API
 export const authApi = {
   login: async (email, password) => {
     const response = await fetch(`${API_URL}/auth/login`, {
@@ -54,7 +53,6 @@ export const authApi = {
   }
 };
 
-// Users Status API
 export const usersApi = {
   getStatus: async () => {
     const response = await fetch(`${API_URL}/users/status`, {
@@ -80,7 +78,6 @@ export const usersApi = {
   }
 };
 
-// Projects API
 export const projectsApi = {
   getAll: async (status) => {
     const params = status ? `?status=${status}` : '';
@@ -124,7 +121,6 @@ export const projectsApi = {
   }
 };
 
-// Tasks API
 export const tasksApi = {
   getAll: async (filters = {}) => {
     const params = new URLSearchParams(filters).toString();
@@ -168,7 +164,6 @@ export const tasksApi = {
   }
 };
 
-// Installations API
 export const installationsApi = {
   getAll: async (filters = {}) => {
     const params = new URLSearchParams(filters).toString();
@@ -220,7 +215,6 @@ export const installationsApi = {
   }
 };
 
-// Purchase Requests API
 export const purchaseRequestsApi = {
   getAll: async (filters = {}) => {
     const params = new URLSearchParams(filters).toString();
@@ -299,7 +293,6 @@ export const purchaseRequestsApi = {
   }
 };
 
-// Materials API
 export const materialsApi = {
   getAll: async (filters = {}) => {
     const params = new URLSearchParams(filters).toString();

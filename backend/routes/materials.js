@@ -3,7 +3,6 @@ import { supabase } from '../config/supabase.js';
 
 const router = express.Router();
 
-// Get all materials
 router.get('/', async (req, res) => {
   try {
     const { category, search } = req.query;
@@ -33,7 +32,6 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Get material by ID
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -57,7 +55,6 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// Get materials by category
 router.get('/category/:category', async (req, res) => {
   try {
     const { category } = req.params;
@@ -77,7 +74,6 @@ router.get('/category/:category', async (req, res) => {
   }
 });
 
-// Get all categories
 router.get('/categories/list', async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -87,7 +83,6 @@ router.get('/categories/list', async (req, res) => {
     
     if (error) throw error;
     
-    // Get unique categories
     const categories = [...new Set(data.map(item => item.category))];
     
     res.json({ categories });
@@ -97,7 +92,6 @@ router.get('/categories/list', async (req, res) => {
   }
 });
 
-// Create material (manager only)
 router.post('/', async (req, res) => {
   try {
     const { name, category, default_unit, is_optional, comment } = req.body;
@@ -121,7 +115,6 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Update material (manager only)
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -143,7 +136,6 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// Delete material (manager only)
 router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;

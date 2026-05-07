@@ -54,9 +54,8 @@ const Installations = () => {
     setError('');
     setSubmitting(true);
     
-    // Validate required fields
     if (!formData.project_id || !formData.title) {
-      setError('Пожалуйста, заполните обязательные поля (проект и название)');
+      setError('РџРѕР¶Р°Р»СѓР№СЃС‚Р°, Р·Р°РїРѕР»РЅРёС‚Рµ РѕР±СЏР·Р°С‚РµР»СЊРЅС‹Рµ РїРѕР»СЏ (РїСЂРѕРµРєС‚ Рё РЅР°Р·РІР°РЅРёРµ)');
       setSubmitting(false);
       return;
     }
@@ -86,7 +85,7 @@ const Installations = () => {
       loadData();
     } catch (err) {
       console.error('Error creating installation:', err);
-      setError(err.message || 'Ошибка при создании монтажа. Проверьте консоль браузера для деталей.');
+      setError(err.message || 'РћС€РёР±РєР° РїСЂРё СЃРѕР·РґР°РЅРёРё РјРѕРЅС‚Р°Р¶Р°. РџСЂРѕРІРµСЂСЊС‚Рµ РєРѕРЅСЃРѕР»СЊ Р±СЂР°СѓР·РµСЂР° РґР»СЏ РґРµС‚Р°Р»РµР№.');
     } finally {
       setSubmitting(false);
     }
@@ -146,43 +145,43 @@ const Installations = () => {
 
   const getStatusLabel = (status) => {
     const labels = {
-      new: 'Новый',
-      planned: 'Запланирован',
-      in_progress: 'В работе',
-      waiting_materials: 'Ожидает материалов',
-      in_order: 'В заказе',
-      ready_for_receipt: 'Готов к получению',
-      received: 'Получено',
-      done: 'Завершён',
-      postponed: 'Отложен'
+      new: 'РќРѕРІС‹Р№',
+      planned: 'Р—Р°РїР»Р°РЅРёСЂРѕРІР°РЅ',
+      in_progress: 'Р’ СЂР°Р±РѕС‚Рµ',
+      waiting_materials: 'РћР¶РёРґР°РµС‚ РјР°С‚РµСЂРёР°Р»РѕРІ',
+      in_order: 'Р’ Р·Р°РєР°Р·Рµ',
+      ready_for_receipt: 'Р“РѕС‚РѕРІ Рє РїРѕР»СѓС‡РµРЅРёСЋ',
+      received: 'РџРѕР»СѓС‡РµРЅРѕ',
+      done: 'Р—Р°РІРµСЂС€С‘РЅ',
+      postponed: 'РћС‚Р»РѕР¶РµРЅ'
     };
     return labels[status] || status;
   };
 
   if (loading) {
-    return <div className="loading">Загрузка...</div>;
+    return <div className="loading">Р—Р°РіСЂСѓР·РєР°...</div>;
   }
 
   return (
     <div>
       <header className="header">
-        <h1>Монтажи</h1>
+        <h1>РњРѕРЅС‚Р°Р¶Рё</h1>
         <nav className="header-nav">
-          <Link to="/">Главная</Link>
-          <Link to="/projects">Проекты</Link>
-          <Link to="/tasks">Задачи</Link>
-          <Link to="/installations">Монтажи</Link>
-          <Link to="/purchase-requests">Заявки</Link>
+          <Link to="/">Р“Р»Р°РІРЅР°СЏ</Link>
+          <Link to="/projects">РџСЂРѕРµРєС‚С‹</Link>
+          <Link to="/tasks">Р—Р°РґР°С‡Рё</Link>
+          <Link to="/installations">РњРѕРЅС‚Р°Р¶Рё</Link>
+          <Link to="/purchase-requests">Р—Р°СЏРІРєРё</Link>
         </nav>
       </header>
 
       <main className="container">
         <div className="card">
           <div className="card-header">
-            <h3 className="card-title">Список монтажей</h3>
+            <h3 className="card-title">РЎРїРёСЃРѕРє РјРѕРЅС‚Р°Р¶РµР№</h3>
             {isManager && (
               <button className="btn btn-primary" onClick={openCreateModal}>
-                Создать монтаж
+                РЎРѕР·РґР°С‚СЊ РјРѕРЅС‚Р°Р¶
               </button>
             )}
           </div>
@@ -191,21 +190,21 @@ const Installations = () => {
 
           {installations.length === 0 ? (
             <div className="empty-state">
-              <h3>Нет монтажей</h3>
-              <p>Создайте первый монтаж</p>
+              <h3>РќРµС‚ РјРѕРЅС‚Р°Р¶РµР№</h3>
+              <p>РЎРѕР·РґР°Р№С‚Рµ РїРµСЂРІС‹Р№ РјРѕРЅС‚Р°Р¶</p>
             </div>
           ) : (
             <table className="table">
               <thead>
                 <tr>
-                  <th>Название</th>
-                  <th>Описание</th>
-                  <th>Проект</th>
-                  <th>Исполнитель</th>
-                  <th>Статус</th>
-                  <th>Дата</th>
-                  <th>Адрес</th>
-                  <th>Действия</th>
+                  <th>РќР°Р·РІР°РЅРёРµ</th>
+                  <th>РћРїРёСЃР°РЅРёРµ</th>
+                  <th>РџСЂРѕРµРєС‚</th>
+                  <th>РСЃРїРѕР»РЅРёС‚РµР»СЊ</th>
+                  <th>РЎС‚Р°С‚СѓСЃ</th>
+                  <th>Р”Р°С‚Р°</th>
+                  <th>РђРґСЂРµСЃ</th>
+                  <th>Р”РµР№СЃС‚РІРёСЏ</th>
                 </tr>
               </thead>
               <tbody>
@@ -222,15 +221,15 @@ const Installations = () => {
                         onChange={(e) => handleStatusChange(inst.id, e.target.value)}
                         style={{ border: 'none', cursor: 'pointer' }}
                       >
-                        <option value="new">Новый</option>
-                        <option value="planned">Запланирован</option>
-                        <option value="in_progress">В работе</option>
-                        <option value="waiting_materials">Ожидает материалов</option>
-                        <option value="in_order">В заказе</option>
-                        <option value="ready_for_receipt">Готов к получению</option>
-                        <option value="received">Получено</option>
-                        <option value="done">Завершён</option>
-                        <option value="postponed">Отложен</option>
+                        <option value="new">РќРѕРІС‹Р№</option>
+                        <option value="planned">Р—Р°РїР»Р°РЅРёСЂРѕРІР°РЅ</option>
+                        <option value="in_progress">Р’ СЂР°Р±РѕС‚Рµ</option>
+                        <option value="waiting_materials">РћР¶РёРґР°РµС‚ РјР°С‚РµСЂРёР°Р»РѕРІ</option>
+                        <option value="in_order">Р’ Р·Р°РєР°Р·Рµ</option>
+                        <option value="ready_for_receipt">Р“РѕС‚РѕРІ Рє РїРѕР»СѓС‡РµРЅРёСЋ</option>
+                        <option value="received">РџРѕР»СѓС‡РµРЅРѕ</option>
+                        <option value="done">Р—Р°РІРµСЂС€С‘РЅ</option>
+                        <option value="postponed">РћС‚Р»РѕР¶РµРЅ</option>
                       </select>
                     </td>
                     <td>{inst.scheduled_at ? new Date(inst.scheduled_at).toLocaleDateString('ru-RU') : '-'}</td>
@@ -238,7 +237,7 @@ const Installations = () => {
                     <td>
                       <div style={{ display: 'flex', gap: '5px' }}>
                         <Link to={`/installations/${inst.id}`} className="btn btn-secondary">
-                          Подробнее
+                          РџРѕРґСЂРѕР±РЅРµРµ
                         </Link>
                         {isManager && (
                           <>
@@ -247,7 +246,7 @@ const Installations = () => {
                               onClick={() => handleEdit(inst)}
                               style={{ padding: '5px 10px', fontSize: '12px' }}
                             >
-                              Изменить
+                              РР·РјРµРЅРёС‚СЊ
                             </button>
                             <button 
                               className="btn btn-danger" 
@@ -257,7 +256,7 @@ const Installations = () => {
                               }}
                               style={{ padding: '5px 10px', fontSize: '12px' }}
                             >
-                              Удалить
+                              РЈРґР°Р»РёС‚СЊ
                             </button>
                           </>
                         )}
@@ -275,26 +274,26 @@ const Installations = () => {
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>{editingInstallation ? 'Редактировать монтаж' : 'Создать монтаж'}</h2>
+              <h2>{editingInstallation ? 'Р РµРґР°РєС‚РёСЂРѕРІР°С‚СЊ РјРѕРЅС‚Р°Р¶' : 'РЎРѕР·РґР°С‚СЊ РјРѕРЅС‚Р°Р¶'}</h2>
               <button className="modal-close" onClick={() => setShowModal(false)}>&times;</button>
             </div>
             <form onSubmit={handleSubmit}>
               {error && <div className="error">{error}</div>}
               <div className="form-group">
-                <label>Проект *</label>
+                <label>РџСЂРѕРµРєС‚ *</label>
                 <select
                   value={formData.project_id}
                   onChange={e => setFormData({ ...formData, project_id: e.target.value })}
                   required
                 >
-                  <option value="">Выберите проект</option>
+                  <option value="">Р’С‹Р±РµСЂРёС‚Рµ РїСЂРѕРµРєС‚</option>
                   {projects.map(p => (
                     <option key={p.id} value={p.id}>{p.name}</option>
                   ))}
                 </select>
               </div>
               <div className="form-group">
-                <label>Название *</label>
+                <label>РќР°Р·РІР°РЅРёРµ *</label>
                 <input
                   type="text"
                   value={formData.title}
@@ -303,26 +302,26 @@ const Installations = () => {
                 />
               </div>
               <div className="form-group">
-                <label>Описание</label>
+                <label>РћРїРёСЃР°РЅРёРµ</label>
                 <textarea
                   value={formData.description}
                   onChange={e => setFormData({ ...formData, description: e.target.value })}
                 />
               </div>
               <div className="form-group">
-                <label>Исполнитель</label>
+                <label>РСЃРїРѕР»РЅРёС‚РµР»СЊ</label>
                 <select
                   value={formData.assignee_id}
                   onChange={e => setFormData({ ...formData, assignee_id: e.target.value })}
                 >
-                  <option value="">Выберите исполнителя</option>
+                  <option value="">Р’С‹Р±РµСЂРёС‚Рµ РёСЃРїРѕР»РЅРёС‚РµР»СЏ</option>
                   {users.map(u => (
                     <option key={u.id} value={u.id}>{u.name}</option>
                   ))}
                 </select>
               </div>
               <div className="form-group">
-                <label>Дата монтажа</label>
+                <label>Р”Р°С‚Р° РјРѕРЅС‚Р°Р¶Р°</label>
                 <input
                   type="datetime-local"
                   value={formData.scheduled_at}
@@ -330,7 +329,7 @@ const Installations = () => {
                 />
               </div>
               <div className="form-group">
-                <label>Адрес</label>
+                <label>РђРґСЂРµСЃ</label>
                 <input
                   type="text"
                   value={formData.address}
@@ -340,17 +339,17 @@ const Installations = () => {
               {(formData.status === 'ready_for_receipt' || formData.status === 'received') && (
                 <>
                   <div className="form-group">
-                    <label>Адрес получения</label>
+                    <label>РђРґСЂРµСЃ РїРѕР»СѓС‡РµРЅРёСЏ</label>
                     <input
                       type="text"
                       value={formData.receipt_address}
                       onChange={e => setFormData({ ...formData, receipt_address: e.target.value })}
-                      placeholder="Введите адрес получения"
+                      placeholder="Р’РІРµРґРёС‚Рµ Р°РґСЂРµСЃ РїРѕР»СѓС‡РµРЅРёСЏ"
                     />
                   </div>
                   {formData.status === 'received' && (
                     <div className="form-group">
-                      <label>Дата получения</label>
+                      <label>Р”Р°С‚Р° РїРѕР»СѓС‡РµРЅРёСЏ</label>
                       <input
                         type="datetime-local"
                         value={formData.received_at}
@@ -362,10 +361,10 @@ const Installations = () => {
               )}
               <div className="modal-footer">
                 <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)} disabled={submitting}>
-                  Отмена
+                  РћС‚РјРµРЅР°
                 </button>
                 <button type="submit" className="btn btn-primary" disabled={submitting}>
-                  {submitting ? 'Сохранение...' : (editingInstallation ? 'Сохранить' : 'Создать')}
+                  {submitting ? 'РЎРѕС…СЂР°РЅРµРЅРёРµ...' : (editingInstallation ? 'РЎРѕС…СЂР°РЅРёС‚СЊ' : 'РЎРѕР·РґР°С‚СЊ')}
                 </button>
               </div>
             </form>
@@ -377,19 +376,19 @@ const Installations = () => {
         <div className="modal-overlay" onClick={() => setShowDeleteModal(false)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>Подтверждение удаления</h2>
+              <h2>РџРѕРґС‚РІРµСЂР¶РґРµРЅРёРµ СѓРґР°Р»РµРЅРёСЏ</h2>
               <button className="modal-close" onClick={() => setShowDeleteModal(false)}>&times;</button>
             </div>
             <div style={{ padding: '20px' }}>
-              <p>Вы уверены, что хотите удалить монтаж "{deletingInstallation?.title}"?</p>
-              <p style={{ color: '#d32f2f', fontSize: '14px' }}>Это действие нельзя отменить.</p>
+              <p>Р’С‹ СѓРІРµСЂРµРЅС‹, С‡С‚Рѕ С…РѕС‚РёС‚Рµ СѓРґР°Р»РёС‚СЊ РјРѕРЅС‚Р°Р¶ "{deletingInstallation?.title}"?</p>
+              <p style={{ color: '#d32f2f', fontSize: '14px' }}>Р­С‚Рѕ РґРµР№СЃС‚РІРёРµ РЅРµР»СЊР·СЏ РѕС‚РјРµРЅРёС‚СЊ.</p>
             </div>
             <div className="modal-footer">
               <button type="button" className="btn btn-secondary" onClick={() => setShowDeleteModal(false)}>
-                Отмена
+                РћС‚РјРµРЅР°
               </button>
               <button type="button" className="btn btn-danger" onClick={handleDelete}>
-                Удалить
+                РЈРґР°Р»РёС‚СЊ
               </button>
             </div>
           </div>

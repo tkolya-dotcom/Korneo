@@ -1,9 +1,4 @@
-/**
- * Главный файл инициализации приложения
- * Подключает все модули и инициализирует приложение
- */
 
-// Импортируем все модули
 import { initSupabase, getSupabase } from './api.js';
 import { authService, userProfileService } from './auth.js';
 import { taskService, taskAVRService } from './tasks.js';
@@ -14,40 +9,32 @@ import { notificationService } from './notifications.js';
 import { DateUtils, TextUtils, StatusUtils, FileUtils, MapUtils, Utils } from './utils.js';
 import { APP_CONFIG, SUPABASE_CONFIG, FIREBASE_CONFIG } from './config.js';
 
-/**
- * Инициализация приложения
- */
 async function initApp() {
-  console.log('🚀 Инициализация приложения...');
+  console.log('рџљЂ РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ РїСЂРёР»РѕР¶РµРЅРёСЏ...');
   
   try {
-    // 1. Инициализация Supabase
-    console.log('📦 Инициализация Supabase...');
+    console.log('рџ“¦ РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ Supabase...');
     const supabase = initSupabase();
     
-    // 2. Проверка сессии
-    console.log('🔐 Проверка сессии...');
+    console.log('рџ”ђ РџСЂРѕРІРµСЂРєР° СЃРµСЃСЃРёРё...');
     const session = await authService.checkSession();
     
     if (session.authenticated) {
-      console.log('✅ Пользователь авторизован:', session.profile?.name);
+      console.log('вњ… РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ Р°РІС‚РѕСЂРёР·РѕРІР°РЅ:', session.profile?.name);
       
-      // Обновляем UI для авторизованного пользователя
       updateUIForLoggedInUser(session.profile);
     } else {
-      console.log('⚠️ Пользователь не авторизован');
+      console.log('вљ пёЏ РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РЅРµ Р°РІС‚РѕСЂРёР·РѕРІР°РЅ');
       showLoginPage();
     }
     
-    // 3. Инициализация уведомлений (если разрешено)
-    console.log('🔔 Инициализация уведомлений...');
+    console.log('рџ”” РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ СѓРІРµРґРѕРјР»РµРЅРёР№...');
     if (Notification.permission === 'granted') {
       await notificationService.initFirebaseMessaging();
     }
     
-    // 4. Подписка на изменения аутентификации
     authService.onAuthStateChange(async (event, session) => {
-      console.log('🔄 Событие аутентификации:', event);
+      console.log('рџ”„ РЎРѕР±С‹С‚РёРµ Р°СѓС‚РµРЅС‚РёС„РёРєР°С†РёРё:', event);
       
       if (event === 'SIGNED_IN' && session) {
         updateUIForLoggedInUser(authService.userProfile);
@@ -56,9 +43,8 @@ async function initApp() {
       }
     });
     
-    console.log('✅ Приложение инициализировано');
+    console.log('вњ… РџСЂРёР»РѕР¶РµРЅРёРµ РёРЅРёС†РёР°Р»РёР·РёСЂРѕРІР°РЅРѕ');
     
-    // Экспортируем в window для отладки
     window.app = {
       authService,
       taskService,
@@ -77,56 +63,41 @@ async function initApp() {
     };
     
   } catch (error) {
-    console.error('❌ Ошибка инициализации приложения:', error);
+    console.error('вќЊ РћС€РёР±РєР° РёРЅРёС†РёР°Р»РёР·Р°С†РёРё РїСЂРёР»РѕР¶РµРЅРёСЏ:', error);
   }
 }
 
-/**
- * Обновление UI для авторизованного пользователя
- */
 function updateUIForLoggedInUser(profile) {
-  // Скрываем login страницу
   const authScreen = document.querySelector('.auth-screen');
   if (authScreen) {
     authScreen.classList.add('hidden');
   }
   
-  // Показываем основное приложение
   const appContainer = document.querySelector('.container');
   if (appContainer) {
     appContainer.classList.remove('hidden');
   }
   
-  // Обновляем информацию о пользователе в header
   const headerUser = document.querySelector('.header-user');
   if (headerUser && profile) {
     headerUser.textContent = `${profile.name} (${profile.role})`;
   }
   
-  // Загружаем данные
   loadDashboardData();
 }
 
-/**
- * Обновление UI для неавторизованного пользователя
- */
 function updateUIForLoggedOutUser() {
-  // Показываем login страницу
   const authScreen = document.querySelector('.auth-screen');
   if (authScreen) {
     authScreen.classList.remove('hidden');
   }
   
-  // Скрываем основное приложение
   const appContainer = document.querySelector('.container');
   if (appContainer) {
     appContainer.classList.add('hidden');
   }
 }
 
-/**
- * Показ страницы входа
- */
 function showLoginPage() {
   const authScreen = document.querySelector('.auth-screen');
   if (authScreen) {
@@ -134,39 +105,30 @@ function showLoginPage() {
   }
 }
 
-/**
- * Загрузка данных Dashboard
- */
 async function loadDashboardData() {
   try {
-    console.log('📊 Загрузка данных Dashboard...');
+    console.log('рџ“Љ Р—Р°РіСЂСѓР·РєР° РґР°РЅРЅС‹С… Dashboard...');
     
     const currentUser = authService.getCurrentUser();
     if (!currentUser) return;
     
-    // Загружаем статистику
     const [taskStats, installationStats] = await Promise.all([
       taskService.getTaskStats(),
       installationService.getInstallationStats()
     ]);
     
-    console.log('📊 Статистика:', { taskStats, installationStats });
+    console.log('рџ“Љ РЎС‚Р°С‚РёСЃС‚РёРєР°:', { taskStats, installationStats });
     
-    // Обновляем UI Dashboard
     updateDashboardUI({ taskStats, installationStats });
     
   } catch (error) {
-    console.error('❌ Ошибка загрузки Dashboard:', error);
+    console.error('вќЊ РћС€РёР±РєР° Р·Р°РіСЂСѓР·РєРё Dashboard:', error);
   }
 }
 
-/**
- * Обновление UI Dashboard
- */
 function updateDashboardUI(data) {
   const { taskStats, installationStats } = data;
   
-  // Обновляем виджеты задач
   const taskWidgets = {
     total: document.querySelector('[data-widget="tasks-total"]'),
     new: document.querySelector('[data-widget="tasks-new"]'),
@@ -179,7 +141,6 @@ function updateDashboardUI(data) {
   if (taskWidgets.inProgress) taskWidgets.inProgress.textContent = taskStats?.inProgress || 0;
   if (taskWidgets.completed) taskWidgets.completed.textContent = taskStats?.completed || 0;
   
-  // Обновляем виджеты монтажей
   const installationWidgets = {
     total: document.querySelector('[data-widget="installations-total"]'),
     new: document.querySelector('[data-widget="installations-new"]'),
@@ -193,34 +154,28 @@ function updateDashboardUI(data) {
   if (installationWidgets.completed) installationWidgets.completed.textContent = installationStats?.completed || 0;
 }
 
-/**
- * Обработчик выхода
- */
 async function handleLogout() {
   try {
     const result = await authService.signOut();
     
     if (result.success) {
-      console.log('✅ Выход выполнен');
+      console.log('вњ… Р’С‹С…РѕРґ РІС‹РїРѕР»РЅРµРЅ');
       updateUIForLoggedOutUser();
     }
   } catch (error) {
-    console.error('❌ Ошибка выхода:', error);
+    console.error('вќЊ РћС€РёР±РєР° РІС‹С…РѕРґР°:', error);
   }
 }
 
-// Навешиваем обработчик на кнопку выхода
 document.addEventListener('DOMContentLoaded', () => {
   const logoutBtn = document.querySelector('.logout-btn');
   if (logoutBtn) {
     logoutBtn.addEventListener('click', handleLogout);
   }
   
-  // Инициализируем приложение
   initApp();
 });
 
-// Экспорт для совместимости с window
 if (typeof window !== 'undefined') {
   window.initApp = initApp;
   window.handleLogout = handleLogout;

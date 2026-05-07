@@ -11,7 +11,6 @@ export default function Login() {
   const router = useRouter();
   const { signIn, signUp, session } = useAuth();
 
-  // Redirect if already logged in
   React.useEffect(() => {
     if (session) {
       router.replace('/(tabs)');
@@ -20,7 +19,7 @@ export default function Login() {
 
   const handleSignIn = async () => {
     if (!email || !password) {
-      Alert.alert('Ошибка', 'Заполните все поля');
+      Alert.alert('РћС€РёР±РєР°', 'Р—Р°РїРѕР»РЅРёС‚Рµ РІСЃРµ РїРѕР»СЏ');
       return;
     }
     setLoading(true);
@@ -28,29 +27,23 @@ export default function Login() {
       await signIn(email, password);
       router.replace('/(tabs)');
     } catch (error: any) {
-      Alert.alert('Ошибка входа', error.message);
+      Alert.alert('РћС€РёР±РєР° РІС…РѕРґР°', error.message);
     } finally {
       setLoading(false);
     }
   };
 
   const handleSignUp = async () => {
-    Alert.alert('Регистрация', 'Доступна только engineer роль. Остальные создаёт manager.');
-    // if (!name || !email || !password || role.length < 3) return;
-    // try {
-    //   await signUp(email, password, name, role as UserRole);
-    // } catch (error) {
-    //   Alert.alert('Ошибка регистрации', error.message);
-    // }
+    Alert.alert('Р РµРіРёСЃС‚СЂР°С†РёСЏ', 'Р”РѕСЃС‚СѓРїРЅР° С‚РѕР»СЊРєРѕ engineer СЂРѕР»СЊ. РћСЃС‚Р°Р»СЊРЅС‹Рµ СЃРѕР·РґР°С‘С‚ manager.');
   };
 
   return (
     <View className="flex-1 bg-primary justify-center p-8">
       <Text className="text-4xl font-orbitron text-accent text-center mb-2 title-glow">
-        КОРНЕО
+        РљРћР РќР•Рћ
       </Text>
       <Text className="text-text-muted text-center mb-8">
-        > Управление задачами_
+        > РЈРїСЂР°РІР»РµРЅРёРµ Р·Р°РґР°С‡Р°РјРё_
       </Text>
 
       <View className="space-y-4">
@@ -64,7 +57,7 @@ export default function Login() {
         />
         <TextInput
           className="bg-secondary p-4 rounded-lg border border-border text-text placeholder-text-muted font-sans text-lg"
-          placeholder="Пароль"
+          placeholder="РџР°СЂРѕР»СЊ"
           value={password}
           onChangeText={setPassword}
           secureTextEntry
@@ -78,7 +71,7 @@ export default function Login() {
             <ActivityIndicator color="#000" />
           ) : (
             <Text className="text-primary font-orbitron font-semibold text-lg">
-              ВОЙТИ
+              Р’РћР™РўР
             </Text>
           )}
         </TouchableOpacity>
@@ -88,7 +81,7 @@ export default function Login() {
           onPress={handleSignUp}
         >
           <Text className="text-accent font-orbitron font-semibold">
-            РЕГИСТРАЦИЯ (engineer)
+            Р Р•Р“РРЎРўР РђР¦РРЇ (engineer)
           </Text>
         </TouchableOpacity>
       </View>

@@ -1,5 +1,3 @@
-/// packages/domain/types.ts
-// Общие типы для Korneo (TypeScript для Expo/React Native)
 
 export type UserRole = 'worker' | 'engineer' | 'manager' | 'deputy_head' | 'support';
 
@@ -71,7 +69,7 @@ export interface Message {
   reactions?: Record<string, number>;
 }
 
-export type MaterialUnit = 'шт' | 'м' | 'кг' | 'комплект';
+export type MaterialUnit = 'С€С‚' | 'Рј' | 'РєРі' | 'РєРѕРјРїР»РµРєС‚';
 
 export interface Material {
   id: string;
@@ -95,7 +93,6 @@ export interface PurchaseRequest {
   }>;
 }
 
-// Supabase enums для validation
 export const ROLES: UserRole[] = ['worker', 'engineer', 'manager', 'deputy_head', 'support'];
 export const TASK_STATUSES: TaskStatus[] = ['new', 'in_progress', 'waiting_materials', 'done', 'postponed', 'archived'];
 

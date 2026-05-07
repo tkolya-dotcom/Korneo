@@ -14,13 +14,11 @@ serve(async (req) => {
   try {
     console.log('create-user: Starting...');
     
-    // Используем SERVICE_ROLE_KEY для всех операций
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
     
-    // Получаем Authorization header для проверки роли
     const authHeader = req.headers.get('Authorization') ?? ''
     if (!authHeader.startsWith('Bearer ')) {
       console.error('create-user: Missing token');
@@ -32,7 +30,6 @@ serve(async (req) => {
     
     console.log('create-user: Token received, length:', token.length);
     
-    // Извлекаем user_id из токена через Supabase API
     const url = `${Deno.env.get('SUPABASE_URL')}/auth/v1/user`
     const userResp = await fetch(url, {
       headers: {
@@ -53,7 +50,6 @@ serve(async (req) => {
     
     console.log('create-user: User ID from token:', userId);
     
-    // Проверяем что текущий пользователь - manager
     const { data: currentUser, error: userErr } = await supabaseClient
       .from('users')
       .select('role')
@@ -71,7 +67,6 @@ serve(async (req) => {
 
     const { email, password, name, role } = await req.json()
 
-    // Валидация
     if (!email || !password || !name || !role) {
       return new Response(JSON.stringify({ error: 'Missing required fields' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -84,7 +79,6 @@ serve(async (req) => {
       })
     }
 
-    // Проверяем допустимые роли
     const allowedRoles = ['manager', 'deputy_head', 'worker', 'engineer', 'support']
     if (!allowedRoles.includes(role)) {
       return new Response(JSON.stringify({ error: 'Invalid role' }), {
@@ -92,7 +86,6 @@ serve(async (req) => {
       })
     }
 
-    // Создаем пользователя в auth.users через admin API
     const { data: authData, error: createErr } = await supabaseClient.auth.admin.createUser({
       email,
       password,
@@ -106,7 +99,6 @@ serve(async (req) => {
       })
     }
 
-    // Создаем профиль в public.users
     const { error: profileErr } = await supabaseClient
       .from('users')
       .insert({
@@ -117,7 +109,6 @@ serve(async (req) => {
       })
 
     if (profileErr) {
-      // Откатываем создание auth пользователя если не удалось создать профиль
       await supabaseClient.auth.admin.deleteUser(authData.user.id)
       return new Response(JSON.stringify({ error: profileErr.message }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }

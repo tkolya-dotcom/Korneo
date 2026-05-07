@@ -22,7 +22,6 @@ const Messenger = () => {
     }
   }, [user])
 
-  // Handle ?user=ID param for private chat
   useEffect(() => {
     const userId = searchParams.get('user')
     if (userId && userId !== user?.id) {
@@ -60,42 +59,40 @@ const Messenger = () => {
       await sendMessage(newMsg)
       setNewMsg('')
     } catch (err) {
-      alert('Ошибка отправки: ' + err.message)
+      alert('РћС€РёР±РєР° РѕС‚РїСЂР°РІРєРё: ' + err.message)
     }
   }
 
   const createPrivateChat = useCallback(async (otherUserId) => {
     try {
-      // Set app.current_user_id for RLS
       await supabase.rpc('set_config', { name: 'app.current_user_id', value: user.id })
       const { data: chatId } = await supabase.rpc('create_private_chat', { other_user_id: otherUserId })
       if (chatId) {
         await refreshChats()
         setSelectedChat({ chat_id: chatId })
-        // Clear param
         setSearchParams({})
       }
     } catch (err) {
       console.error('Create private chat error:', err)
-      alert('Ошибка создания чата: ' + err.message)
+      alert('РћС€РёР±РєР° СЃРѕР·РґР°РЅРёСЏ С‡Р°С‚Р°: ' + err.message)
     }
   }, [user.id, setSearchParams])
 
   return (
     <div className="messenger-container">
       <div className="chat-sidebar">
-        <h3>Чаты</h3>
+        <h3>Р§Р°С‚С‹</h3>
         <div className="chat-list">
           {chats.map(chat => (
             <div key={chat.chat_id} className={`chat-item ${selectedChat?.chat_id === chat.chat_id ? 'selected' : ''}`} onClick={() => setSelectedChat(chat)}>
-              <strong>{chat.chats.name || 'Чат'}</strong>
+              <strong>{chat.chats.name || 'Р§Р°С‚'}</strong>
               {chat.last_message && (
                 <small>{chat.last_message.sender.name}: {chat.last_message.content.text}</small>
               )}
             </div>
           ))}
         </div>
-        <button className="new-chat-btn" onClick={() => setTargetUserId(null)}>🔍 Новый чат</button>
+        <button className="new-chat-btn" onClick={() => setTargetUserId(null)}>рџ”Ќ РќРѕРІС‹Р№ С‡Р°С‚</button>
       </div>
       <div className="chat-main">
         {selectedChat ? (
@@ -114,14 +111,14 @@ const Messenger = () => {
               <input
                 value={newMsg}
                 onChange={e => setNewMsg(e.target.value)}
-                placeholder="Сообщение..."
+                placeholder="РЎРѕРѕР±С‰РµРЅРёРµ..."
                 onKeyPress={e => e.key === 'Enter' && handleSend()}
               />
-              <button onClick={handleSend}>Отправить</button>
+              <button onClick={handleSend}>РћС‚РїСЂР°РІРёС‚СЊ</button>
             </div>
           </>
         ) : (
-          <div className="no-chat">Выберите чат</div>
+          <div className="no-chat">Р’С‹Р±РµСЂРёС‚Рµ С‡Р°С‚</div>
         )}
       </div>
     </div>

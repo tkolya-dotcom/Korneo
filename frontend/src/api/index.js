@@ -1,19 +1,16 @@
 import { supabase } from '../config/supabase.js';
 export { supabase };
 
-// Helper to handle Supabase responses
 const handleSupabaseResponse = (data, error) => {
   if (error) throw new Error(error.message);
   return data;
 };
 
-// Auth API
 export const authApi = {
   login: async (email, password) => {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
     
-    // Get user details from users table
     const { data: user, error: userError } = await supabase
       .from('users')
       .select('*')
@@ -29,7 +26,6 @@ export const authApi = {
     const { data, error } = await supabase.auth.signUp({ email, password });
     if (error) throw error;
     
-    // Create user record in users table
     const { data: user, error: userError } = await supabase
       .from('users')
       .insert([{ id: data.user.id, email, name, role }])
@@ -63,7 +59,6 @@ export const authApi = {
   }
 };
 
-// Users Status API
 export const usersApi = {
   getStatus: async () => {
     const { data, error } = await supabase.from('users').select('id, name, role, is_online, last_seen_at');
@@ -88,7 +83,6 @@ export const usersApi = {
   }
 };
 
-// Projects API
 export const projectsApi = {
   getAll: async (status) => {
     let query = supabase.from('projects').select('*, manager:manager_id(*)');
@@ -118,7 +112,6 @@ export const projectsApi = {
   }
 };
 
-// Tasks API
 export const tasksApi = {
   getAll: async (filters = {}) => {
     let query = supabase.from('tasks').select('*, project:project_id(*), assignee:assignee_id(*)');
@@ -150,7 +143,6 @@ export const tasksApi = {
   }
 };
 
-// Installations API
 export const installationsApi = {
   getAll: async (filters = {}) => {
     let query = supabase.from('installations').select('*, project:project_id(*), assignee:assignee_id(*)');
@@ -182,7 +174,6 @@ export const installationsApi = {
   }
 };
 
-// Purchase Requests API
 export const purchaseRequestsApi = {
   getAll: async (filters = {}) => {
     let query = supabase.from('purchase_requests').select('*, installation:installation_id(*), creator:creator_id(*), approved_by:approved_by_id(*)');
@@ -222,7 +213,6 @@ export const purchaseRequestsApi = {
   }
 };
 
-// Materials API
 export const materialsApi = {
   getAll: async () => {
     const { data, error } = await supabase.from('materials').select('*');
@@ -234,5 +224,4 @@ export const materialsApi = {
   }
 };
 
-// Warehouse API
 export { warehouseApi } from './warehouseApi.js';

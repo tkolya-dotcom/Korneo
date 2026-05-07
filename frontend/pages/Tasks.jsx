@@ -51,7 +51,7 @@ const Tasks = () => {
     setError('');
     
     if (!formData.project_id || !formData.title) {
-      setError('Пожалуйста, заполните обязательные поля (проект и название)');
+      setError('РџРѕР¶Р°Р»СѓР№СЃС‚Р°, Р·Р°РїРѕР»РЅРёС‚Рµ РѕР±СЏР·Р°С‚РµР»СЊРЅС‹Рµ РїРѕР»СЏ (РїСЂРѕРµРєС‚ Рё РЅР°Р·РІР°РЅРёРµ)');
       return;
     }
     
@@ -71,7 +71,7 @@ const Tasks = () => {
       loadData();
     } catch (err) {
       console.error('Error creating task:', err);
-      setError(err.message || 'Ошибка при создании задачи. Проверьте консоль браузера для деталей.');
+      setError(err.message || 'РћС€РёР±РєР° РїСЂРё СЃРѕР·РґР°РЅРёРё Р·Р°РґР°С‡Рё. РџСЂРѕРІРµСЂСЊС‚Рµ РєРѕРЅСЃРѕР»СЊ Р±СЂР°СѓР·РµСЂР° РґР»СЏ РґРµС‚Р°Р»РµР№.');
     }
   };
 
@@ -117,40 +117,40 @@ const Tasks = () => {
 
   const getStatusLabel = (status) => {
     const labels = {
-      new: 'Новая',
-      planned: 'Запланирована',
-      in_progress: 'В работе',
-      waiting_materials: 'Ожидает материалов',
-      done: 'Выполнена',
-      postponed: 'Отложена'
+      new: 'РќРѕРІР°СЏ',
+      planned: 'Р—Р°РїР»Р°РЅРёСЂРѕРІР°РЅР°',
+      in_progress: 'Р’ СЂР°Р±РѕС‚Рµ',
+      waiting_materials: 'РћР¶РёРґР°РµС‚ РјР°С‚РµСЂРёР°Р»РѕРІ',
+      done: 'Р’С‹РїРѕР»РЅРµРЅР°',
+      postponed: 'РћС‚Р»РѕР¶РµРЅР°'
     };
     return labels[status] || status;
   };
 
   if (loading) {
-    return <div className="loading">Загрузка...</div>;
+    return <div className="loading">Р—Р°РіСЂСѓР·РєР°...</div>;
   }
 
   return (
     <div>
       <header className="header">
-        <h1>Задачи</h1>
+        <h1>Р—Р°РґР°С‡Рё</h1>
         <nav className="header-nav">
-          <Link to="/">Главная</Link>
-          <Link to="/projects">Проекты</Link>
-          <Link to="/tasks">Задачи</Link>
-          <Link to="/installations">Монтажи</Link>
-          <Link to="/purchase-requests">Заявки</Link>
+          <Link to="/">Р“Р»Р°РІРЅР°СЏ</Link>
+          <Link to="/projects">РџСЂРѕРµРєС‚С‹</Link>
+          <Link to="/tasks">Р—Р°РґР°С‡Рё</Link>
+          <Link to="/installations">РњРѕРЅС‚Р°Р¶Рё</Link>
+          <Link to="/purchase-requests">Р—Р°СЏРІРєРё</Link>
         </nav>
       </header>
 
       <main className="container">
         <div className="card">
           <div className="card-header">
-            <h3 className="card-title">Список задач</h3>
+            <h3 className="card-title">РЎРїРёСЃРѕРє Р·Р°РґР°С‡</h3>
             {isManager && (
               <button className="btn btn-primary" onClick={openCreateModal}>
-                Создать задачу
+                РЎРѕР·РґР°С‚СЊ Р·Р°РґР°С‡Сѓ
               </button>
             )}
           </div>
@@ -159,20 +159,20 @@ const Tasks = () => {
 
           {tasks.length === 0 ? (
             <div className="empty-state">
-              <h3>Нет задач</h3>
-              <p>Создайте первую задачу</p>
+              <h3>РќРµС‚ Р·Р°РґР°С‡</h3>
+              <p>РЎРѕР·РґР°Р№С‚Рµ РїРµСЂРІСѓСЋ Р·Р°РґР°С‡Сѓ</p>
             </div>
           ) : (
             <table className="table">
               <thead>
                 <tr>
-                  <th>Название</th>
-                  <th>Описание</th>
-                  <th>Проект</th>
-                  <th>Исполнитель</th>
-                  <th>Статус</th>
-                  <th>Срок</th>
-                  <th>Действия</th>
+                  <th>РќР°Р·РІР°РЅРёРµ</th>
+                  <th>РћРїРёСЃР°РЅРёРµ</th>
+                  <th>РџСЂРѕРµРєС‚</th>
+                  <th>РСЃРїРѕР»РЅРёС‚РµР»СЊ</th>
+                  <th>РЎС‚Р°С‚СѓСЃ</th>
+                  <th>РЎСЂРѕРє</th>
+                  <th>Р”РµР№СЃС‚РІРёСЏ</th>
                 </tr>
               </thead>
               <tbody>
@@ -189,19 +189,19 @@ const Tasks = () => {
                         onChange={(e) => handleStatusChange(task.id, e.target.value)}
                         style={{ border: 'none', cursor: 'pointer' }}
                       >
-                        <option value="new">Новая</option>
-                        <option value="planned">Запланирована</option>
-                        <option value="in_progress">В работе</option>
-                        <option value="waiting_materials">Ожидает материалов</option>
-                        <option value="done">Выполнена</option>
-                        <option value="postponed">Отложена</option>
+                        <option value="new">РќРѕРІР°СЏ</option>
+                        <option value="planned">Р—Р°РїР»Р°РЅРёСЂРѕРІР°РЅР°</option>
+                        <option value="in_progress">Р’ СЂР°Р±РѕС‚Рµ</option>
+                        <option value="waiting_materials">РћР¶РёРґР°РµС‚ РјР°С‚РµСЂРёР°Р»РѕРІ</option>
+                        <option value="done">Р’С‹РїРѕР»РЅРµРЅР°</option>
+                        <option value="postponed">РћС‚Р»РѕР¶РµРЅР°</option>
                       </select>
                     </td>
                     <td>{task.due_date ? new Date(task.due_date).toLocaleDateString('ru-RU') : '-'}</td>
                     <td>
                       <div style={{ display: 'flex', gap: '5px' }}>
                         <Link to={`/tasks/${task.id}`} className="btn btn-secondary">
-                          Подробнее
+                          РџРѕРґСЂРѕР±РЅРµРµ
                         </Link>
                         {isManager && (
                           <>
@@ -210,7 +210,7 @@ const Tasks = () => {
                               onClick={() => handleEdit(task)}
                               style={{ padding: '5px 10px', fontSize: '12px' }}
                             >
-                              Изменить
+                              РР·РјРµРЅРёС‚СЊ
                             </button>
                             <button 
                               className="btn btn-danger" 
@@ -220,7 +220,7 @@ const Tasks = () => {
                               }}
                               style={{ padding: '5px 10px', fontSize: '12px' }}
                             >
-                              Удалить
+                              РЈРґР°Р»РёС‚СЊ
                             </button>
                           </>
                         )}
@@ -238,26 +238,26 @@ const Tasks = () => {
         <div className="modal-overlay" onClick={() => { setShowModal(false); setShowCreateModal(false); }}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>{editingTask ? 'Редактировать задачу' : 'Создать задачу'}</h2>
+              <h2>{editingTask ? 'Р РµРґР°РєС‚РёСЂРѕРІР°С‚СЊ Р·Р°РґР°С‡Сѓ' : 'РЎРѕР·РґР°С‚СЊ Р·Р°РґР°С‡Сѓ'}</h2>
               <button className="modal-close" onClick={() => { setShowModal(false); setShowCreateModal(false); }}>&times;</button>
             </div>
             <form onSubmit={handleSubmit}>
               {error && <div className="error">{error}</div>}
               <div className="form-group">
-                <label>Проект *</label>
+                <label>РџСЂРѕРµРєС‚ *</label>
                 <select
                   value={formData.project_id}
                   onChange={e => setFormData({ ...formData, project_id: e.target.value })}
                   required
                 >
-                  <option value="">Выберите проект</option>
+                  <option value="">Р’С‹Р±РµСЂРёС‚Рµ РїСЂРѕРµРєС‚</option>
                   {projects.map(p => (
                     <option key={p.id} value={p.id}>{p.name}</option>
                   ))}
                 </select>
               </div>
               <div className="form-group">
-                <label>Название *</label>
+                <label>РќР°Р·РІР°РЅРёРµ *</label>
                 <input
                   type="text"
                   value={formData.title}
@@ -266,26 +266,26 @@ const Tasks = () => {
                 />
               </div>
               <div className="form-group">
-                <label>Описание</label>
+                <label>РћРїРёСЃР°РЅРёРµ</label>
                 <textarea
                   value={formData.description}
                   onChange={e => setFormData({ ...formData, description: e.target.value })}
                 />
               </div>
               <div className="form-group">
-                <label>Исполнитель</label>
+                <label>РСЃРїРѕР»РЅРёС‚РµР»СЊ</label>
                 <select
                   value={formData.assignee_id}
                   onChange={e => setFormData({ ...formData, assignee_id: e.target.value })}
                 >
-                  <option value="">Выберите исполнителя</option>
+                  <option value="">Р’С‹Р±РµСЂРёС‚Рµ РёСЃРїРѕР»РЅРёС‚РµР»СЏ</option>
                   {users.map(u => (
                     <option key={u.id} value={u.id}>{u.name}</option>
                   ))}
                 </select>
               </div>
               <div className="form-group">
-                <label>Срок</label>
+                <label>РЎСЂРѕРє</label>
                 <input
                   type="date"
                   value={formData.due_date}
@@ -294,10 +294,10 @@ const Tasks = () => {
               </div>
               <div className="modal-footer">
                 <button type="button" className="btn btn-secondary" onClick={() => { setShowModal(false); setShowCreateModal(false); }}>
-                  Отмена
+                  РћС‚РјРµРЅР°
                 </button>
                 <button type="submit" className="btn btn-primary">
-                  {editingTask ? 'Сохранить' : 'Создать'}
+                  {editingTask ? 'РЎРѕС…СЂР°РЅРёС‚СЊ' : 'РЎРѕР·РґР°С‚СЊ'}
                 </button>
               </div>
             </form>
@@ -309,19 +309,19 @@ const Tasks = () => {
         <div className="modal-overlay" onClick={() => setShowDeleteModal(false)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>Подтверждение удаления</h2>
+              <h2>РџРѕРґС‚РІРµСЂР¶РґРµРЅРёРµ СѓРґР°Р»РµРЅРёСЏ</h2>
               <button className="modal-close" onClick={() => setShowDeleteModal(false)}>&times;</button>
             </div>
             <div style={{ padding: '20px' }}>
-              <p>Вы уверены, что хотите удалить задачу "{deletingTask?.title}"?</p>
-              <p style={{ color: '#d32f2f', fontSize: '14px' }}>Это действие нельзя отменить.</p>
+              <p>Р’С‹ СѓРІРµСЂРµРЅС‹, С‡С‚Рѕ С…РѕС‚РёС‚Рµ СѓРґР°Р»РёС‚СЊ Р·Р°РґР°С‡Сѓ "{deletingTask?.title}"?</p>
+              <p style={{ color: '#d32f2f', fontSize: '14px' }}>Р­С‚Рѕ РґРµР№СЃС‚РІРёРµ РЅРµР»СЊР·СЏ РѕС‚РјРµРЅРёС‚СЊ.</p>
             </div>
             <div className="modal-footer">
               <button type="button" className="btn btn-secondary" onClick={() => setShowDeleteModal(false)}>
-                Отмена
+                РћС‚РјРµРЅР°
               </button>
               <button type="button" className="btn btn-danger" onClick={handleDelete}>
-                Удалить
+                РЈРґР°Р»РёС‚СЊ
               </button>
             </div>
           </div>
