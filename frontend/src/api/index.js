@@ -6,48 +6,75 @@ const handleSupabaseResponse = (data, error) => {
   return data;
 };
 
+const buildFallbackUser = (authUser, role = 'worker') => ({
+  id: authUser.id,
+  email: authUser.email,
+  name: authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'User',
+  role,
+  is_online: false,
+});
+
+const resolveUserProfile = async (authUser, role = 'worker') => {
+  const { data: existingUser, error: fetchError } = await supabase
+    .from('users')
+    .select('*')
+    .eq('id', authUser.id)
+    .maybeSingle();
+
+  if (!fetchError && existingUser) {
+    return existingUser;
+  }
+
+  const fallbackUser = buildFallbackUser(authUser, role);
+
+  const { data: insertedUser, error: upsertError } = await supabase
+    .from('users')
+    .upsert(
+      [
+        {
+          id: fallbackUser.id,
+          email: fallbackUser.email,
+          name: fallbackUser.name,
+          role: fallbackUser.role,
+        },
+      ],
+      { onConflict: 'id' }
+    )
+    .select()
+    .maybeSingle();
+
+  if (!upsertError && insertedUser) {
+    return insertedUser;
+  }
+
+  return fallbackUser;
+};
+
 export const authApi = {
   login: async (email, password) => {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
-    
-    const { data: user, error: userError } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', data.user.id)
-      .single();
-      
-    if (userError) throw userError;
-    
+
+    const user = await resolveUserProfile(data.user);
     return { token: data.session?.access_token || null, user };
   },
   
   register: async (email, password, name, role) => {
     const { data, error } = await supabase.auth.signUp({ email, password });
     if (error) throw error;
-    
-    const { data: user, error: userError } = await supabase
-      .from('users')
-      .insert([{ id: data.user.id, email, name, role }])
-      .select()
-      .single();
-      
-    if (userError) throw userError;
-    
+
+    const user = await resolveUserProfile(
+      { ...data.user, user_metadata: { ...(data.user?.user_metadata || {}), name } },
+      role
+    );
     return { token: data.session?.access_token || null, user };
   },
   
   getMe: async () => {
     const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
     if (authError || !authUser) throw new Error('Not authenticated');
-    
-    const { data: user, error: userError } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', authUser.id)
-      .single();
-      
-    if (userError) throw userError;
+
+    const user = await resolveUserProfile(authUser);
     return { user };
   },
   
