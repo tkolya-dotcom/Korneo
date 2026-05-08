@@ -6548,7 +6548,13 @@
                 
                 // Инженеры видят только свои монтажи
                 if (currentUserProfile.role !== 'manager' && currentUserProfile.role !== 'deputy_head') {
-                    query = query.eq('assignee_id', currentUserProfile.id);
+                    const safeUserId = getSafeAppUserId();
+                    if (!safeUserId) {
+                        const list = document.getElementById('installationsList');
+                        if (list) list.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⚙️</div><p>Нет монтажей</p></div>';
+                        return;
+                    }
+                    query = query.eq('assignee_id', safeUserId);
                 }
                 
                 const { data: installations, error } = await query.order('created_at', { ascending: false });
@@ -9776,7 +9782,13 @@
                 
                 // Инженеры видят только свои заявки
                 if (currentUserProfile.role !== 'manager' && currentUserProfile.role !== 'deputy_head') {
-                    query = query.eq('executor_id', currentUserProfile.id);
+                    const safeUserId = getSafeAppUserId();
+                    if (!safeUserId) {
+                        const avrList = document.getElementById('avrList');
+                        if (avrList) avrList.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📋</div><p>Нет заявок</p></div>';
+                        return;
+                    }
+                    query = query.eq('executor_id', safeUserId);
                 }
                 
                 const { data: tasks, error } = await query.order('created_at', { ascending: false });
@@ -11141,7 +11153,7 @@
         // PURCHASE REQUESTS
         // ============================================================
         async function getPurchaseRequests() {
-            const userId = currentUserProfile?.id;
+            const userId = getSafeAppUserId();
             const isManager = isElevatedUser();
             if (!isManager && !userId) return [];
 
