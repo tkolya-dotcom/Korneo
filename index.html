@@ -4671,6 +4671,7 @@
             if (!supabaseClient) {
                 console.error('❌ Supabase client not initialized!');
                 showAuthError('Ошибка инициализации. Пожалуйста, обновите страницу.');
+                loginInProgress = false;
                 return;
             }
             
@@ -4683,6 +4684,7 @@
             if (!email || !password) {
                 console.warn('⚠️ Missing email or password');
                 showAuthError('Заполните все поля');
+                loginInProgress = false;
                 return;
             }
                     
@@ -4713,16 +4715,12 @@
                 localStorage.setItem('token', authData.session.access_token);
                 localStorage.setItem('supabaseClient_session', JSON.stringify(authData.session));
                         
-                // Get user profile from users table with timeout fallback
-                const profileRequest = supabaseClient
+                // Get user profile from users table
+                const { data: userData, error: userError } = await supabaseClient
                     .from('users')
                     .select('*')
                     .eq('id', authData.user.id)
                     .single();
-                const profileTimeout = new Promise((resolve) => {
-                    setTimeout(() => resolve({ data: null, error: { message: 'profile_timeout', code: 'TIMEOUT' } }), 7000);
-                });
-                const { data: userData, error: userError } = await Promise.race([profileRequest, profileTimeout]);
                         
                 if (userError && userError.code !== 'PGRST116') {
                     console.error('Error fetching user profile:', userError);
