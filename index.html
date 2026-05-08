@@ -14728,8 +14728,10 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
                     return;
                 }
 
-                const appUserId = currentUserProfile?.id || currentUser?.id;
-                const isOwn = String(msg.user_id) === String(appUserId);
+                const userIds = [currentUserProfile?.id, currentUser?.id]
+                    .filter(v => v !== null && v !== undefined && String(v).toLowerCase() !== 'null')
+                    .map(v => String(v));
+                const isOwn = userIds.includes(String(msg.user_id));
                 const time = new Date(msg.created_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
                 const dateStr = new Date(msg.created_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
                 
@@ -15524,13 +15526,23 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
         };
         
         async function hardDeleteMessage(msgId) {
-            const { error } = await supabaseClient
+            const { data: deletedRows, error } = await supabaseClient
                 .from('messages')
                 .delete()
-                .eq('id', msgId);
+                .eq('id', msgId)
+                .select('id');
             if (error) throw error;
+            if (!deletedRows || deletedRows.length === 0) {
+                throw new Error('Сообщение не удалено (возможны ограничения прав RLS)');
+            }
             messengerState.messages = messengerState.messages.filter(m => String(m.id) !== String(msgId));
             renderMessages();
+        }
+
+        function getCurrentUserIdCandidates() {
+            return [currentUserProfile?.id, currentUser?.id]
+                .filter(v => v !== null && v !== undefined && String(v).toLowerCase() !== 'null')
+                .map(v => String(v));
         }
 
         // Удалить сообщение (физически из БД)
@@ -15539,7 +15551,7 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
             if (menu) menu.remove();
             
             try {
-                const appUserId = currentUserProfile?.id || currentUser?.id;
+                const userIds = getCurrentUserIdCandidates();
                 const { data: msg, error: fetchError } = await supabaseClient
                     .from('messages')
                     .select('id,user_id')
@@ -15548,7 +15560,7 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
                 
                 if (fetchError) throw fetchError;
 
-                const isOwn = String(msg.user_id) === String(appUserId);
+                const isOwn = userIds.includes(String(msg.user_id));
                 const isManager = currentUserProfile?.role === 'manager' || currentUserProfile?.role === 'support';
                 if (!isOwn && !isManager) {
                     showToast('Нет прав на удаление этого сообщения');
@@ -15572,7 +15584,7 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
             if (!confirm('Удалить сообщение у всех участников чата?')) return;
             
             try {
-                const appUserId = currentUserProfile?.id || currentUser?.id;
+                const userIds = getCurrentUserIdCandidates();
                 const { data: msg, error: fetchError } = await supabaseClient
                     .from('messages')
                     .select('id,user_id')
@@ -15580,7 +15592,7 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
                     .single();
 
                 if (fetchError) throw fetchError;
-                const isOwn = String(msg?.user_id) === String(appUserId);
+                const isOwn = userIds.includes(String(msg?.user_id));
                 const isManager = currentUserProfile?.role === 'manager' || currentUserProfile?.role === 'support';
                 if (!isOwn && !isManager) {
                     showToast('Нет прав на удаление этого сообщения');
