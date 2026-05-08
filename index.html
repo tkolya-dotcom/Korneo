@@ -3388,6 +3388,7 @@
         let currentView = 'dashboard';
         let currentProjectId = null;
         let loginInProgress = false;
+        let appScreenShown = false;
 
         async function withTimeout(promise, ms, timeoutMessage) {
             let timerId;
@@ -3415,15 +3416,11 @@
         async function refreshCurrentUserProfileFromTable(userId) {
             if (!userId) return;
             try {
-                const result = await withTimeout(
-                    supabaseClient
-                        .from('users')
-                        .select('*')
-                        .eq('id', userId)
-                        .single(),
-                    12000,
-                    'users_profile_timeout'
-                );
+                const result = await supabaseClient
+                    .from('users')
+                    .select('*')
+                    .eq('id', userId)
+                    .single();
                 const userData = result?.data ?? null;
                 const userError = result?.error ?? null;
                 if (userError && userError.code !== 'PGRST116') {
@@ -5073,15 +5070,11 @@
                 let userData = null;
                 let profileError = null;
                 try {
-                    const result = await withTimeout(
-                        supabaseClient
-                            .from('users')
-                            .select('*')
-                            .eq('id', user.id)
-                            .single(),
-                        12000,
-                        'users_profile_timeout'
-                    );
+                    const result = await supabaseClient
+                        .from('users')
+                        .select('*')
+                        .eq('id', user.id)
+                        .single();
                     userData = result?.data ?? null;
                     profileError = result?.error ?? null;
                 } catch (profileLoadError) {
@@ -5131,11 +5124,14 @@
         }
         
         window.showLogin = function() {
+            appScreenShown = false;
             document.getElementById('authScreen').classList.remove('hidden');
             document.getElementById('app').classList.add('hidden');
         }
         
         window.showApp = function() {
+            const firstShow = !appScreenShown;
+            appScreenShown = true;
             document.getElementById('authScreen').classList.add('hidden');
             document.getElementById('app').classList.remove('hidden');
             
@@ -5149,6 +5145,10 @@
                 _infoBtnEl.innerHTML = `<img src="${currentUserProfile.avatar_url}" style="width:26px;height:26px;border-radius:50%;object-fit:cover;vertical-align:middle" onerror="this.outerHTML='👤'">`;
             }
             
+            renderNav();
+            renderContent();
+            if (!firstShow) return;
+
             // Initialize push notifications
             initNotifications();
             
@@ -5161,9 +5161,6 @@
             
             // Start location tracking (9:00-18:00)
             startLocationTracking();
-            
-            renderNav();
-            renderContent();
             
             // Show notification permission prompt if needed and request permission
             if ('Notification' in window) {
@@ -5331,19 +5328,21 @@
             
             if (token) {
                 console.log('🚀 Token found, loading user profile...');
-                try {
-                    await withTimeout(loadCurrentUserProfile(), 12000, 'init_profile_timeout');
-                } catch (e) {
-                    console.error('Init profile load timeout/error:', e);
-                }
-                // Check if user profile was loaded successfully
-                if (currentUserProfile) {
-                    console.log('🚀 User profile loaded, showing app');
-                    showApp();
-                } else {
-                    console.log('🚀 No user profile, showing login');
+                const { data: { user }, error } = await supabaseClient.auth.getUser(token);
+                if (error || !user) {
+                    console.log('🚀 Token invalid, showing login');
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('supabaseClient_session');
                     showLogin();
+                    return;
                 }
+                currentUser = { id: user.id, email: user.email };
+                currentUserProfile = buildFallbackProfile(user, currentUserProfile);
+                console.log('🚀 Token valid, showing app with fallback profile');
+                showApp();
+                loadCurrentUserProfile().then(() => {
+                    if (appScreenShown) showApp();
+                });
             } else {
                 console.log('🚀 No token, showing login');
                 showLogin();
