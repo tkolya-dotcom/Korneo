@@ -13966,14 +13966,37 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
             }
         }
 
-        // Читает текст из jsonb или string content сообщения
-        function getMsgText(content) {
-            if (!content) return '';
-            if (typeof content === 'string') return content;
-            if (typeof content === 'object') {
-                return content.text || content.message || content.content || '';
+        // Читает текст из jsonb/string content сообщения, включая work_card из мобильного приложения
+        function normalizeMsgContent(content) {
+            if (!content) return {};
+            if (typeof content === 'object') return content;
+            if (typeof content === 'string') {
+                try {
+                    const parsed = JSON.parse(content);
+                    return parsed && typeof parsed === 'object' ? parsed : { text: content };
+                } catch(e) {
+                    return { text: content };
+                }
             }
-            return String(content);
+            return { text: String(content) };
+        }
+
+        function getMsgText(content) {
+            const obj = normalizeMsgContent(content);
+            if (obj.type === 'work_card') return '📍 Работа: ' + (obj.title || obj.address || 'по адресу');
+            return obj.text || obj.message || obj.content || obj.title || '';
+        }
+
+        function isWorkCardMessage(msg) {
+            const obj = normalizeMsgContent(msg?.content);
+            return obj.type === 'work_card' || msg?.type === 'work_card';
+        }
+
+        function workCardStatusLabel(status) {
+            if (status === 'planned' || status === 'in_progress' || status === 'active') return 'Запланировано';
+            if (status === 'done' || status === 'completed') return 'Завершено';
+            if (status === 'overdue') return 'Просрочено';
+            return 'Создано';
         }
 
         function renderChatList() {
@@ -14644,16 +14667,45 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
 
         async function loadMessages(chatId) {
             try {
-                const { data: messages, error } = await supabaseClient
-                    .from('messages')
-                    .select('id, content, created_at, user_id, type, job_id, sender:user_id(name)')
-                    .eq('chat_id', chatId)
-                    .order('created_at', { ascending: true })
-                    .limit(100);
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                const authToken = session?.access_token || localStorage.getItem('token');
+                let messages = null;
+                let error = null;
+
+                if (authToken) {
+                    try {
+                        const resp = await fetch(`${SUPABASE_URL}/functions/v1/chat-history`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${authToken}`
+                            },
+                            body: JSON.stringify({ chat_id: chatId })
+                        });
+                        if (resp.ok) {
+                            const json = await resp.json();
+                            messages = json.messages || [];
+                        } else {
+                            console.warn('chat-history failed, fallback to REST:', resp.status, await resp.text());
+                        }
+                    } catch (fnErr) {
+                        console.warn('chat-history error, fallback to REST:', fnErr);
+                    }
+                }
+
+                if (!messages) {
+                    const res = await supabaseClient
+                        .from('messages')
+                        .select('id, chat_id, content, created_at, user_id, type, job_id, sender:user_id(name)')
+                        .eq('chat_id', chatId)
+                        .order('created_at', { ascending: false })
+                        .limit(120);
+                    error = res.error;
+                    messages = (res.data || []).reverse();
+                }
 
                 if (error) throw error;
 
-                // Загружаем read receipts параллельно
                 const messageIds = (messages || []).map(m => m.id);
                 let receiptsMap = {};
                 if (messageIds.length) {
@@ -14661,14 +14713,12 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
                         .from('message_read_receipts')
                         .select('message_id, user_id, read_at, users:user_id(name)')
                         .in('message_id', messageIds);
-                    
                     (receipts || []).forEach(r => {
                         if (!receiptsMap[r.message_id]) receiptsMap[r.message_id] = [];
                         receiptsMap[r.message_id].push(r);
                     });
                 }
 
-                // Загружаем jobs параллельно если есть job-сообщения
                 const jobIds = (messages || []).filter(m => m.type === 'job' && m.job_id).map(m => m.job_id);
                 let jobMap = {};
                 if (jobIds.length) {
@@ -14679,19 +14729,13 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
                     (jobs || []).forEach(j => { jobMap[j.id] = j; });
                 }
 
-                const newMessages = (messages || []).map(m => ({
+                messengerState.messages = (messages || []).map(m => ({
                     ...m,
+                    content: normalizeMsgContent(m.content),
                     job: m.job_id ? jobMap[m.job_id] : null,
                     read_receipts: receiptsMap[m.id] || []
                 }));
-                
-                const existingIds = new Set(messengerState.messages.map(m => m.id));
-                const actuallyNew = newMessages.filter(m => !existingIds.has(m.id));
-                
-                if (actuallyNew.length > 0 || messengerState.messages.length === 0) {
-                    messengerState.messages = [...messengerState.messages, ...actuallyNew];
-                    renderMessages();
-                }
+                renderMessages();
             } catch (err) {
                 console.error('Error loading messages:', err);
                 const el = document.getElementById('messages-list');
@@ -14712,36 +14756,11 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
             const selectedChat = messengerState.chats.find(c => c.chat_id === messengerState.selectedChat?.chat_id);
             const isGroupChat = selectedChat?.chats?.type === 'group';
 
-            // Очищаем только при первой загрузке, потом добавляем
-            const isFirstRender = !messagesList.dataset.rendered;
-            if (isFirstRender) {
-                messagesList.innerHTML = '';
-                messagesList.dataset.rendered = 'true';
-            }
-
-            let prevDate = messagesList.dataset.lastDate || null;
-            const existingIds = new Set(
-                Array.from(messagesList.querySelectorAll('[data-msg-id]')).map(el => el.dataset.msgId)
-            );
+            messagesList.innerHTML = '';
+            messagesList.dataset.rendered = 'true';
+            let prevDate = null;
 
             messengerState.messages.forEach(msg => {
-                // Если сообщение уже отрендерено - обновляем только реакции
-                if (existingIds.has(msg.id)) {
-                    const reactions = msg.content?.reactions || {};
-                    const currentUserId = currentUser?.id;
-                    const reactionHtml = Object.entries(reactions).map(([emoji, users]) => {
-                        const count = Array.isArray(users) ? users.length : 0;
-                        if (count === 0) return '';
-                        const isActive = Array.isArray(users) && users.includes(currentUserId);
-                        return '<span class="msg-reaction' + (isActive ? ' active' : '') + '" onclick="addReaction(\'' + msg.id + '\', \'' + emoji + '\')">' + emoji + ' <b>' + count + '</b></span>';
-                    }).filter(Boolean).join('');
-                    const rxnBlock = document.getElementById('rxn-' + msg.id);
-                    if (rxnBlock) {
-                        rxnBlock.innerHTML = reactionHtml;
-                    }
-                    return;
-                }
-
                 const userIds = [currentUserProfile?.id, currentUser?.id]
                     .filter(v => v !== null && v !== undefined && String(v).toLowerCase() !== 'null')
                     .map(v => String(v));
@@ -14759,8 +14778,44 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
                 }
 
                 let html = '';
+                // WORK CARD from mobile chat-send (content.type = work_card)
+                if (isWorkCardMessage(msg)) {
+                    const card = normalizeMsgContent(msg.content);
+                    const status = card.status || 'created';
+                    const statusLabel = workCardStatusLabel(status);
+                    const canPlan = elevated && status !== 'planned' && status !== 'done' && status !== 'completed';
+                    const canFinish = (elevated || isEng || isOwn) && (status === 'planned' || status === 'active' || status === 'in_progress');
+                    const statusClass = status === 'done' || status === 'completed' ? ' done' : (status === 'overdue' ? ' overdue' : (status === 'planned' || status === 'active' || status === 'in_progress' ? ' active' : ''));
+                    const cardReactions = card.reactions || {};
+                    const reactionHtml = Array.isArray(cardReactions)
+                        ? cardReactions.map(r => '<span class="msg-reaction">' + (r.emoji || r) + '</span>').join('')
+                        : Object.entries(cardReactions).map(([emoji, users]) => {
+                            const count = Array.isArray(users) ? users.length : 0;
+                            return count ? '<span class="msg-reaction">' + emoji + ' <b>' + count + '</b></span>' : '';
+                        }).filter(Boolean).join('');
+                    const actions = [
+                        '<button class="job-action-btn" onclick="replyToMessage(\'' + msg.id + '\')">↩ Ответить</button>',
+                        '<button class="job-action-btn" onclick="showReactionPicker(\'' + msg.id + '\', event)">😀 Реакция</button>',
+                        canPlan ? '<button class="job-action-btn job-btn-confirm" onclick="planWorkCard(\'' + msg.id + '\')">📅 Запланировать</button>' : '',
+                        canFinish ? '<button class="job-action-btn job-btn-finish" onclick="finishWorkCard(\'' + msg.id + '\')">✅ Завершить</button>' : ''
+                    ].filter(Boolean).join('');
+                    html = [
+                        '<div class="bubble-job' + statusClass + ' ' + (isOwn ? 'own' : '') + '" data-msg-id="' + msg.id + '">',
+                        isGroupChat ? '  <div style="font-size:11px;color:#8aa0b8;margin-bottom:4px;font-weight:600">' + authorName + '</div>' : '',
+                        '  <div class="bubble-job-address">📍 ' + (card.title || 'Работы по адресу') + '</div>',
+                        '  <div class="bubble-job-info" style="color:#aaa;font-size:12px;margin-top:4px">EMTS: ' + (card.emts || '-') + ' • СК: ' + (card.sk_count ?? '-') + '</div>',
+                        '  <div class="bubble-job-engineer">Адрес: ' + (card.address || '-') + '</div>',
+                        '  <div class="bubble-job-engineer">Часы: ' + (card.hours || card.planned_duration_hours || '-') + (card.planned_deadline ? ' • План: ' + card.planned_deadline : '') + '</div>',
+                        '  <div class="bubble-job-engineer">Создал: ' + (card.creator_name || authorName || '-') + '</div>',
+                        '  <div class="bubble-job-status"><span class="dot"></span><span>' + statusLabel + '</span></div>',
+                        reactionHtml ? '  <div class="msg-reactions" id="rxn-' + msg.id + '">' + reactionHtml + '</div>' : '<div class="msg-reactions" id="rxn-' + msg.id + '"></div>',
+                        actions ? '  <div class="bubble-job-actions">' + actions + '</div>' : '',
+                        '  <small>' + time + '</small>',
+                        '</div>'
+                    ].join('');
+                }
                 // JOB CARD
-                if (msg.type === 'job' && msg.job) {
+                else if (msg.type === 'job' && msg.job) {
                     const job = msg.job;
                     const statusMap = { pending: { label: 'Не начато', color: '#6B7280' }, active: { label: 'В работе', color: '#F59E0B' }, done: { label: 'Завершено', color: '#10B981' } };
                     const s = statusMap[job.status] || statusMap.pending;
@@ -14855,6 +14910,52 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
                 }, { passive: true });
             });
         }
+
+        window.planWorkCard = async function(msgId) {
+            const msg = messengerState.messages.find(m => m.id === msgId);
+            if (!msg) return;
+            const card = { ...normalizeMsgContent(msg.content) };
+            const now = new Date();
+            const hours = Number(card.hours || card.planned_duration_hours || 8);
+            const deadline = new Date(now.getTime() + hours * 60 * 60 * 1000);
+            card.status = 'planned';
+            card.planned_at = now.toISOString();
+            card.planned_deadline_iso = deadline.toISOString();
+            card.planned_deadline = deadline.toLocaleString('ru-RU');
+            card.text = 'Работы: ' + (card.title || '') + '\nEMTS: ' + (card.emts || '') + '\nАдрес: ' + (card.address || '') + '\nСтатус: Запланировано';
+            try {
+                if (card.job_id) await supabaseClient.from('jobs').update({ status: 'in_progress', started_at: now.toISOString() }).eq('id', card.job_id);
+                const { error } = await supabaseClient.from('messages').update({ content: card }).eq('id', msgId);
+                if (error) throw error;
+                msg.content = card;
+                renderMessages();
+                showToast('Работа запланирована');
+            } catch(e) {
+                console.error('planWorkCard error:', e);
+                showToast('Ошибка планирования работы');
+            }
+        };
+
+        window.finishWorkCard = async function(msgId) {
+            const msg = messengerState.messages.find(m => m.id === msgId);
+            if (!msg) return;
+            const card = { ...normalizeMsgContent(msg.content) };
+            const now = new Date();
+            card.status = 'done';
+            card.finished_at = now.toISOString();
+            card.text = 'Работы: ' + (card.title || '') + '\nEMTS: ' + (card.emts || '') + '\nАдрес: ' + (card.address || '') + '\nСтатус: Завершено';
+            try {
+                if (card.job_id) await supabaseClient.from('jobs').update({ status: 'done', completed_at: now.toISOString() }).eq('id', card.job_id);
+                const { error } = await supabaseClient.from('messages').update({ content: card }).eq('id', msgId);
+                if (error) throw error;
+                msg.content = card;
+                renderMessages();
+                showToast('Работа завершена');
+            } catch(e) {
+                console.error('finishWorkCard error:', e);
+                showToast('Ошибка завершения работы');
+            }
+        };
 
         // Отметка сообщений как прочитанных
         async function markMessagesAsRead(chatId) {
@@ -14984,7 +15085,7 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
                     // Находим сообщение в локальном состоянии и обновляем
                     const idx = messengerState.messages.findIndex(m => m.id === updatedMsg.id);
                     if (idx > -1) {
-                        messengerState.messages[idx] = { ...messengerState.messages[idx], ...updatedMsg };
+                        messengerState.messages[idx] = { ...messengerState.messages[idx], ...updatedMsg, content: normalizeMsgContent(updatedMsg.content) };
                         renderMessages();
                     }
                 })
