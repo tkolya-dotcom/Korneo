@@ -14807,7 +14807,7 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
                     
                     // Кнопка удаления (только для своих сообщений или manager)
                     const canDelete = isOwn || currentUserProfile?.role === 'manager';
-                    const deleteBtn = canDelete ? '<span class="msg-delete-trigger" onclick="showDeleteMessageMenu(' + msg.id + ', ' + isOwn + ', event)">🗑️</span>' : '';
+                    const deleteBtn = canDelete ? '<span class="msg-delete-trigger" onclick="showDeleteMessageMenu(\'' + msg.id + '\', ' + isOwn + ', event)">🗑️</span>' : '';
                                         
                     html = [
                         '<div class="msg-bubble ' + (isOwn ? 'own' : '') + '" data-msg-id="' + msg.id + '">',
@@ -14816,7 +14816,7 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
                         '<span>' + (getMsgText(msg.content) || '') + '</span>',
                         reactionHtml ? '<div class="msg-reactions" id="rxn-' + msg.id + '">' + reactionHtml + '</div>' : '<div class="msg-reactions" id="rxn-' + msg.id + '"></div>',
                         '<small>' + time + ' ' + ticksHtml + '</small>',
-                        '<span class="msg-react-trigger" onclick="showReactionPicker(' + msg.id + ', event)">😀</span>',
+                        '<span class="msg-react-trigger" onclick="showReactionPicker(\'' + msg.id + '\', event)">😀</span>',
                         deleteBtn,
                         '</div>'
                     ].join('');
