@@ -14697,6 +14697,8 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
 
             const elevated = isElevatedUser();
             const isEng = isEngineer();
+            const selectedChat = messengerState.chats.find(c => c.chat_id === messengerState.selectedChat?.chat_id);
+            const isGroupChat = selectedChat?.chats?.type === 'group';
 
             // Очищаем только при первой загрузке, потом добавляем
             const isFirstRender = !messagesList.dataset.rendered;
@@ -14732,6 +14734,9 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
                     .filter(v => v !== null && v !== undefined && String(v).toLowerCase() !== 'null')
                     .map(v => String(v));
                 const isOwn = userIds.includes(String(msg.user_id));
+                const authorName = isOwn
+                    ? (currentUserProfile?.name || 'Вы')
+                    : (msg.sender?.name || 'Пользователь');
                 const time = new Date(msg.created_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
                 const dateStr = new Date(msg.created_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
                 
@@ -14771,6 +14776,7 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
                     const infoLine = infoParts.length ? '<div class="bubble-job-info" style="color:#aaa;font-size:12px;margin-top:4px">' + infoParts.join(' • ') + '</div>' : '';
                     html = [
                         '<div class="bubble-job ' + (isOwn ? 'own' : '') + '" style="' + blinkStyle + '" data-msg-id="' + msg.id + '">',
+                        isGroupChat ? '  <div style="font-size:11px;color:#8aa0b8;margin-bottom:4px;font-weight:600">' + authorName + '</div>' : '',
                         '  <div class="bubble-job-address">📍 ' + job.address + '</div>',
                         infoLine,
                         '  <div class="bubble-job-engineer">👷 ' + (job.engineer?.name || 'Инженер') + (startedAt ? ' • ' + startedAt : '') + (planLabel ? ' • ' + planLabel : '') + overdueLabel + '</div>',
@@ -14811,7 +14817,7 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
                                         
                     html = [
                         '<div class="msg-bubble ' + (isOwn ? 'own' : '') + '" data-msg-id="' + msg.id + '">',
-                        isOwn ? '' : '<strong>' + (msg.sender?.name || 'Неизвестный') + '</strong>',
+                        isGroupChat ? '<strong style="display:block;margin-bottom:2px;color:#8aa0b8;font-size:11px;font-weight:600">' + authorName + '</strong>' : (isOwn ? '' : '<strong>' + (msg.sender?.name || 'Неизвестный') + '</strong>'),
                         quotedHtml,
                         '<span>' + (getMsgText(msg.content) || '') + '</span>',
                         reactionHtml ? '<div class="msg-reactions" id="rxn-' + msg.id + '">' + reactionHtml + '</div>' : '<div class="msg-reactions" id="rxn-' + msg.id + '"></div>',
