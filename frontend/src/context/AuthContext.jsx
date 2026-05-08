@@ -14,19 +14,32 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const AUTH_INIT_TIMEOUT_MS = 6000;
 
   const isAuthLockError = (err) =>
     typeof err?.message === 'string' &&
     err.message.includes('auth-token') &&
     err.message.toLowerCase().includes('lock');
 
+  const withTimeout = (promise, timeoutMs) =>
+    Promise.race([
+      promise,
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Auth operation timeout')), timeoutMs)
+      ),
+    ]);
+
   const safeGetSession = async () => {
-    try {
-      return await supabase.auth.getSession();
-    } catch (err) {
-      if (!isAuthLockError(err)) throw err;
-      await new Promise((resolve) => setTimeout(resolve, 120));
-      return supabase.auth.getSession();
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        return await withTimeout(supabase.auth.getSession(), 4000);
+      } catch (err) {
+        if (!isAuthLockError(err) && err?.message !== 'Auth operation timeout') {
+          throw err;
+        }
+        if (attempt === 2) throw err;
+        await new Promise((resolve) => setTimeout(resolve, 120 * (attempt + 1)));
+      }
     }
   };
 
@@ -58,9 +71,20 @@ export const AuthProvider = ({ children }) => {
     let mounted = true;
 
     const initializeAuth = async () => {
-      await syncSession();
-      if (mounted) {
-        setLoading(false);
+      if (!localStorage.getItem('token')) {
+        if (mounted) setLoading(false);
+        return;
+      }
+
+      try {
+        await withTimeout(syncSession(), AUTH_INIT_TIMEOUT_MS);
+      } catch (_err) {
+        localStorage.removeItem('token');
+        setUser(null);
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
       }
     };
 
