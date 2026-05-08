@@ -3426,6 +3426,10 @@
             return null;
         }
 
+        function filterValidUuid(values) {
+            return (values || []).filter(v => isValidUuid(v));
+        }
+
         async function refreshCurrentUserProfileFromTable(userId) {
             if (!userId) return;
             try {
@@ -5922,11 +5926,11 @@
                 .select('id')
                 .eq('created_by', userId);
 
-            const projectIds = new Set([
+            const projectIds = new Set(filterValidUuid([
                 ...(tasks || []).map(t => t.project_id),
                 ...(installations || []).map(i => i.project_id),
                 ...(createdProjects || []).map(p => p.id)
-            ]);
+            ]));
 
             if (projectIds.size === 0) return [];
 
@@ -5938,7 +5942,7 @@
 
             if (error) throw error;
             
-            const creatorIds = [...new Set(projects?.map(p => p.created_by).filter(Boolean))];
+            const creatorIds = [...new Set(filterValidUuid(projects?.map(p => p.created_by) || []))];
             
             let creators = {};
             if (creatorIds.length > 0) {
@@ -11174,10 +11178,10 @@
             if (!data || data.length === 0) return [];
 
             // Get unique IDs in one pass
-            const taskIds = [...new Set(data?.map(pr => pr.task_id).filter(Boolean) || [])];
-            const taskAvrIds = [...new Set(data?.map(pr => pr.task_avr_id).filter(Boolean) || [])];
-            const installationIds = [...new Set(data?.map(pr => pr.installation_id).filter(Boolean) || [])];
-            const creatorIds = [...new Set(data?.map(pr => pr.created_by).filter(Boolean) || [])];
+            const taskIds = [...new Set(filterValidUuid(data?.map(pr => pr.task_id) || []))];
+            const taskAvrIds = [...new Set(filterValidUuid(data?.map(pr => pr.task_avr_id) || []))];
+            const installationIds = [...new Set(filterValidUuid(data?.map(pr => pr.installation_id) || []))];
+            const creatorIds = [...new Set(filterValidUuid(data?.map(pr => pr.created_by) || []))];
 
             // Batch fetch all related data in parallel
             const [tasksData, tasksAvrData, installationsData, usersData] = await Promise.all([
