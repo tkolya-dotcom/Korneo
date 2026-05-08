@@ -14,7 +14,6 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const AUTH_INIT_TIMEOUT_MS = 6000;
 
   const isAuthLockError = (err) =>
     typeof err?.message === 'string' &&
@@ -59,25 +58,9 @@ export const AuthProvider = ({ children }) => {
     let mounted = true;
 
     const initializeAuth = async () => {
-      if (!localStorage.getItem('token')) {
-        if (mounted) setLoading(false);
-        return;
-      }
-
-      try {
-        await Promise.race([
-          syncSession(),
-          new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Auth initialization timeout')), AUTH_INIT_TIMEOUT_MS)
-          ),
-        ]);
-      } catch (err) {
-        localStorage.removeItem('token');
-        setUser(null);
-      } finally {
-        if (mounted) {
-          setLoading(false);
-        }
+      await syncSession();
+      if (mounted) {
+        setLoading(false);
       }
     };
 
