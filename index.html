@@ -3411,6 +3411,36 @@
                 role: meta.role || 'worker'
             };
         }
+
+        async function refreshCurrentUserProfileFromTable(userId) {
+            if (!userId) return;
+            try {
+                const result = await withTimeout(
+                    supabaseClient
+                        .from('users')
+                        .select('*')
+                        .eq('id', userId)
+                        .single(),
+                    12000,
+                    'users_profile_timeout'
+                );
+                const userData = result?.data ?? null;
+                const userError = result?.error ?? null;
+                if (userError && userError.code !== 'PGRST116') {
+                    console.error('Background profile fetch error:', userError);
+                    return;
+                }
+                if (userData && userData.role) {
+                    currentUserProfile = userData;
+                    const roleLabelMap = { manager: 'Руководитель', deputy_head: 'Зам начальника отдела', worker: 'Исполнитель', engineer: 'Инженер', support: 'Техподдержка' };
+                    const roleLabel = roleLabelMap[currentUserProfile.role] || 'Пользователь';
+                    document.getElementById('headerTitle').textContent = currentUserProfile.name || 'Пользователь';
+                    document.getElementById('headerUser').textContent = '> ' + roleLabel;
+                }
+            } catch (e) {
+                console.error('Background profile fetch exception:', e);
+            }
+        }
         
         // Purchase request state
         let prType = null;
@@ -4738,39 +4768,15 @@
                 localStorage.setItem('token', authData.session.access_token);
                 localStorage.setItem('supabaseClient_session', JSON.stringify(authData.session));
                         
-                // Get user profile from users table
-                let userData = null;
-                let userError = null;
-                try {
-                    const result = await withTimeout(
-                        supabaseClient
-                            .from('users')
-                            .select('*')
-                            .eq('id', authData.user.id)
-                            .single(),
-                        12000,
-                        'users_profile_timeout'
-                    );
-                    userData = result?.data ?? null;
-                    userError = result?.error ?? null;
-                } catch (profileLoadError) {
-                    userError = profileLoadError;
-                }
-                        
-                if (userError && userError.code !== 'PGRST116') {
-                    console.error('Error fetching user profile:', userError);
-                }
-                        
-                console.log('User data:', userData);
-                        
-                // Set the current user profile
+                // Set immediate fallback profile first to avoid blocking UI on profile query
                 currentUser = { id: authData.user.id, email: authData.user.email };
-                currentUserProfile = userData && userData.role
-                    ? userData
-                    : buildFallbackProfile(authData.user, currentUserProfile);
+                currentUserProfile = buildFallbackProfile(authData.user, currentUserProfile);
                         
                 console.log('Calling showApp()...');
                 showApp();
+
+                // Fetch full profile in background (non-blocking)
+                refreshCurrentUserProfileFromTable(authData.user.id);
 
                 // Для нативного Android приложения: сохраняем сессию для
                 // отправки FCM-токена при закрытом приложении
@@ -5325,7 +5331,11 @@
             
             if (token) {
                 console.log('🚀 Token found, loading user profile...');
-                await loadCurrentUserProfile();
+                try {
+                    await withTimeout(loadCurrentUserProfile(), 12000, 'init_profile_timeout');
+                } catch (e) {
+                    console.error('Init profile load timeout/error:', e);
+                }
                 // Check if user profile was loaded successfully
                 if (currentUserProfile) {
                     console.log('🚀 User profile loaded, showing app');
