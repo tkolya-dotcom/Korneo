@@ -14300,7 +14300,7 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
 
         window.confirmDeleteChat = function(chatId, isGroupStr, createdBy) {
             const isGroup  = isGroupStr === 'true';
-            const isCreator = createdBy === currentUser.id;
+            const isCreator = createdBy === currentUser.id || createdBy === currentUserProfile?.id;
             const modal = document.createElement('div');
             modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:5000;display:flex;align-items:flex-end;justify-content:center;padding:16px';
             const text = isGroup
@@ -14341,6 +14341,7 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
                 '<button onclick="toggleMuteChat(\'' + chatId + '\');document.getElementById(\'chatCtxMenu\')?.remove()" style="width:100%;padding:12px 16px;background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,0.07);color:#fff;text-align:left;cursor:pointer">',
                 (isMuted ? '🔔 Вкл. звук' : '🔕 Без звука'),
                 '</button>',
+                (isGroup && isCreator ? '<button onclick="addMembersToGroup(\'' + chatId + '\');document.getElementById(\'chatCtxMenu\')?.remove()" style="width:100%;padding:12px 16px;background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,0.07);color:#fff;text-align:left;cursor:pointer">➕ Добавить участников</button>' : ''),
                 '<button onclick="confirmDeleteChat(\'' + chatId + '\',\'' + isGroup + '\',\'' + createdBy + '\');document.getElementById(\'chatCtxMenu\')?.remove()" style="width:100%;padding:12px 16px;background:transparent;border:none;color:#FF3B30;text-align:left;cursor:pointer">',
                 (isGroup ? (isCreator ? '🗑️ Удалить' : '🚪 Выйти') : '🗑️ Удалить'),
                 '</button>'
@@ -14366,12 +14367,15 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
 
             // Находим чат и проверяем создателя
             const chat = messengerState.chats.find(c => c.chat_id === chatId);
-            const isCreator = chat?.chats?.created_by === currentUser.id;
+            const isCreator = chat?.chats?.created_by === currentUser.id || chat?.chats?.created_by === currentUserProfile?.id;
 
             let actions = '';
 
             if (isGroup) {
                 // Групповой чат: выйти всем, удалить только создателю
+                if (isCreator) {
+                    actions += `<button onclick="closeChatMenu();addMembersToGroup('${chatId}')">➕ Добавить участников</button>`;
+                }
                 actions += `<button onclick="closeChatMenu();leaveGroupChat('${chatId}')">🚪 Выйти из группы</button>`;
                 if (isCreator) {
                     actions += `<button class="danger" onclick="closeChatMenu();deleteGroupChat('${chatId}')">🗑️ Удалить группу</button>`;
