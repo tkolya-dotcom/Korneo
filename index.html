@@ -3387,6 +3387,7 @@
         let currentUserProfile = null;
         let currentView = 'dashboard';
         let currentProjectId = null;
+        let loginInProgress = false;
         
         // Purchase request state
         let prType = null;
@@ -4659,6 +4660,11 @@
         };
         
         window.login = async function() {
+            if (loginInProgress) {
+                console.log('⏳ Login already in progress, skipping duplicate click');
+                return;
+            }
+            loginInProgress = true;
             console.log('🔐 Login function called');
             
             // Check if supabaseClient is initialized
@@ -4707,12 +4713,16 @@
                 localStorage.setItem('token', authData.session.access_token);
                 localStorage.setItem('supabaseClient_session', JSON.stringify(authData.session));
                         
-                // Get user profile from users table
-                const { data: userData, error: userError } = await supabaseClient
+                // Get user profile from users table with timeout fallback
+                const profileRequest = supabaseClient
                     .from('users')
                     .select('*')
                     .eq('id', authData.user.id)
                     .single();
+                const profileTimeout = new Promise((resolve) => {
+                    setTimeout(() => resolve({ data: null, error: { message: 'profile_timeout', code: 'TIMEOUT' } }), 7000);
+                });
+                const { data: userData, error: userError } = await Promise.race([profileRequest, profileTimeout]);
                         
                 if (userError && userError.code !== 'PGRST116') {
                     console.error('Error fetching user profile:', userError);
@@ -4746,6 +4756,8 @@
             } catch (error) {
                 console.error('Login error:', error);
                 showAuthError(error.message);
+            } finally {
+                loginInProgress = false;
             }
         };
         
@@ -5245,6 +5257,9 @@
                     localStorage.setItem('token', session.access_token);
                     localStorage.setItem('supabaseClient_session', JSON.stringify(session));
                     console.log('Token refreshed automatically');
+                } else if (event === 'SIGNED_IN' && session) {
+                    localStorage.setItem('token', session.access_token);
+                    localStorage.setItem('supabaseClient_session', JSON.stringify(session));
                 } else if (event === 'SIGNED_OUT') {
                     // User logged out
                     currentUser = null;
