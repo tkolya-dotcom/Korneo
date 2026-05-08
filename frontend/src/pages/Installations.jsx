@@ -30,30 +30,37 @@ const Installations = () => {
     address: '',
     receipt_address: '',
     received_at: '',
+    // SK fields
     id_ploshadki: '',
     servisnyy_id: '',
     rayon: '',
     planovaya_data_1_kv_2026: '',
+    // SK1
     id_sk1: '',
     naimenovanie_sk1: '',
     status_oborudovaniya1: '',
     tip_sk_po_dogovoru1: '',
+    // SK2
     id_sk2: '',
     naimenovanie_sk2: '',
     status_oborudovaniya2: '',
     tip_sk_po_dogovoru2: '',
+    // SK3
     id_sk3: '',
     naimenovanie_sk3: '',
     status_oborudovaniya3: '',
     tip_sk_po_dogovoru3: '',
+    // SK4
     id_sk4: '',
     naimenovanie_sk4: '',
     status_oborudovaniya4: '',
     tip_sk_po_dogovoru4: '',
+    // SK5
     id_sk5: '',
     naimenovanie_sk5: '',
     status_oborudovaniya5: '',
     tip_sk_po_dogovoru5: '',
+    // SK6
     id_sk6: '',
     naimenovanie_sk6: '',
     status_oborudovaniya6: '',
@@ -62,6 +69,7 @@ const Installations = () => {
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  // Address search state
   const [addressQuery, setAddressQuery] = useState('');
   const [addressResults, setAddressResults] = useState([]);
   const [showAddressDropdown, setShowAddressDropdown] = useState(false);
@@ -72,6 +80,7 @@ const Installations = () => {
     loadData();
   }, []);
 
+  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (addressInputRef.current && !addressInputRef.current.contains(event.target)) {
@@ -99,10 +108,12 @@ const Installations = () => {
     }
   };
 
+  // Search addresses
   const handleAddressSearch = async (query) => {
     setAddressQuery(query);
     setSelectedAddress(null);
     
+    // Reset SK fields when query changes
     setFormData(prev => ({
       ...prev,
       id_ploshadki: '',
@@ -132,11 +143,13 @@ const Installations = () => {
     }
   };
 
+  // Select address
   const handleSelectAddress = (address) => {
     setSelectedAddress(address);
     setAddressQuery(address.adres_razmeshcheniya);
     setShowAddressDropdown(false);
 
+    // Fill form with address data
     const skData = address.sk || [];
     
     setFormData(prev => ({
@@ -146,26 +159,32 @@ const Installations = () => {
       servisnyy_id: address.servisnyy_id || '',
       rayon: address.rayon || '',
       planovaya_data_1_kv_2026: address.planovaya_data_1_kv_2026 || '',
+      // SK1
       id_sk1: skData[0]?.id_sk?.toString() || '',
       naimenovanie_sk1: skData[0]?.naimenovanie_sk || '',
       status_oborudovaniya1: skData[0]?.status_oborudovaniya || '',
       tip_sk_po_dogovoru1: skData[0]?.tip_sk_po_dogovoru?.toString() || '',
+      // SK2
       id_sk2: skData[1]?.id_sk?.toString() || '',
       naimenovanie_sk2: skData[1]?.naimenovanie_sk || '',
       status_oborudovaniya2: skData[1]?.status_oborudovaniya || '',
       tip_sk_po_dogovoru2: skData[1]?.tip_sk_po_dogovoru?.toString() || '',
+      // SK3
       id_sk3: skData[2]?.id_sk?.toString() || '',
       naimenovanie_sk3: skData[2]?.naimenovanie_sk || '',
       status_oborudovaniya3: skData[2]?.status_oborudovaniya || '',
       tip_sk_po_dogovoru3: skData[2]?.tip_sk_po_dogovoru?.toString() || '',
+      // SK4
       id_sk4: skData[3]?.id_sk?.toString() || '',
       naimenovanie_sk4: skData[3]?.naimenovanie_sk || '',
       status_oborudovaniya4: skData[3]?.status_oborudovaniya || '',
       tip_sk_po_dogovoru4: skData[3]?.tip_sk_po_dogovoru?.toString() || '',
+      // SK5
       id_sk5: skData[4]?.id_sk?.toString() || '',
       naimenovanie_sk5: skData[4]?.naimenovanie_sk || '',
       status_oborudovaniya5: skData[4]?.status_oborudovaniya || '',
       tip_sk_po_dogovoru5: skData[4]?.tip_sk_po_dogovoru?.toString() || '',
+      // SK6
       id_sk6: skData[5]?.id_sk?.toString() || '',
       naimenovanie_sk6: skData[5]?.naimenovanie_sk || '',
       status_oborudovaniya6: skData[5]?.status_oborudovaniya || '',
@@ -173,6 +192,7 @@ const Installations = () => {
     }));
   };
 
+  // Get SK count from form data
   const getSkCount = () => {
     let count = 0;
     for (let i = 1; i <= 6; i++) {
@@ -187,8 +207,9 @@ const Installations = () => {
     setError('');
     setSubmitting(false);
     
+    // Validate required fields
     if (!formData.project_id || !formData.title) {
-      setError('РџРѕР¶Р°Р»СѓР№СЃС‚Р°, Р·Р°РїРѕР»РЅРёС‚Рµ РѕР±СЏР·Р°С‚РµР»СЊРЅС‹Рµ РїРѕР»СЏ (РїСЂРѕРµРєС‚ Рё РЅР°Р·РІР°РЅРёРµ)');
+      setError('Пожалуйста, заполните обязательные поля (проект и название)');
       setSubmitting(false);
       return;
     }
@@ -230,7 +251,7 @@ const Installations = () => {
       loadData();
     } catch (err) {
       console.error('Error creating installation:', err);
-      setError(err.message || 'РћС€РёР±РєР° РїСЂРё СЃРѕР·РґР°РЅРёРё РјРѕРЅС‚Р°Р¶Р°. РџСЂРѕРІРµСЂСЊС‚Рµ РєРѕРЅСЃРѕР»СЊ Р±СЂР°СѓР·РµСЂР° РґР»СЏ РґРµС‚Р°Р»РµР№.');
+      setError(err.message || 'Ошибка при создании монтажа. Проверьте консоль браузера для деталей.');
     } finally {
       setSubmitting(false);
     }
@@ -251,30 +272,37 @@ const Installations = () => {
       address: installation.address || '',
       receipt_address: installation.receipt_address || '',
       received_at: installation.received_at ? installation.received_at.slice(0, 16) : '',
+      // SK fields
       id_ploshadki: installation.id_ploshadki?.toString() || '',
       servisnyy_id: installation.servisnyy_id || '',
       rayon: installation.rayon || '',
       planovaya_data_1_kv_2026: installation.planovaya_data_1_kv_2026 || '',
+      // SK1
       id_sk1: installation.id_sk1?.toString() || '',
       naimenovanie_sk1: installation.naimenovanie_sk1 || '',
       status_oborudovaniya1: installation.status_oborudovaniya1 || '',
       tip_sk_po_dogovoru1: installation.tip_sk_po_dogovoru1?.toString() || '',
+      // SK2
       id_sk2: installation.id_sk2?.toString() || '',
       naimenovanie_sk2: installation.naimenovanie_sk2 || '',
       status_oborudovaniya2: installation.status_oborudovaniya2 || '',
       tip_sk_po_dogovoru2: installation.tip_sk_po_dogovoru2?.toString() || '',
+      // SK3
       id_sk3: installation.id_sk3?.toString() || '',
       naimenovanie_sk3: installation.naimenovanie_sk3 || '',
       status_oborudovaniya3: installation.status_oborudovaniya3 || '',
       tip_sk_po_dogovoru3: installation.tip_sk_po_dogovoru3?.toString() || '',
+      // SK4
       id_sk4: installation.id_sk4?.toString() || '',
       naimenovanie_sk4: installation.naimenovanie_sk4 || '',
       status_oborudovaniya4: installation.status_oborudovaniya4 || '',
       tip_sk_po_dogovoru4: installation.tip_sk_po_dogovoru4?.toString() || '',
+      // SK5
       id_sk5: installation.id_sk5?.toString() || '',
       naimenovanie_sk5: installation.naimenovanie_sk5 || '',
       status_oborudovaniya5: installation.status_oborudovaniya5 || '',
       tip_sk_po_dogovoru5: installation.tip_sk_po_dogovoru5?.toString() || '',
+      // SK6
       id_sk6: installation.id_sk6?.toString() || '',
       naimenovanie_sk6: installation.naimenovanie_sk6 || '',
       status_oborudovaniya6: installation.status_oborudovaniya6 || '',
@@ -378,15 +406,15 @@ const Installations = () => {
 
   const getStatusLabel = (status) => {
     const labels = {
-      new: 'РќРѕРІС‹Р№',
-      planned: 'Р—Р°РїР»Р°РЅРёСЂРѕРІР°РЅ',
-      in_progress: 'Р’ СЂР°Р±РѕС‚Рµ',
-      waiting_materials: 'РћР¶РёРґР°РµС‚ РјР°С‚РµСЂРёР°Р»РѕРІ',
-      in_order: 'Р’ Р·Р°РєР°Р·Рµ',
-      ready_for_receipt: 'Р“РѕС‚РѕРІ Рє РїРѕР»СѓС‡РµРЅРёСЋ',
-      received: 'РџРѕР»СѓС‡РµРЅРѕ',
-      done: 'Р—Р°РІРµСЂС€С‘РЅ',
-      postponed: 'РћС‚Р»РѕР¶РµРЅ'
+      new: 'Новый',
+      planned: 'Запланирован',
+      in_progress: 'В работе',
+      waiting_materials: 'Ожидает материалов',
+      in_order: 'В заказе',
+      ready_for_receipt: 'Готов к получению',
+      received: 'Получено',
+      done: 'Завершён',
+      postponed: 'Отложен'
     };
     return labels[status] || status;
   };
@@ -394,30 +422,30 @@ const Installations = () => {
   const skCount = getSkCount();
 
   if (loading) {
-    return <div className="loading">Р—Р°РіСЂСѓР·РєР°...</div>;
+    return <div className="loading">Загрузка...</div>;
   }
 
   return (
     <div>
       <header className="header">
-        <h1>РњРѕРЅС‚Р°Р¶Рё</h1>
+        <h1>Монтажи</h1>
         <nav className="header-nav">
-          <Link to="/">Р“Р»Р°РІРЅР°СЏ</Link>
-          <Link to="/projects">РџСЂРѕРµРєС‚С‹</Link>
-          <Link to="/tasks">Р—Р°РґР°С‡Рё</Link>
-          <Link to="/installations">РњРѕРЅС‚Р°Р¶Рё</Link>
-          <Link to="/purchase-requests">Р—Р°СЏРІРєРё</Link>
-          <Link to="/archive">РђСЂС…РёРІ</Link>
+          <Link to="/">Главная</Link>
+          <Link to="/projects">Проекты</Link>
+          <Link to="/tasks">Задачи</Link>
+          <Link to="/installations">Монтажи</Link>
+          <Link to="/purchase-requests">Заявки</Link>
+          <Link to="/archive">Архив</Link>
         </nav>
       </header>
 
       <main className="container">
         <div className="card">
           <div className="card-header">
-            <h3 className="card-title">РЎРїРёСЃРѕРє РјРѕРЅС‚Р°Р¶РµР№</h3>
+            <h3 className="card-title">Список монтажей</h3>
             {isManager && (
               <button className="btn btn-primary" onClick={openCreateModal}>
-                РЎРѕР·РґР°С‚СЊ РјРѕРЅС‚Р°Р¶
+                Создать монтаж
               </button>
             )}
           </div>
@@ -426,21 +454,21 @@ const Installations = () => {
 
           {installations.length === 0 ? (
             <div className="empty-state">
-              <h3>РќРµС‚ РјРѕРЅС‚Р°Р¶РµР№</h3>
-              <p>РЎРѕР·РґР°Р№С‚Рµ РїРµСЂРІС‹Р№ РјРѕРЅС‚Р°Р¶</p>
+              <h3>Нет монтажей</h3>
+              <p>Создайте первый монтаж</p>
             </div>
           ) : (
             <table className="table">
               <thead>
                 <tr>
-                  <th>РќР°Р·РІР°РЅРёРµ</th>
-                  <th>РћРїРёСЃР°РЅРёРµ</th>
-                  <th>РџСЂРѕРµРєС‚</th>
-                  <th>РСЃРїРѕР»РЅРёС‚РµР»СЊ</th>
-                  <th>РЎС‚Р°С‚СѓСЃ</th>
-                  <th>Р”Р°С‚Р°</th>
-                  <th>РђРґСЂРµСЃ</th>
-                  <th>Р”РµР№СЃС‚РІРёСЏ</th>
+                  <th>Название</th>
+                  <th>Описание</th>
+                  <th>Проект</th>
+                  <th>Исполнитель</th>
+                  <th>Статус</th>
+                  <th>Дата</th>
+                  <th>Адрес</th>
+                  <th>Действия</th>
                 </tr>
               </thead>
               <tbody>
@@ -457,15 +485,15 @@ const Installations = () => {
                         onChange={(e) => handleStatusChangeClick(inst.id, e.target.value)}
                         style={{ border: 'none', cursor: 'pointer' }}
                       >
-                        <option value="new">РќРѕРІС‹Р№</option>
-                        <option value="planned">Р—Р°РїР»Р°РЅРёСЂРѕРІР°РЅ</option>
-                        <option value="in_progress">Р’ СЂР°Р±РѕС‚Рµ</option>
-                        <option value="waiting_materials">РћР¶РёРґР°РµС‚ РјР°С‚РµСЂРёР°Р»РѕРІ</option>
-                        <option value="in_order">Р’ Р·Р°РєР°Р·Рµ</option>
-                        <option value="ready_for_receipt">Р“РѕС‚РѕРІ Рє РїРѕР»СѓС‡РµРЅРёСЋ</option>
-                        <option value="received">РџРѕР»СѓС‡РµРЅРѕ</option>
-                        <option value="done">Р—Р°РІРµСЂС€С‘РЅ</option>
-                        <option value="postponed">РћС‚Р»РѕР¶РµРЅ</option>
+                        <option value="new">Новый</option>
+                        <option value="planned">Запланирован</option>
+                        <option value="in_progress">В работе</option>
+                        <option value="waiting_materials">Ожидает материалов</option>
+                        <option value="in_order">В заказе</option>
+                        <option value="ready_for_receipt">Готов к получению</option>
+                        <option value="received">Получено</option>
+                        <option value="done">Завершён</option>
+                        <option value="postponed">Отложен</option>
                       </select>
                     </td>
                     <td>{inst.scheduled_at ? new Date(inst.scheduled_at).toLocaleDateString('ru-RU') : '-'}</td>
@@ -473,7 +501,7 @@ const Installations = () => {
                     <td>
                       <div style={{ display: 'flex', gap: '5px' }}>
                         <Link to={`/installations/${inst.id}`} className="btn btn-secondary">
-                          РџРѕРґСЂРѕР±РЅРµРµ
+                          Подробнее
                         </Link>
                         {isManager && (
                           <>
@@ -482,15 +510,15 @@ const Installations = () => {
                               onClick={() => handleEdit(inst)}
                               style={{ padding: '5px 10px', fontSize: '12px' }}
                             >
-                              РР·РјРµРЅРёС‚СЊ
+                              Изменить
                             </button>
                             <button 
                               className="btn btn-secondary" 
                               onClick={() => handleArchiveInstallation(inst.id)}
                               style={{ padding: '5px 10px', fontSize: '12px' }}
-                              title="РџРµСЂРµРјРµСЃС‚РёС‚СЊ РІ Р°СЂС…РёРІ"
+                              title="Переместить в архив"
                             >
-                              Р’ Р°СЂС…РёРІ
+                              В архив
                             </button>
                             <button 
                               className="btn btn-danger" 
@@ -500,7 +528,7 @@ const Installations = () => {
                               }}
                               style={{ padding: '5px 10px', fontSize: '12px' }}
                             >
-                              РЈРґР°Р»РёС‚СЊ
+                              Удалить
                             </button>
                           </>
                         )}
@@ -518,20 +546,20 @@ const Installations = () => {
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
           <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '800px', maxHeight: '90vh', overflowY: 'auto' }}>
             <div className="modal-header">
-              <h2>{editingInstallation ? 'Р РµРґР°РєС‚РёСЂРѕРІР°С‚СЊ РјРѕРЅС‚Р°Р¶' : 'РЎРѕР·РґР°С‚СЊ РјРѕРЅС‚Р°Р¶'}</h2>
+              <h2>{editingInstallation ? 'Редактировать монтаж' : 'Создать монтаж'}</h2>
               <button className="modal-close" onClick={() => setShowModal(false)}>&times;</button>
             </div>
             <form onSubmit={handleSubmit}>
               {error && <div className="error">{error}</div>}
               
               <div className="form-group">
-                <label>РџСЂРѕРµРєС‚ *</label>
+                <label>Проект *</label>
                 <select
                   value={formData.project_id}
                   onChange={e => setFormData({ ...formData, project_id: e.target.value })}
                   required
                 >
-                  <option value="">Р’С‹Р±РµСЂРёС‚Рµ РїСЂРѕРµРєС‚</option>
+                  <option value="">Выберите проект</option>
                   {projects.map(p => (
                     <option key={p.id} value={p.id}>{p.name}</option>
                   ))}
@@ -539,7 +567,7 @@ const Installations = () => {
               </div>
               
               <div className="form-group">
-                <label>РќР°Р·РІР°РЅРёРµ *</label>
+                <label>Название *</label>
                 <input
                   type="text"
                   value={formData.title}
@@ -549,7 +577,7 @@ const Installations = () => {
               </div>
               
               <div className="form-group">
-                <label>РћРїРёСЃР°РЅРёРµ</label>
+                <label>Описание</label>
                 <textarea
                   value={formData.description}
                   onChange={e => setFormData({ ...formData, description: e.target.value })}
@@ -557,12 +585,12 @@ const Installations = () => {
               </div>
               
               <div className="form-group">
-                <label>РСЃРїРѕР»РЅРёС‚РµР»СЊ</label>
+                <label>Исполнитель</label>
                 <select
                   value={formData.assignee_id}
                   onChange={e => setFormData({ ...formData, assignee_id: e.target.value })}
                 >
-                  <option value="">Р’С‹Р±РµСЂРёС‚Рµ РёСЃРїРѕР»РЅРёС‚РµР»СЏ</option>
+                  <option value="">Выберите исполнителя</option>
                   {users.map(u => (
                     <option key={u.id} value={u.id}>{u.name}</option>
                   ))}
@@ -570,7 +598,7 @@ const Installations = () => {
               </div>
               
               <div className="form-group">
-                <label>Р”Р°С‚Р° РјРѕРЅС‚Р°Р¶Р°</label>
+                <label>Дата монтажа</label>
                 <input
                   type="datetime-local"
                   value={formData.scheduled_at}
@@ -580,12 +608,12 @@ const Installations = () => {
 
               {/* Address Search Section */}
               <div className="form-group" style={{ position: 'relative' }} ref={addressInputRef}>
-                <label>РџРѕРёСЃРє Р°РґСЂРµСЃР° (Q1 2026)</label>
+                <label>Поиск адреса (Q1 2026)</label>
                 <input
                   type="text"
                   value={addressQuery}
                   onChange={e => handleAddressSearch(e.target.value)}
-                  placeholder="Р’РІРµРґРёС‚Рµ Р°РґСЂРµСЃ РґР»СЏ РїРѕРёСЃРєР°..."
+                  placeholder="Введите адрес для поиска..."
                   autoComplete="off"
                 />
                 {showAddressDropdown && addressResults.length > 0 && (
@@ -615,7 +643,7 @@ const Installations = () => {
                       >
                         <div>{addr.adres_razmeshcheniya}</div>
                         <div style={{ fontSize: '12px', color: '#666' }}>
-                          Р Р°Р№РѕРЅ: {addr.rayon} | РЎРљ: {addr.sk_count} | ID: {addr.id_ploshadki}
+                          Район: {addr.rayon} | СК: {addr.sk_count} | ID: {addr.id_ploshadki}
                         </div>
                       </li>
                     ))}
@@ -624,7 +652,7 @@ const Installations = () => {
               </div>
 
               <div className="form-group">
-                <label>РђРґСЂРµСЃ</label>
+                <label>Адрес</label>
                 <input
                   type="text"
                   value={formData.address}
@@ -634,11 +662,11 @@ const Installations = () => {
 
               {/* SK Fields - ReadOnly when selected from search */}
               <fieldset style={{ border: '1px solid #ddd', padding: '15px', marginBottom: '15px' }}>
-                <legend style={{ fontWeight: 'bold', color: '#333' }}>Р”Р°РЅРЅС‹Рµ Рѕ РїР»РѕС‰Р°РґРєРµ (РёР· Q1 2026)</legend>
+                <legend style={{ fontWeight: 'bold', color: '#333' }}>Данные о площадке (из Q1 2026)</legend>
                 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                   <div className="form-group">
-                    <label>ID РїР»РѕС‰Р°РґРєРё</label>
+                    <label>ID площадки</label>
                     <input
                       type="text"
                       value={formData.id_ploshadki}
@@ -647,7 +675,7 @@ const Installations = () => {
                     />
                   </div>
                   <div className="form-group">
-                    <label>РЎРµСЂРІРёСЃРЅС‹Р№ ID</label>
+                    <label>Сервисный ID</label>
                     <input
                       type="text"
                       value={formData.servisnyy_id}
@@ -656,7 +684,7 @@ const Installations = () => {
                     />
                   </div>
                   <div className="form-group">
-                    <label>Р Р°Р№РѕРЅ</label>
+                    <label>Район</label>
                     <input
                       type="text"
                       value={formData.rayon}
@@ -665,7 +693,7 @@ const Installations = () => {
                     />
                   </div>
                   <div className="form-group">
-                    <label>РџР»Р°РЅРѕРІР°СЏ РґР°С‚Р° 1 РєРІ. 2026</label>
+                    <label>Плановая дата 1 кв. 2026</label>
                     <input
                       type="text"
                       value={formData.planovaya_data_1_kv_2026}
@@ -679,27 +707,27 @@ const Installations = () => {
               {/* Dynamic SK Rows */}
               {skCount > 0 && (
                 <fieldset style={{ border: '1px solid #ddd', padding: '15px', marginBottom: '15px' }}>
-                  <legend style={{ fontWeight: 'bold', color: '#333' }}>РЎРёСЃС‚РµРјС‹ РєРѕРЅС‚СЂРѕР»СЏ (РЎРљ)</legend>
+                  <legend style={{ fontWeight: 'bold', color: '#333' }}>Системы контроля (СК)</legend>
                   
                   {/* SK1 */}
                   {formData.id_sk1 && (
                     <div style={{ marginBottom: '15px', padding: '10px', backgroundColor: '#f9f9f9', borderRadius: '4px' }}>
-                      <h4 style={{ margin: '0 0 10px 0' }}>РЎРљ #1</h4>
+                      <h4 style={{ margin: '0 0 10px 0' }}>СК #1</h4>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                         <div className="form-group">
-                          <label>ID РЎРљ</label>
+                          <label>ID СК</label>
                           <input type="text" value={formData.id_sk1} readOnly style={{ backgroundColor: '#f5f5f5' }} />
                         </div>
                         <div className="form-group">
-                          <label>РќР°РёРјРµРЅРѕРІР°РЅРёРµ РЎРљ</label>
+                          <label>Наименование СК</label>
                           <input type="text" value={formData.naimenovanie_sk1} readOnly style={{ backgroundColor: '#f5f5f5' }} />
                         </div>
                         <div className="form-group">
-                          <label>РЎС‚Р°С‚СѓСЃ РѕР±РѕСЂСѓРґРѕРІР°РЅРёСЏ</label>
+                          <label>Статус оборудования</label>
                           <input type="text" value={formData.status_oborudovaniya1} readOnly style={{ backgroundColor: '#f5f5f5' }} />
                         </div>
                         <div className="form-group">
-                          <label>РўРёРї РЎРљ РїРѕ РґРѕРіРѕРІРѕСЂСѓ</label>
+                          <label>Тип СК по договору</label>
                           <input type="text" value={formData.tip_sk_po_dogovoru1} readOnly style={{ backgroundColor: '#f5f5f5' }} />
                         </div>
                       </div>
@@ -709,22 +737,22 @@ const Installations = () => {
                   {/* SK2 */}
                   {formData.id_sk2 && (
                     <div style={{ marginBottom: '15px', padding: '10px', backgroundColor: '#f9f9f9', borderRadius: '4px' }}>
-                      <h4 style={{ margin: '0 0 10px 0' }}>РЎРљ #2</h4>
+                      <h4 style={{ margin: '0 0 10px 0' }}>СК #2</h4>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                         <div className="form-group">
-                          <label>ID РЎРљ</label>
+                          <label>ID СК</label>
                           <input type="text" value={formData.id_sk2} readOnly style={{ backgroundColor: '#f5f5f5' }} />
                         </div>
                         <div className="form-group">
-                          <label>РќР°РёРјРµРЅРѕРІР°РЅРёРµ РЎРљ</label>
+                          <label>Наименование СК</label>
                           <input type="text" value={formData.naimenovanie_sk2} readOnly style={{ backgroundColor: '#f5f5f5' }} />
                         </div>
                         <div className="form-group">
-                          <label>РЎС‚Р°С‚СѓСЃ РѕР±РѕСЂСѓРґРѕРІР°РЅРёСЏ</label>
+                          <label>Статус оборудования</label>
                           <input type="text" value={formData.status_oborudovaniya2} readOnly style={{ backgroundColor: '#f5f5f5' }} />
                         </div>
                         <div className="form-group">
-                          <label>РўРёРї РЎРљ РїРѕ РґРѕРіРѕРІРѕСЂСѓ</label>
+                          <label>Тип СК по договору</label>
                           <input type="text" value={formData.tip_sk_po_dogovoru2} readOnly style={{ backgroundColor: '#f5f5f5' }} />
                         </div>
                       </div>
@@ -734,22 +762,22 @@ const Installations = () => {
                   {/* SK3 */}
                   {formData.id_sk3 && (
                     <div style={{ marginBottom: '15px', padding: '10px', backgroundColor: '#f9f9f9', borderRadius: '4px' }}>
-                      <h4 style={{ margin: '0 0 10px 0' }}>РЎРљ #3</h4>
+                      <h4 style={{ margin: '0 0 10px 0' }}>СК #3</h4>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                         <div className="form-group">
-                          <label>ID РЎРљ</label>
+                          <label>ID СК</label>
                           <input type="text" value={formData.id_sk3} readOnly style={{ backgroundColor: '#f5f5f5' }} />
                         </div>
                         <div className="form-group">
-                          <label>РќР°РёРјРµРЅРѕРІР°РЅРёРµ РЎРљ</label>
+                          <label>Наименование СК</label>
                           <input type="text" value={formData.naimenovanie_sk3} readOnly style={{ backgroundColor: '#f5f5f5' }} />
                         </div>
                         <div className="form-group">
-                          <label>РЎС‚Р°С‚СѓСЃ РѕР±РѕСЂСѓРґРѕРІР°РЅРёСЏ</label>
+                          <label>Статус оборудования</label>
                           <input type="text" value={formData.status_oborudovaniya3} readOnly style={{ backgroundColor: '#f5f5f5' }} />
                         </div>
                         <div className="form-group">
-                          <label>РўРёРї РЎРљ РїРѕ РґРѕРіРѕРІРѕСЂСѓ</label>
+                          <label>Тип СК по договору</label>
                           <input type="text" value={formData.tip_sk_po_dogovoru3} readOnly style={{ backgroundColor: '#f5f5f5' }} />
                         </div>
                       </div>
@@ -759,22 +787,22 @@ const Installations = () => {
                   {/* SK4 */}
                   {formData.id_sk4 && (
                     <div style={{ marginBottom: '15px', padding: '10px', backgroundColor: '#f9f9f9', borderRadius: '4px' }}>
-                      <h4 style={{ margin: '0 0 10px 0' }}>РЎРљ #4</h4>
+                      <h4 style={{ margin: '0 0 10px 0' }}>СК #4</h4>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                         <div className="form-group">
-                          <label>ID РЎРљ</label>
+                          <label>ID СК</label>
                           <input type="text" value={formData.id_sk4} readOnly style={{ backgroundColor: '#f5f5f5' }} />
                         </div>
                         <div className="form-group">
-                          <label>РќР°РёРјРµРЅРѕРІР°РЅРёРµ РЎРљ</label>
+                          <label>Наименование СК</label>
                           <input type="text" value={formData.naimenovanie_sk4} readOnly style={{ backgroundColor: '#f5f5f5' }} />
                         </div>
                         <div className="form-group">
-                          <label>РЎС‚Р°С‚СѓСЃ РѕР±РѕСЂСѓРґРѕРІР°РЅРёСЏ</label>
+                          <label>Статус оборудования</label>
                           <input type="text" value={formData.status_oborudovaniya4} readOnly style={{ backgroundColor: '#f5f5f5' }} />
                         </div>
                         <div className="form-group">
-                          <label>РўРёРї РЎРљ РїРѕ РґРѕРіРѕРІРѕСЂСѓ</label>
+                          <label>Тип СК по договору</label>
                           <input type="text" value={formData.tip_sk_po_dogovoru4} readOnly style={{ backgroundColor: '#f5f5f5' }} />
                         </div>
                       </div>
@@ -784,22 +812,22 @@ const Installations = () => {
                   {/* SK5 */}
                   {formData.id_sk5 && (
                     <div style={{ marginBottom: '15px', padding: '10px', backgroundColor: '#f9f9f9', borderRadius: '4px' }}>
-                      <h4 style={{ margin: '0 0 10px 0' }}>РЎРљ #5</h4>
+                      <h4 style={{ margin: '0 0 10px 0' }}>СК #5</h4>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                         <div className="form-group">
-                          <label>ID РЎРљ</label>
+                          <label>ID СК</label>
                           <input type="text" value={formData.id_sk5} readOnly style={{ backgroundColor: '#f5f5f5' }} />
                         </div>
                         <div className="form-group">
-                          <label>РќР°РёРјРµРЅРѕРІР°РЅРёРµ РЎРљ</label>
+                          <label>Наименование СК</label>
                           <input type="text" value={formData.naimenovanie_sk5} readOnly style={{ backgroundColor: '#f5f5f5' }} />
                         </div>
                         <div className="form-group">
-                          <label>РЎС‚Р°С‚СѓСЃ РѕР±РѕСЂСѓРґРѕРІР°РЅРёСЏ</label>
+                          <label>Статус оборудования</label>
                           <input type="text" value={formData.status_oborudovaniya5} readOnly style={{ backgroundColor: '#f5f5f5' }} />
                         </div>
                         <div className="form-group">
-                          <label>РўРёРї РЎРљ РїРѕ РґРѕРіРѕРІРѕСЂСѓ</label>
+                          <label>Тип СК по договору</label>
                           <input type="text" value={formData.tip_sk_po_dogovoru5} readOnly style={{ backgroundColor: '#f5f5f5' }} />
                         </div>
                       </div>
@@ -809,22 +837,22 @@ const Installations = () => {
                   {/* SK6 */}
                   {formData.id_sk6 && (
                     <div style={{ marginBottom: '15px', padding: '10px', backgroundColor: '#f9f9f9', borderRadius: '4px' }}>
-                      <h4 style={{ margin: '0 0 10px 0' }}>РЎРљ #6</h4>
+                      <h4 style={{ margin: '0 0 10px 0' }}>СК #6</h4>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                         <div className="form-group">
-                          <label>ID РЎРљ</label>
+                          <label>ID СК</label>
                           <input type="text" value={formData.id_sk6} readOnly style={{ backgroundColor: '#f5f5f5' }} />
                         </div>
                         <div className="form-group">
-                          <label>РќР°РёРјРµРЅРѕРІР°РЅРёРµ РЎРљ</label>
+                          <label>Наименование СК</label>
                           <input type="text" value={formData.naimenovanie_sk6} readOnly style={{ backgroundColor: '#f5f5f5' }} />
                         </div>
                         <div className="form-group">
-                          <label>РЎС‚Р°С‚СѓСЃ РѕР±РѕСЂСѓРґРѕРІР°РЅРёСЏ</label>
+                          <label>Статус оборудования</label>
                           <input type="text" value={formData.status_oborudovaniya6} readOnly style={{ backgroundColor: '#f5f5f5' }} />
                         </div>
                         <div className="form-group">
-                          <label>РўРёРї РЎРљ РїРѕ РґРѕРіРѕРІРѕСЂСѓ</label>
+                          <label>Тип СК по договору</label>
                           <input type="text" value={formData.tip_sk_po_dogovoru6} readOnly style={{ backgroundColor: '#f5f5f5' }} />
                         </div>
                       </div>
@@ -836,17 +864,17 @@ const Installations = () => {
               {(formData.status === 'ready_for_receipt' || formData.status === 'received') && (
                 <>
                   <div className="form-group">
-                    <label>РђРґСЂРµСЃ РїРѕР»СѓС‡РµРЅРёСЏ</label>
+                    <label>Адрес получения</label>
                     <input
                       type="text"
                       value={formData.receipt_address}
                       onChange={e => setFormData({ ...formData, receipt_address: e.target.value })}
-                      placeholder="Р’РІРµРґРёС‚Рµ Р°РґСЂРµСЃ РїРѕР»СѓС‡РµРЅРёСЏ"
+                      placeholder="Введите адрес получения"
                     />
                   </div>
                   {formData.status === 'received' && (
                     <div className="form-group">
-                      <label>Р”Р°С‚Р° РїРѕР»СѓС‡РµРЅРёСЏ</label>
+                      <label>Дата получения</label>
                       <input
                         type="datetime-local"
                         value={formData.received_at}
@@ -858,10 +886,10 @@ const Installations = () => {
               )}
               <div className="modal-footer">
                 <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)} disabled={submitting}>
-                  РћС‚РјРµРЅР°
+                  Отмена
                 </button>
                 <button type="submit" className="btn btn-primary" disabled={submitting}>
-                  {submitting ? 'РЎРѕС…СЂР°РЅРµРЅРёРµ...' : (editingInstallation ? 'РЎРѕС…СЂР°РЅРёС‚СЊ' : 'РЎРѕР·РґР°С‚СЊ')}
+                  {submitting ? 'Сохранение...' : (editingInstallation ? 'Сохранить' : 'Создать')}
                 </button>
               </div>
             </form>
@@ -873,19 +901,19 @@ const Installations = () => {
         <div className="modal-overlay" onClick={() => setShowDeleteModal(false)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>РџРѕРґС‚РІРµСЂР¶РґРµРЅРёРµ СѓРґР°Р»РµРЅРёСЏ</h2>
+              <h2>Подтверждение удаления</h2>
               <button className="modal-close" onClick={() => setShowDeleteModal(false)}>&times;</button>
             </div>
             <div style={{ padding: '20px' }}>
-              <p>Р’С‹ СѓРІРµСЂРµРЅС‹, С‡С‚Рѕ С…РѕС‚РёС‚Рµ СѓРґР°Р»РёС‚СЊ РјРѕРЅС‚Р°Р¶ "{deletingInstallation?.title}"?</p>
-              <p style={{ color: '#d32f2f', fontSize: '14px' }}>Р­С‚Рѕ РґРµР№СЃС‚РІРёРµ РЅРµР»СЊР·СЏ РѕС‚РјРµРЅРёС‚СЊ.</p>
+              <p>Вы уверены, что хотите удалить монтаж "{deletingInstallation?.title}"?</p>
+              <p style={{ color: '#d32f2f', fontSize: '14px' }}>Это действие нельзя отменить.</p>
             </div>
             <div className="modal-footer">
               <button type="button" className="btn btn-secondary" onClick={() => setShowDeleteModal(false)}>
-                РћС‚РјРµРЅР°
+                Отмена
               </button>
               <button type="button" className="btn btn-danger" onClick={handleDelete}>
-                РЈРґР°Р»РёС‚СЊ
+                Удалить
               </button>
             </div>
           </div>
@@ -896,33 +924,33 @@ const Installations = () => {
         <div className="modal-overlay" onClick={() => setShowStatusModal(false)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>РР·РјРµРЅРµРЅРёРµ СЃС‚Р°С‚СѓСЃР°</h2>
+              <h2>Изменение статуса</h2>
               <button className="modal-close" onClick={() => setShowStatusModal(false)}>&times;</button>
             </div>
             <div style={{ padding: '20px' }}>
               {error && <div className="error">{error}</div>}
               <div className="form-group">
-                <label>РЎС‚Р°С‚СѓСЃ</label>
+                <label>Статус</label>
                 <select
                   value={statusChangeData.newStatus}
                   onChange={e => setStatusChangeData({ ...statusChangeData, newStatus: e.target.value })}
                 >
-                  <option value="ready_for_receipt">Р“РѕС‚РѕРІ Рє РїРѕР»СѓС‡РµРЅРёСЋ</option>
-                  <option value="received">РџРѕР»СѓС‡РµРЅРѕ</option>
+                  <option value="ready_for_receipt">Готов к получению</option>
+                  <option value="received">Получено</option>
                 </select>
               </div>
               <div className="form-group">
-                <label>РђРґСЂРµСЃ РїРѕР»СѓС‡РµРЅРёСЏ</label>
+                <label>Адрес получения</label>
                 <input
                   type="text"
                   value={statusChangeData.receipt_address}
                   onChange={e => setStatusChangeData({ ...statusChangeData, receipt_address: e.target.value })}
-                  placeholder="Р’РІРµРґРёС‚Рµ Р°РґСЂРµСЃ РїРѕР»СѓС‡РµРЅРёСЏ"
+                  placeholder="Введите адрес получения"
                 />
               </div>
               {statusChangeData.newStatus === 'received' && (
                 <div className="form-group">
-                  <label>Р”Р°С‚Р° РїРѕР»СѓС‡РµРЅРёСЏ</label>
+                  <label>Дата получения</label>
                   <input
                     type="datetime-local"
                     value={statusChangeData.received_at}
@@ -933,10 +961,10 @@ const Installations = () => {
             </div>
             <div className="modal-footer">
               <button type="button" className="btn btn-secondary" onClick={() => setShowStatusModal(false)}>
-                РћС‚РјРµРЅР°
+                Отмена
               </button>
               <button type="button" className="btn btn-primary" onClick={handleStatusChange}>
-                РЎРѕС…СЂР°РЅРёС‚СЊ
+                Сохранить
               </button>
             </div>
           </div>

@@ -1,5 +1,13 @@
+<<<<<<< HEAD
 import express from 'express';
+import { supabase } from '../config/supabase.js';
+import { authenticateToken, requireManager } from '../middleware/auth.js';
 
-const router = express.Router();
+const router
+=======
+import express from 'express';
+import { supabase } from '../config/supabase.js';
+import { authenticateToken, requireManager } from '../middleware/auth.js';
 
-export default router;
+const router
+>>>>>>> origin/main

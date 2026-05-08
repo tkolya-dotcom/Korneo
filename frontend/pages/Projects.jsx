@@ -72,29 +72,29 @@ const Projects = () => {
   };
 
   if (loading) {
-    return <div className="loading">Р—Р°РіСЂСѓР·РєР°...</div>;
+    return <div className="loading">Загрузка...</div>;
   }
 
   return (
     <div>
       <header className="header">
-        <h1>РџСЂРѕРµРєС‚С‹</h1>
+        <h1>Проекты</h1>
         <nav className="header-nav">
-          <Link to="/">Р“Р»Р°РІРЅР°СЏ</Link>
-          <Link to="/projects">РџСЂРѕРµРєС‚С‹</Link>
-          <Link to="/tasks">Р—Р°РґР°С‡Рё</Link>
-          <Link to="/installations">РњРѕРЅС‚Р°Р¶Рё</Link>
-          <Link to="/purchase-requests">Р—Р°СЏРІРєРё</Link>
+          <Link to="/">Главная</Link>
+          <Link to="/projects">Проекты</Link>
+          <Link to="/tasks">Задачи</Link>
+          <Link to="/installations">Монтажи</Link>
+          <Link to="/purchase-requests">Заявки</Link>
         </nav>
       </header>
 
       <main className="container">
         <div className="card">
           <div className="card-header">
-            <h3 className="card-title">РЎРїРёСЃРѕРє РїСЂРѕРµРєС‚РѕРІ</h3>
+            <h3 className="card-title">Список проектов</h3>
             {isManager && (
               <button className="btn btn-primary" onClick={() => setShowModal(true)}>
-                РЎРѕР·РґР°С‚СЊ РїСЂРѕРµРєС‚
+                Создать проект
               </button>
             )}
           </div>
@@ -103,18 +103,18 @@ const Projects = () => {
 
           {projects.length === 0 ? (
             <div className="empty-state">
-              <h3>РќРµС‚ РїСЂРѕРµРєС‚РѕРІ</h3>
-              <p>РЎРѕР·РґР°Р№С‚Рµ РїРµСЂРІС‹Р№ РїСЂРѕРµРєС‚</p>
+              <h3>Нет проектов</h3>
+              <p>Создайте первый проект</p>
             </div>
           ) : (
             <table className="table">
               <thead>
                 <tr>
-                  <th>РќР°Р·РІР°РЅРёРµ</th>
-                  <th>РћРїРёСЃР°РЅРёРµ</th>
-                  <th>РЎС‚Р°С‚СѓСЃ</th>
-                  <th>Р”Р°С‚Р° СЃРѕР·РґР°РЅРёСЏ</th>
-                  <th>Р”РµР№СЃС‚РІРёСЏ</th>
+                  <th>Название</th>
+                  <th>Описание</th>
+                  <th>Статус</th>
+                  <th>Дата создания</th>
+                  <th>Действия</th>
                 </tr>
               </thead>
               <tbody>
@@ -124,14 +124,14 @@ const Projects = () => {
                     <td>{project.description || '-'}</td>
                     <td>
                       <span className={`status-badge status-${project.status}`}>
-                        {project.status === 'active' ? 'РђРєС‚РёРІРЅС‹Р№' : 'РђСЂС…РёРІ'}
+                        {project.status === 'active' ? 'Активный' : 'Архив'}
                       </span>
                     </td>
                     <td>{new Date(project.created_at).toLocaleDateString('ru-RU')}</td>
                     <td>
                       <div style={{ display: 'flex', gap: '5px' }}>
                         <Link to={`/projects/${project.id}`} className="btn btn-secondary">
-                          РџРѕРґСЂРѕР±РЅРµРµ
+                          Подробнее
                         </Link>
                         {isManager && (
                           <>
@@ -140,7 +140,7 @@ const Projects = () => {
                               onClick={() => handleEdit(project)}
                               style={{ padding: '5px 10px', fontSize: '12px' }}
                             >
-                              РР·РјРµРЅРёС‚СЊ
+                              Изменить
                             </button>
                             <button 
                               className="btn btn-danger" 
@@ -150,7 +150,7 @@ const Projects = () => {
                               }}
                               style={{ padding: '5px 10px', fontSize: '12px' }}
                             >
-                              РЈРґР°Р»РёС‚СЊ
+                              Удалить
                             </button>
                           </>
                         )}
@@ -168,13 +168,13 @@ const Projects = () => {
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>{editingProject ? 'Р РµРґР°РєС‚РёСЂРѕРІР°С‚СЊ РїСЂРѕРµРєС‚' : 'РЎРѕР·РґР°С‚СЊ РїСЂРѕРµРєС‚'}</h2>
+              <h2>{editingProject ? 'Редактировать проект' : 'Создать проект'}</h2>
               <button className="modal-close" onClick={() => setShowModal(false)}>&times;</button>
             </div>
             <form onSubmit={handleSubmit}>
               {error && <div className="error">{error}</div>}
               <div className="form-group">
-                <label>РќР°Р·РІР°РЅРёРµ *</label>
+                <label>Название *</label>
                 <input
                   type="text"
                   value={formData.name}
@@ -183,7 +183,7 @@ const Projects = () => {
                 />
               </div>
               <div className="form-group">
-                <label>РћРїРёСЃР°РЅРёРµ</label>
+                <label>Описание</label>
                 <textarea
                   value={formData.description}
                   onChange={e => setFormData({ ...formData, description: e.target.value })}
@@ -191,10 +191,10 @@ const Projects = () => {
               </div>
               <div className="modal-footer">
                 <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)}>
-                  РћС‚РјРµРЅР°
+                  Отмена
                 </button>
                 <button type="submit" className="btn btn-primary">
-                  {editingProject ? 'РЎРѕС…СЂР°РЅРёС‚СЊ' : 'РЎРѕР·РґР°С‚СЊ'}
+                  {editingProject ? 'Сохранить' : 'Создать'}
                 </button>
               </div>
             </form>
@@ -206,19 +206,19 @@ const Projects = () => {
         <div className="modal-overlay" onClick={() => setShowDeleteModal(false)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>РџРѕРґС‚РІРµСЂР¶РґРµРЅРёРµ СѓРґР°Р»РµРЅРёСЏ</h2>
+              <h2>Подтверждение удаления</h2>
               <button className="modal-close" onClick={() => setShowDeleteModal(false)}>&times;</button>
             </div>
             <div style={{ padding: '20px' }}>
-              <p>Р’С‹ СѓРІРµСЂРµРЅС‹, С‡С‚Рѕ С…РѕС‚РёС‚Рµ СѓРґР°Р»РёС‚СЊ РїСЂРѕРµРєС‚ "{deletingProject?.name}"?</p>
-              <p style={{ color: '#d32f2f', fontSize: '14px' }}>Р­С‚Рѕ РґРµР№СЃС‚РІРёРµ РЅРµР»СЊР·СЏ РѕС‚РјРµРЅРёС‚СЊ.</p>
+              <p>Вы уверены, что хотите удалить проект "{deletingProject?.name}"?</p>
+              <p style={{ color: '#d32f2f', fontSize: '14px' }}>Это действие нельзя отменить.</p>
             </div>
             <div className="modal-footer">
               <button type="button" className="btn btn-secondary" onClick={() => setShowDeleteModal(false)}>
-                РћС‚РјРµРЅР°
+                Отмена
               </button>
               <button type="button" className="btn btn-danger" onClick={handleDelete}>
-                РЈРґР°Р»РёС‚СЊ
+                Удалить
               </button>
             </div>
           </div>

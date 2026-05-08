@@ -1,10 +1,16 @@
+/**
+ * Конфигурация приложения
+ * Все секреты и API ключи
+ */
 
+// Supabase конфигурация
 export const SUPABASE_CONFIG = {
   url: 'https://jmxjbdnqnzkzxgsfywha.supabase.co',
   anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpteGpiZG5xbnprenhnc2Z5d2hhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExNTQ0MzQsImV4cCI6MjA4NjczMDQzNH0.z6y6DGs9Z6kojQYeAdsgKA-m4pxuoeABdY4rAojPEE4',
-  serviceRoleKey: 'YOUR_SERVICE_ROLE_KEY_HERE' // РўРѕР»СЊРєРѕ РґР»СЏ СЃРµСЂРІРµСЂР°!
+  serviceRoleKey: 'YOUR_SERVICE_ROLE_KEY_HERE' // Только для сервера!
 };
 
+// Firebase конфигурация (для Push-уведомлений)
 export const FIREBASE_CONFIG = {
   apiKey: "AIzaSyAM3t4qBtb2FhUElkWvKbEF4Oui2I9rZGk",
   authDomain: "planner-web-4fec7.firebaseapp.com",
@@ -15,14 +21,18 @@ export const FIREBASE_CONFIG = {
   measurementId: "G-FTVNHS8G2Y"
 };
 
+// VAPID ключ для Web Push
 export const VAPID_PUBLIC_KEY = 'BDhqTgQRiZ69r0YWz6vw5HIEkecDEqLV9NIGfUEpWaPUFGcc4T_WWlaE8OmSO5EMzvOySOYXdpKtI3J1emZXj0s';
 
+// Mapbox токен (для карт)
 export const MAPBOX_TOKEN = 'pk.eyJ1IjoidGtvbHlhIiwiYSI6ImNtbXZ0eGI1ODJkbnIycXNkMTBteWNvd20ifQ.m0WVg1Ix7RuR3AJyHDHRtg';
 
+// Константы приложения
 export const APP_CONFIG = {
-  name: 'РћРћРћ РљРѕСЂРЅРµРѕ - РџР»Р°РЅРёСЂРѕРІС‰РёРє',
+  name: 'ООО Корнео - Планировщик',
   version: '1.0.0',
   
+  // Роли пользователей
   roles: {
     WORKER: 'worker',
     ENGINEER: 'engineer',
@@ -31,6 +41,7 @@ export const APP_CONFIG = {
     ADMIN: 'admin'
   },
   
+  // Статусы задач
   taskStatus: {
     NEW: 'new',
     IN_PROGRESS: 'in_progress',
@@ -39,6 +50,7 @@ export const APP_CONFIG = {
     ARCHIVED: 'archived'
   },
   
+  // Статусы монтажей
   installationStatus: {
     NEW: 'new',
     IN_PROGRESS: 'in_progress',
@@ -46,6 +58,7 @@ export const APP_CONFIG = {
     ARCHIVED: 'archived'
   },
   
+  // Статусы заявок на материалы
   requestStatus: {
     PENDING: 'pending',
     APPROVED: 'approved',
@@ -53,12 +66,14 @@ export const APP_CONFIG = {
     ISSUED: 'issued'
   },
   
+  // Типы чатов
   chatTypes: {
     PRIVATE: 'private',
     GROUP: 'group',
     JOB: 'job'
   },
   
+  // Приоритеты задач
   priorities: {
     LOW: 'low',
     NORMAL: 'normal',
@@ -66,42 +81,54 @@ export const APP_CONFIG = {
     URGENT: 'urgent'
   },
   
+  // Настройки уведомлений
   notifications: {
-    checkInterval: 30000, // 30 СЃРµРєСѓРЅРґ
+    checkInterval: 30000, // 30 секунд
     maxRetries: 3,
-    retryDelay: 5000 // 5 СЃРµРєСѓРЅРґ
+    retryDelay: 5000 // 5 секунд
   },
   
+  // Кэширование
   cache: {
     enabled: true,
-    ttl: 300000, // 5 РјРёРЅСѓС‚
-    maxSize: 100 // РјР°РєСЃ. РєРѕР»РёС‡РµСЃС‚РІРѕ Р·Р°РїРёСЃРµР№
+    ttl: 300000, // 5 минут
+    maxSize: 100 // макс. количество записей
   }
 };
 
+// URL и эндпоинты
 export const API_ENDPOINTS = {
+  // Пользователи
   USERS: '/users',
   USER_BY_ID: (id) => `/users?id=eq.${id}`,
   
+  // Задачи
   TASKS: '/tasks',
   TASK_BY_ID: (id) => `/tasks?id=eq.${id}`,
   TASKS_BY_ASSIGNEE: (assigneeId) => `/tasks?assignee_id=eq.${assigneeId}`,
   
+  // Проекты
   PROJECTS: '/projects',
   
+  // Монтажи
   INSTALLATIONS: '/installations',
   
+  // Задачи АВР
   TASKS_AVR: '/tasks_avr',
   
+  // Чаты
   CHATS: '/chats',
   MESSAGES: '/messages',
   
+  // Материалы
   MATERIALS: '/materials',
   MATERIALS_REQUESTS: '/materials_requests',
   
+  // Заявки на закупку
   PURCHASE_REQUESTS: '/purchase_requests'
 };
 
+// Экспорт для совместимости с window
 if (typeof window !== 'undefined') {
   window.APP_CONFIG = APP_CONFIG;
   window.SUPABASE_CONFIG = SUPABASE_CONFIG;

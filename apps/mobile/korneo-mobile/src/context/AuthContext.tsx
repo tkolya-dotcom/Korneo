@@ -56,6 +56,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     });
     if (error) throw error;
     
+    // Create user profile if not exists
     if (data.user) {
       await supabase.from('users').upsert({
         id: data.user.id,

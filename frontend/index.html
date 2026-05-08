@@ -3,29 +3,16 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Korneo task and project management web app" />
+    <meta name="description" content="Система управления задачами, проектами, монтажами и заявками на закупку" />
     <meta name="theme-color" content="#1976d2" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta name="apple-mobile-web-app-title" content="Korneo" />
-    <link rel="icon" href="/favicon.png" type="image/png" />
-    <title>Korneo</title>
+    <meta name="apple-mobile-web-app-title" content="Планировщик" />
+    <link rel="manifest" href="./manifest.json" />
+    <title>Система управления задачами</title>
   </head>
   <body>
     <div id="root"></div>
-    <script>
-      (function () {
-        var repoBase = '/Korneo';
-        var path = window.location.pathname;
-        var hash = window.location.hash;
-        if (path.indexOf(repoBase + '/') === 0 && !hash) {
-          var route = path.slice(repoBase.length);
-          if (route && route !== '/') {
-            window.location.replace(repoBase + '/#' + route + window.location.search);
-          }
-        }
-      })();
-    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

@@ -14,6 +14,7 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY, 
   },
 });
 
+// Auth helpers
 export async function getUserProfile(userId: string): Promise<User | null> {
   try {
     const { data, error } = await supabase
@@ -29,6 +30,7 @@ export async function getUserProfile(userId: string): Promise<User | null> {
   }
 }
 
+// Tasks queries
 export async function fetchTasks(status?: string, assignee_id?: string): Promise<Task[]> {
   try {
     let query = supabase.from('tasks').select('*').order('created_at', { ascending: false });
@@ -57,6 +59,7 @@ export async function updateTaskStatus(id: string, status: UserRole): Promise<bo
   }
 }
 
+// Installations
 export async function fetchInstallations(status?: string, assignee_id?: string): Promise<Installation[]> {
   try {
     let query = supabase.from('installations').select('*').order('scheduled_at', { ascending: false });
@@ -71,6 +74,7 @@ export async function fetchInstallations(status?: string, assignee_id?: string):
   }
 }
 
+// AVR (reuse tasks logic or separate table)
 export async function fetchAvrTasks(status?: string): Promise<AvrTask[]> {
   return fetchTasks(status) as Promise<AvrTask[]>;
 }

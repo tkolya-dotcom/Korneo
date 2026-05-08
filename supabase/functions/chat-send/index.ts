@@ -23,6 +23,7 @@ serve(async (req) => {
 
     if (!user) throw new Error('Unauthorized')
 
+    // Set app context for RLS
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -30,6 +31,7 @@ serve(async (req) => {
 
     await supabaseAdmin.rpc('set_config', { name: 'app.current_user_id', value: user.id })
 
+    // Insert message (triggers Realtime)
     const { data: message } = await supabaseClient
       .from('messages')
       .insert({ chat_id, content: { text: content } })
@@ -38,6 +40,7 @@ serve(async (req) => {
 
     if (!message) throw new Error('Failed to send message')
 
+    // Get members except sender for push
     const { data: members } = await supabaseAdmin
       .from('chat_members')
       .select('user_id')
@@ -45,12 +48,14 @@ serve(async (req) => {
 
     const otherMembers = (members || []).filter(m => m.user_id !== user.id).map(m => m.user_id)
 
+    // Get sender name
     const { data: sender } = await supabaseAdmin
       .from('users')
       .select('name')
       .eq('id', user.id)
       .single()
 
+    // Call push-send edge function directly
     if (otherMembers.length > 0) {
       try {
         await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/push-send`, {
@@ -61,7 +66,7 @@ serve(async (req) => {
           },
           body: JSON.stringify({
             chat_id,
-            sender_name: sender?.name || 'РќРѕРІРѕРµ СЃРѕРѕР±С‰РµРЅРёРµ',
+            sender_name: sender?.name || 'Новое сообщение',
             text: content,
             exclude_user_id: user.id
           })

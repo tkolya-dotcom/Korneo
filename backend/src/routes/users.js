@@ -4,16 +4,20 @@ import { authenticateToken } from '../middleware/auth.js';
 
 const router = express.Router();
 
+// Get all users with their online status
 router.get('/status', authenticateToken, async (req, res) => {
   try {
+    // Mark users as offline if they haven't been seen in 2 minutes
     const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
     
+    // First, update all users who haven't sent heartbeat in 2 minutes
     await supabase
       .from('users')
       .update({ is_online: false })
       .lt('last_seen_at', twoMinutesAgo)
       .eq('is_online', true);
 
+    // Get all users with their status
     const { data: users, error } = await supabase
       .from('users')
       .select('id, email, display_name, role, is_online, last_seen_at')
@@ -24,6 +28,7 @@ router.get('/status', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: error.message });
     }
 
+    // Group users by online/offline
     const onlineUsers = users.filter(u => u.is_online);
     const offlineUsers = users.filter(u => !u.is_online);
 
@@ -40,6 +45,7 @@ router.get('/status', authenticateToken, async (req, res) => {
   }
 });
 
+// Update user heartbeat (mark as online)
 router.post('/heartbeat', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.userId;
@@ -68,6 +74,7 @@ router.post('/heartbeat', authenticateToken, async (req, res) => {
   }
 });
 
+// Mark user as offline (for logout or tab close)
 router.post('/offline', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.userId;

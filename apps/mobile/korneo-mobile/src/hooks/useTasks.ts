@@ -9,6 +9,7 @@ export function useTasks(statusFilter: TaskStatus, userId?: string) {
       let query = supabase
         .from('tasks')
         .select(`
+          *,
           profiles!assignee_id (
             name,
             role

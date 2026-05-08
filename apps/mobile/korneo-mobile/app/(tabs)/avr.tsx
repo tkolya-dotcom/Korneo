@@ -20,6 +20,7 @@ export default function AvrScreen() {
       let query = supabase
         .from('tasks_avr')
         .select(`
+          *,
           assignee:assignee_id (*)
         `)
         .order('created_at', { ascending: false });
@@ -50,19 +51,19 @@ export default function AvrScreen() {
         </Text>
         <View className={`status status-${item.status}`}>
           {item.status === 'new' && 'NEW'}
-          {item.status === 'in_progress' && 'Р’ Р РђР‘РћРўР•'}
-          {item.status === 'done' && 'РЎР”Р•Р›РђРќРћ'}
+          {item.status === 'in_progress' && 'В РАБОТЕ'}
+          {item.status === 'done' && 'СДЕЛАНО'}
         </View>
       </View>
       <Text className="text-text-muted text-sm">
-        {item.address || 'РђРґСЂРµСЃ РЅРµ СѓРєР°Р·Р°РЅ'}
+        {item.address || 'Адрес не указан'}
       </Text>
     </TouchableOpacity>
   );
 
   return (
     <View className="flex-1 bg-primary p-6">
-      <Text className="text-2xl font-orbitron text-accent mb-6">РђР’Р  / РќР Р”</Text>
+      <Text className="text-2xl font-orbitron text-accent mb-6">АВР / НРД</Text>
 
       <View className="flex-row space-x-2 mb-6">
         {(['all', 'new', 'in_progress', 'done'] as TaskStatus[]).map((status) => (
@@ -72,7 +73,7 @@ export default function AvrScreen() {
             onPress={() => setStatusFilter(status)}
           >
             <Text className="font-semibold text-sm">
-              {status === 'all' ? 'Р’СЃРµ' : status.toUpperCase()}
+              {status === 'all' ? 'Все' : status.toUpperCase()}
             </Text>
           </TouchableOpacity>
         ))}

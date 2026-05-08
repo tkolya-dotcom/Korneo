@@ -34,11 +34,11 @@ const ProjectDetail = () => {
   };
 
   if (loading) {
-    return <div className="loading">Р—Р°РіСЂСѓР·РєР°...</div>;
+    return <div className="loading">Загрузка...</div>;
   }
 
   if (!project) {
-    return <div className="container">РџСЂРѕРµРєС‚ РЅРµ РЅР°Р№РґРµРЅ</div>;
+    return <div className="container">Проект не найден</div>;
   }
 
   return (
@@ -46,34 +46,34 @@ const ProjectDetail = () => {
       <header className="header">
         <h1>{project.name}</h1>
         <nav className="header-nav">
-          <Link to="/">Р“Р»Р°РІРЅР°СЏ</Link>
-          <Link to="/projects">РџСЂРѕРµРєС‚С‹</Link>
-          <Link to="/tasks">Р—Р°РґР°С‡Рё</Link>
-          <Link to="/installations">РњРѕРЅС‚Р°Р¶Рё</Link>
-          <Link to="/purchase-requests">Р—Р°СЏРІРєРё</Link>
+          <Link to="/">Главная</Link>
+          <Link to="/projects">Проекты</Link>
+          <Link to="/tasks">Задачи</Link>
+          <Link to="/installations">Монтажи</Link>
+          <Link to="/purchase-requests">Заявки</Link>
         </nav>
       </header>
 
       <main className="container">
         <div className="card">
           <div className="card-header">
-            <h3 className="card-title">РРЅС„РѕСЂРјР°С†РёСЏ Рѕ РїСЂРѕРµРєС‚Рµ</h3>
-            <Link to="/projects" className="btn btn-secondary">РќР°Р·Р°Рґ Рє РїСЂРѕРµРєС‚Р°Рј</Link>
+            <h3 className="card-title">Информация о проекте</h3>
+            <Link to="/projects" className="btn btn-secondary">Назад к проектам</Link>
           </div>
-          <p><strong>РќР°Р·РІР°РЅРёРµ:</strong> {project.name}</p>
-          <p><strong>РћРїРёСЃР°РЅРёРµ:</strong> {project.description || '-'}</p>
-          <p><strong>РЎС‚Р°С‚СѓСЃ:</strong> {project.status === 'active' ? 'РђРєС‚РёРІРЅС‹Р№' : 'РђСЂС…РёРІ'}</p>
-          <p><strong>РЎРѕР·РґР°РЅ:</strong> {new Date(project.created_at).toLocaleDateString('ru-RU')}</p>
-          {project.creator && <p><strong>РЎРѕР·РґР°С‚РµР»СЊ:</strong> {project.creator.name}</p>}
+          <p><strong>Название:</strong> {project.name}</p>
+          <p><strong>Описание:</strong> {project.description || '-'}</p>
+          <p><strong>Статус:</strong> {project.status === 'active' ? 'Активный' : 'Архив'}</p>
+          <p><strong>Создан:</strong> {new Date(project.created_at).toLocaleDateString('ru-RU')}</p>
+          {project.creator && <p><strong>Создатель:</strong> {project.creator.name}</p>}
         </div>
 
         <div className="grid grid-2">
           <div className="card">
             <div className="card-header">
-              <h3 className="card-title">Р—Р°РґР°С‡Рё ({tasks.length})</h3>
+              <h3 className="card-title">Задачи ({tasks.length})</h3>
             </div>
             {tasks.length === 0 ? (
-              <p>РќРµС‚ Р·Р°РґР°С‡</p>
+              <p>Нет задач</p>
             ) : (
               <table className="table">
                 <tbody>
@@ -96,10 +96,10 @@ const ProjectDetail = () => {
 
           <div className="card">
             <div className="card-header">
-              <h3 className="card-title">РњРѕРЅС‚Р°Р¶Рё ({installations.length})</h3>
+              <h3 className="card-title">Монтажи ({installations.length})</h3>
             </div>
             {installations.length === 0 ? (
-              <p>РќРµС‚ РјРѕРЅС‚Р°Р¶РµР№</p>
+              <p>Нет монтажей</p>
             ) : (
               <table className="table">
                 <tbody>

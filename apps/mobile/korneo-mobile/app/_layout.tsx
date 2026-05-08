@@ -9,8 +9,8 @@ import NetInfo from '@react-native-async-storage/async-storage'; // Expo NetInfo
 function OfflineNotice() {
   return (
     <View className="flex-1 bg-primary justify-center items-center p-8">
-      <Text className="text-xl text-accent text-center mb-4">рџљ« РќРµС‚ СЃРµС‚Рё</Text>
-      <Text className="text-text-muted text-center">Р Р°Р±РѕС‚Р°РµС‚ РѕС„С„Р»Р°Р№РЅ СЃ РєСЌС€РµРј</Text>
+      <Text className="text-xl text-accent text-center mb-4">🚫 Нет сети</Text>
+      <Text className="text-text-muted text-center">Работает оффлайн с кэшем</Text>
     </View>
   );
 }
@@ -21,6 +21,7 @@ function RootLayoutNav() {
   const [isOnline, setIsOnline] = useState(true);
 
   useEffect(() => {
+    // Offline detection
     const unsubscribe = NetInfo.addEventListener(state => {
       setIsOnline(state.isConnected ?? false);
     });

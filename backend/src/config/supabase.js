@@ -11,8 +11,10 @@ if (!supabaseUrl || !supabaseAnonKey) {
   console.error('Missing Supabase configuration. Please check your .env file.');
 }
 
+// Client for public operations (uses anon key)
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
+// Admin client for privileged operations (uses service role key)
 export const supabaseAdmin = supabaseServiceKey 
   ? createClient(supabaseUrl, supabaseServiceKey, { auth: { autoRefreshToken: false, persistSession: false } })
   : null;

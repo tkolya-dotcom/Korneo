@@ -5,6 +5,7 @@ import { authenticateToken } from '../middleware/auth.js';
 
 const router = express.Router();
 
+// Login - using Supabase Auth
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -16,6 +17,8 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ error: 'Email and password are required' });
     }
 
+    // For demo purposes, check against users table
+    // In production, use Supabase Auth: supabase.auth.signInWithPassword
     const { data: user, error } = await supabase
       .from('users')
       .select('*')
@@ -30,6 +33,7 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
+    // Generate JWT token
     const tokenPayload = { userId: user.id, email: user.email, role: user.role };
     console.log('JWT token payload:', JSON.stringify(tokenPayload));
     
@@ -59,6 +63,7 @@ router.post('/login', async (req, res) => {
   }
 });
 
+// Register new user (for demo - in production this would use Supabase Auth)
 router.post('/register', async (req, res) => {
   try {
     const { email, password, name, role = 'worker' } = req.body;
@@ -71,6 +76,7 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ error: 'Email, password and name are required' });
     }
 
+    // Check if user already exists
     const { data: existing } = await supabase
       .from('users')
       .select('id')
@@ -81,6 +87,7 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ error: 'User already exists' });
     }
 
+    // Create user (in production, use Supabase Auth to create user)
     const insertData = { email, display_name: name, role };
     console.log('Inserting data into users table:', JSON.stringify(insertData));
 
@@ -98,6 +105,7 @@ router.post('/register', async (req, res) => {
     console.log('User created in database:', JSON.stringify(user));
     console.log('User role in database:', user.role);
 
+    // Generate JWT token
     const tokenPayload = { userId: user.id, email: user.email, role: user.role };
     console.log('JWT token payload:', JSON.stringify(tokenPayload));
 
@@ -125,6 +133,7 @@ router.post('/register', async (req, res) => {
   }
 });
 
+// Get current user
 router.get('/me', authenticateToken, async (req, res) => {
   try {
     console.log('=== /ME DEBUG ===');
@@ -138,6 +147,7 @@ router.get('/me', authenticateToken, async (req, res) => {
   }
 });
 
+// Get all users (for dropdowns)
 router.get('/users', authenticateToken, async (req, res) => {
   try {
     const { role } = req.query;

@@ -5,6 +5,7 @@ import { sendPushNotification } from '../utils/pushNotifications.js';
 
 const router = express.Router();
 
+// Get all installations with filters
 router.get('/', authenticateToken, async (req, res) => {
   try {
     const { project_id, assignee_id, status } = req.query;
@@ -12,6 +13,7 @@ router.get('/', authenticateToken, async (req, res) => {
     let query = supabase
       .from('installations')
       .select(`
+        *,
         project:projects(id, name),
         assignee:users!installations_assignee_id_fkey(id, name, email)
       `)
@@ -30,6 +32,7 @@ router.get('/', authenticateToken, async (req, res) => {
       query = query.eq('status', status);
     }
 
+    // Workers can only see their own installations
     if (req.user.role === 'worker') {
       query = query.eq('assignee_id', req.user.id);
     }
@@ -47,17 +50,20 @@ router.get('/', authenticateToken, async (req, res) => {
   }
 });
 
+// Get archived installations
 router.get('/archived', authenticateToken, async (req, res) => {
   try {
     let query = supabase
       .from('installations')
       .select(`
+        *,
         project:projects(id, name),
         assignee:users!installations_assignee_id_fkey(id, name, email)
       `)
       .eq('is_archived', true)
       .order('scheduled_at', { ascending: true });
 
+    // Workers can only see their own archived installations
     if (req.user.role === 'worker') {
       query = query.eq('assignee_id', req.user.id);
     }
@@ -75,6 +81,7 @@ router.get('/archived', authenticateToken, async (req, res) => {
   }
 });
 
+// Search addresses from atss_q1_2026 and kasip_azm_q1_2026
 router.get('/search-address', authenticateToken, async (req, res) => {
   try {
     const { q } = req.query;
@@ -83,6 +90,7 @@ router.get('/search-address', authenticateToken, async (req, res) => {
       return res.json({ addresses: [] });
     }
 
+    // Search in atss_q1_2026 table
     const { data: atssAddresses, error: atssError } = await supabase
       .from('atss_q1_2026')
       .select(`
@@ -123,6 +131,7 @@ router.get('/search-address', authenticateToken, async (req, res) => {
       console.error('Search ATSS addresses error:', atssError);
     }
 
+    // Search in kasip_azm_q1_2026 table
     const { data: kasipAddresses, error: kasipError } = await supabase
       .from('kasip_azm_q1_2026')
       .select(`
@@ -165,6 +174,7 @@ router.get('/search-address', authenticateToken, async (req, res) => {
       console.error('Search KASIP addresses error:', kasipError);
     }
 
+    // Transform ATSS data for frontend
     const transformedAtssAddresses = (atssAddresses || []).map(addr => ({
       id_ploshadki: addr.id_ploshadki,
       servisnyy_id: addr.servisnyy_id,
@@ -190,6 +200,7 @@ router.get('/search-address', authenticateToken, async (req, res) => {
       ].filter(Boolean)
     }));
 
+    // Transform KASIP data for frontend (normalize field names)
     const transformedKasipAddresses = (kasipAddresses || []).map(addr => ({
       id_ploshadki: addr.id_ploshadki,
       servisnyy_id: addr.servisnyy_id,
@@ -215,6 +226,7 @@ router.get('/search-address', authenticateToken, async (req, res) => {
       ].filter(Boolean)
     }));
 
+    // Combine and sort results
     const allAddresses = [...transformedAtssAddresses, ...transformedKasipAddresses]
       .sort((a, b) => (a.adres_razmeshcheniya || '').localeCompare(b.adres_razmeshcheniya || ''))
       .slice(0, 20);
@@ -226,6 +238,7 @@ router.get('/search-address', authenticateToken, async (req, res) => {
   }
 });
 
+// Get single installation
 router.get('/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
@@ -233,6 +246,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
     const { data: installation, error } = await supabase
       .from('installations')
       .select(`
+        *,
         project:projects(id, name),
         assignee:users!installations_assignee_id_fkey(id, name, email)
       `)
@@ -243,9 +257,11 @@ router.get('/:id', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'Installation not found' });
     }
 
+    // Get related purchase requests
     const { data: purchaseRequests } = await supabase
       .from('purchase_requests')
       .select(`
+        *,
         creator:users!purchase_requests_created_by_fkey(id, name),
         approved_by_user:users!purchase_requests_approved_by_fkey(id, name),
         items:purchase_request_items(*)
@@ -260,12 +276,14 @@ router.get('/:id', authenticateToken, async (req, res) => {
   }
 });
 
+// Create installation (manager only)
 router.post('/', authenticateToken, requireManager, async (req, res) => {
   try {
     console.log('Creating installation, user role:', req.user.role);
     const { 
       project_id, title, description, assignee_id, status = 'new', 
       scheduled_at, address, receipt_address, received_at,
+      // SK fields
       id_ploshadki, servisnyy_id, rayon, planovaya_data_1_kv_2026,
       id_sk1, naimenovanie_sk1, status_oborudovaniya1, tip_sk_po_dogovoru1,
       id_sk2, naimenovanie_sk2, status_oborudovaniya2, tip_sk_po_dogovoru2,
@@ -291,6 +309,7 @@ router.post('/', authenticateToken, requireManager, async (req, res) => {
         address,
         receipt_address,
         received_at,
+        // SK fields
         id_ploshadki,
         servisnyy_id,
         rayon,
@@ -336,12 +355,14 @@ router.post('/', authenticateToken, requireManager, async (req, res) => {
   }
 });
 
+// Update installation
 router.put('/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { 
       title, description, assignee_id, status, scheduled_at, address, receipt_address, received_at,
       is_archived,
+      // SK fields
       id_ploshadki, servisnyy_id, rayon, planovaya_data_1_kv_2026,
       id_sk1, naimenovanie_sk1, status_oborudovaniya1, tip_sk_po_dogovoru1,
       id_sk2, naimenovanie_sk2, status_oborudovaniya2, tip_sk_po_dogovoru2,
@@ -351,6 +372,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
       id_sk6, naimenovanie_sk6, status_oborudovaniya6, tip_sk_po_dogovoru6
     } = req.body;
 
+    // Check if installation exists
     const { data: existingInstallation } = await supabase
       .from('installations')
       .select('*')
@@ -361,6 +383,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'Installation not found' });
     }
 
+    // Workers can only update their own installations
     if (req.user.role === 'worker' && existingInstallation.assignee_id !== req.user.id) {
       return res.status(403).json({ error: 'You can only update your own installations' });
     }
@@ -374,6 +397,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
       address,
       receipt_address,
       received_at,
+      // SK fields
       id_ploshadki,
       servisnyy_id,
       rayon,
@@ -405,6 +429,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
       updated_at: new Date().toISOString()
     };
     
+    // Handle archiving/unarchiving
     if (is_archived !== undefined) {
       updateData.is_archived = is_archived;
     }
@@ -432,6 +457,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
   }
 });
 
+// Delete installation (manager only)
 router.delete('/:id', authenticateToken, requireManager, async (req, res) => {
   try {
     const { id } = req.params;

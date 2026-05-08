@@ -32,7 +32,7 @@ export const authenticateToken = async (req, res, next) => {
 export const requireManager = (req, res, next) => {
   console.log('requireManager check: user role =', req.user?.role);
   if (req.user?.role !== 'manager') {
-    return res.status(403).json({ error: 'Р”РѕСЃС‚СѓРї Р·Р°РїСЂРµС‰С‘РЅ. РўРѕР»СЊРєРѕ РјРµРЅРµРґР¶РµСЂ РјРѕР¶РµС‚ СЃРѕР·РґР°РІР°С‚СЊ РјРѕРЅС‚Р°Р¶Рё.' });
+    return res.status(403).json({ error: 'Доступ запрещён. Только менеджер может создавать монтажи.' });
   }
   next();
 };

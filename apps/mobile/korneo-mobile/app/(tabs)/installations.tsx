@@ -20,6 +20,7 @@ export default function InstallationsScreen() {
       let query = supabase
         .from('installations')
         .select(`
+          *,
           assignee:assignee_id (*)
         `)
         .order('scheduled_at', { ascending: true, nullsFirst: false });
@@ -52,22 +53,22 @@ export default function InstallationsScreen() {
             #{item.short_id} {item.title}
           </Text>
           <View className={`status status-${item.status}`}>
-            {item.status === 'new' && 'РќРћР’Р«Р™'}
-            {item.status === 'planned' && 'РџР›РђРќ'}
-            {item.status === 'in_progress' && 'РњРћРќРўРђР–'}
-            {item.status === 'done' && 'РЎР”РђРќРћ'}
+            {item.status === 'new' && 'НОВЫЙ'}
+            {item.status === 'planned' && 'ПЛАН'}
+            {item.status === 'in_progress' && 'МОНТАЖ'}
+            {item.status === 'done' && 'СДАНО'}
           </View>
         </View>
         
         <View className="space-y-1 mb-3">
-          <Text className="text-text text-sm">{item.address || 'РђРґСЂРµСЃ РЅРµ СѓРєР°Р·Р°РЅ'}</Text>
+          <Text className="text-text text-sm">{item.address || 'Адрес не указан'}</Text>
           {item.scheduled_at && (
             <Text className="text-text-muted font-mono text-xs">
               {new Date(item.scheduled_at).toLocaleDateString('ru-RU')}
             </Text>
           )}
           <Text className="text-accent-2 font-mono text-xs">
-            РЎРљ: {skCount}/7
+            СК: {skCount}/7
           </Text>
         </View>
       </TouchableOpacity>
@@ -76,7 +77,7 @@ export default function InstallationsScreen() {
 
   return (
     <View className="flex-1 bg-primary p-6">
-      <Text className="text-2xl font-orbitron text-accent mb-6">РњРѕРЅС‚Р°Р¶Рё</Text>
+      <Text className="text-2xl font-orbitron text-accent mb-6">Монтажи</Text>
 
       <View className="flex-row space-x-2 mb-6">
         {(['all', 'new', 'planned', 'in_progress', 'done'] as InstallationStatus[]).map((status) => (
@@ -86,7 +87,7 @@ export default function InstallationsScreen() {
             onPress={() => setStatusFilter(status as InstallationStatus)}
           >
             <Text className="font-semibold text-sm uppercase">
-              {status === 'all' ? 'Р’СЃРµ' : status.replace('_', ' ').toUpperCase()}
+              {status === 'all' ? 'Все' : status.replace('_', ' ').toUpperCase()}
             </Text>
           </TouchableOpacity>
         ))}

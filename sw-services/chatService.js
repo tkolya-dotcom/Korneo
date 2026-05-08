@@ -1,7 +1,10 @@
+// sw-services/chatService.js - Background chat sync for Service Worker
 
 const chatService = {
+  // Message queue for offline messages
   messageQueue: [],
   
+  // Chat state
   state: {
     unreadCount: 0,
     lastMessageId: null,
@@ -9,9 +12,11 @@ const chatService = {
     isSyncing: false
   },
 
+  // Supabase config
   SUPABASE_URL: 'https://jmxjbdnqnzkzxgsfywha.supabase.co',
   SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpteGpiZG5xbnprenhnc2Z5d2hhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExNTQ0MzQsImV4cCI6MjA4NjczMDQzNH0.z6y6DGs9Z6kojQYeAdsgKA-m4pxuoeABdY4rAojPEE4',
 
+  // Queue a message for sending
   async queueMessage(message) {
     const messageWithId = {
       ...message,
@@ -25,6 +30,7 @@ const chatService = {
     
     console.log('[ChatService] Message queued:', messageWithId.id);
     
+    // Register for background sync if supported
     if ('sync' in self.registration) {
       try {
         await self.registration.sync.register('sync-messages');
@@ -33,6 +39,7 @@ const chatService = {
       }
     }
     
+    // Try to send immediately if online
     if (navigator.onLine) {
       this.flushQueue();
     }
@@ -40,6 +47,7 @@ const chatService = {
     return messageWithId.id;
   },
 
+  // Flush message queue
   async flushQueue() {
     if (this.state.isSyncing || this.messageQueue.length === 0) {
       return;
@@ -59,6 +67,7 @@ const chatService = {
             failedMessages.push(message);
           } else {
             console.error('[ChatService] Message failed after 3 retries:', message.id);
+            // Notify client about failed message
             this.notifyClient('message_failed', { messageId: message.id });
           }
         }
@@ -79,6 +88,7 @@ const chatService = {
     console.log('[ChatService] Queue flushed. Remaining:', this.messageQueue.length);
   },
 
+  // Send single message to Supabase
   async sendMessage(message) {
     try {
       const userId = await this.getCurrentUserId();
@@ -120,20 +130,24 @@ const chatService = {
     }
   },
 
+  // Handle incoming message (from push)
   async handleMessage(messageData) {
     console.log('[ChatService] Handling incoming message:', messageData);
     
     this.state.lastMessageId = messageData.id;
     
+    // Update unread count
     if (!this.state.activeChats.has(messageData.chat_id)) {
       this.state.unreadCount++;
     }
     
+    // Notify all clients
     this.notifyClient('new_message', messageData);
     
     await this.saveState();
   },
 
+  // Handle messages from client
   async handleClientMessage(event) {
     const data = event.data;
     
@@ -166,6 +180,7 @@ const chatService = {
     }
   },
 
+  // Update badge count
   async updateBadge() {
     if ('setAppBadge' in navigator) {
       try {
@@ -175,9 +190,11 @@ const chatService = {
       }
     }
     
+    // Notify clients about badge update
     this.notifyClient('badge_update', { count: this.state.unreadCount });
   },
 
+  // Clear badge
   async clearBadge() {
     this.state.unreadCount = 0;
     await this.saveState();
@@ -193,6 +210,7 @@ const chatService = {
     this.notifyClient('badge_update', { count: 0 });
   },
 
+  // Notify all clients
   notifyClient(type, data) {
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clients => {
       clients.forEach(client => {
@@ -205,6 +223,7 @@ const chatService = {
     });
   },
 
+  // Get chat stats
   getStats() {
     return {
       unreadCount: this.state.unreadCount,
@@ -215,6 +234,7 @@ const chatService = {
     };
   },
 
+  // Save queue to cache
   async saveQueue() {
     try {
       const cache = await caches.open('chat-cache');
@@ -227,6 +247,7 @@ const chatService = {
     }
   },
 
+  // Load queue from cache
   async loadQueue() {
     try {
       const cache = await caches.open('chat-cache');
@@ -240,6 +261,7 @@ const chatService = {
     }
   },
 
+  // Save state to cache
   async saveState() {
     try {
       const cache = await caches.open('chat-cache');
@@ -256,6 +278,7 @@ const chatService = {
     }
   },
 
+  // Load state from cache
   async loadState() {
     try {
       const cache = await caches.open('chat-cache');
@@ -271,6 +294,7 @@ const chatService = {
     }
   },
 
+  // Get current user ID
   async getCurrentUserId() {
     try {
       const cache = await caches.open('auth-cache');
@@ -285,6 +309,7 @@ const chatService = {
     return null;
   },
 
+  // Initialize
   init() {
     this.loadQueue();
     this.loadState();
@@ -292,4 +317,5 @@ const chatService = {
   }
 };
 
+// Initialize on load
 chatService.init();

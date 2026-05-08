@@ -1,80 +1,57 @@
 import { supabase } from '../config/supabase.js';
 export { supabase };
 
+// Helper to handle Supabase responses
 const handleSupabaseResponse = (data, error) => {
   if (error) throw new Error(error.message);
   return data;
 };
 
-const buildFallbackUser = (authUser, role = 'worker') => ({
-  id: authUser.id,
-  email: authUser.email,
-  name: authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'User',
-  role,
-  is_online: false,
-});
-
-const resolveUserProfile = async (authUser, role = 'worker') => {
-  const { data: existingUser, error: fetchError } = await supabase
-    .from('users')
-    .select('*')
-    .eq('id', authUser.id)
-    .maybeSingle();
-
-  if (!fetchError && existingUser) {
-    return existingUser;
-  }
-
-  const fallbackUser = buildFallbackUser(authUser, role);
-
-  const { data: insertedUser, error: upsertError } = await supabase
-    .from('users')
-    .upsert(
-      [
-        {
-          id: fallbackUser.id,
-          email: fallbackUser.email,
-          name: fallbackUser.name,
-          role: fallbackUser.role,
-        },
-      ],
-      { onConflict: 'id' }
-    )
-    .select()
-    .maybeSingle();
-
-  if (!upsertError && insertedUser) {
-    return insertedUser;
-  }
-
-  return fallbackUser;
-};
-
+// Auth API
 export const authApi = {
   login: async (email, password) => {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
-
-    const user = await resolveUserProfile(data.user);
+    
+    // Get user details from users table
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', data.user.id)
+      .single();
+      
+    if (userError) throw userError;
+    
     return { token: data.session?.access_token || null, user };
   },
   
   register: async (email, password, name, role) => {
     const { data, error } = await supabase.auth.signUp({ email, password });
     if (error) throw error;
-
-    const user = await resolveUserProfile(
-      { ...data.user, user_metadata: { ...(data.user?.user_metadata || {}), name } },
-      role
-    );
+    
+    // Create user record in users table
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .insert([{ id: data.user.id, email, name, role }])
+      .select()
+      .single();
+      
+    if (userError) throw userError;
+    
     return { token: data.session?.access_token || null, user };
   },
   
   getMe: async () => {
     const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
     if (authError || !authUser) throw new Error('Not authenticated');
-
-    const user = await resolveUserProfile(authUser);
+    
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', authUser.id)
+      .single();
+      
+    if (userError) throw userError;
     return { user };
   },
   
@@ -86,6 +63,7 @@ export const authApi = {
   }
 };
 
+// Users Status API
 export const usersApi = {
   getStatus: async () => {
     const { data, error } = await supabase.from('users').select('id, name, role, is_online, last_seen_at');
@@ -110,6 +88,7 @@ export const usersApi = {
   }
 };
 
+// Projects API
 export const projectsApi = {
   getAll: async (status) => {
     let query = supabase.from('projects').select('*, manager:manager_id(*)');
@@ -139,6 +118,7 @@ export const projectsApi = {
   }
 };
 
+// Tasks API
 export const tasksApi = {
   getAll: async (filters = {}) => {
     let query = supabase.from('tasks').select('*, project:project_id(*), assignee:assignee_id(*)');
@@ -170,6 +150,7 @@ export const tasksApi = {
   }
 };
 
+// Installations API
 export const installationsApi = {
   getAll: async (filters = {}) => {
     let query = supabase.from('installations').select('*, project:project_id(*), assignee:assignee_id(*)');
@@ -201,6 +182,7 @@ export const installationsApi = {
   }
 };
 
+// Purchase Requests API
 export const purchaseRequestsApi = {
   getAll: async (filters = {}) => {
     let query = supabase.from('purchase_requests').select('*, installation:installation_id(*), creator:creator_id(*), approved_by:approved_by_id(*)');
@@ -240,6 +222,7 @@ export const purchaseRequestsApi = {
   }
 };
 
+// Materials API
 export const materialsApi = {
   getAll: async () => {
     const { data, error } = await supabase.from('materials').select('*');
@@ -251,4 +234,5 @@ export const materialsApi = {
   }
 };
 
+// Warehouse API
 export { warehouseApi } from './warehouseApi.js';

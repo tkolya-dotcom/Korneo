@@ -40,6 +40,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String APP_URL = "https://tkolya-dotcom.github.io/Korneo/";
     private static final int PERMISSION_REQUEST_CODE = 100;
 
+    // JS Bridge — методы вызываются из JavaScript через window.AndroidBridge.*
     public class AndroidBridge {
         @JavascriptInterface
         public void log(String msg) {
@@ -51,15 +52,23 @@ public class MainActivity extends AppCompatActivity {
             return true;
         }
 
+        /**
+         * Вызывается из JS после успешной авторизации.
+         * Сохраняет userId и authToken для отправки FCM-токена при закрытом приложении.
+         */
         @JavascriptInterface
         public void saveUserSession(String userId, String authToken) {
             if (userId != null && !userId.isEmpty() && authToken != null && !authToken.isEmpty()) {
                 KorneoMessagingService.saveUserSession(MainActivity.this, userId, authToken);
                 Log.d(TAG, "User session saved: " + userId.substring(0, 8) + "...");
+                // Если уже есть токен — сразу обновим в Supabase
                 injectFCMToken();
             }
         }
 
+        /**
+         * Вызывается из JS при выходе из аккаунта.
+         */
         @JavascriptInterface
         public void clearUserSession() {
             KorneoMessagingService.clearUserSession(MainActivity.this);
@@ -71,6 +80,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        // Fullscreen
         getWindow().setFlags(
             WindowManager.LayoutParams.FLAG_FULLSCREEN,
             WindowManager.LayoutParams.FLAG_FULLSCREEN
@@ -84,6 +94,7 @@ public class MainActivity extends AppCompatActivity {
         webView = new WebView(this);
         setContentView(webView);
 
+        // JS Bridge
         webView.addJavascriptInterface(new AndroidBridge(), "AndroidBridge");
 
         WebSettings s = webView.getSettings();
@@ -96,6 +107,7 @@ public class MainActivity extends AppCompatActivity {
         s.setCacheMode(WebSettings.LOAD_DEFAULT);
         s.setMediaPlaybackRequiresUserGesture(false);
         s.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
+        // Помечаем что это нативное приложение
         s.setUserAgentString(s.getUserAgentString() + " KorneoApp/1.0");
 
         webView.setWebViewClient(new WebViewClient() {
@@ -109,6 +121,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
+                // После загрузки страницы — передаём FCM токен в JavaScript
                 injectFCMToken();
             }
         });
@@ -136,8 +149,10 @@ public class MainActivity extends AppCompatActivity {
 
         webView.loadUrl(APP_URL);
         requestAllPermissions();
+        // UpdateChecker запускается из onResume
     }
 
+    // Получаем FCM токен нативно и передаём в WebView
     private void injectFCMToken() {
         FirebaseMessaging.getInstance().getToken()
             .addOnCompleteListener(task -> {
@@ -148,6 +163,7 @@ public class MainActivity extends AppCompatActivity {
                 String token = task.getResult();
                 Log.d(TAG, "FCM Token obtained: " + token.substring(0, 20) + "...");
 
+                // Сохраняем токен глобально через JS, WebView сохранит в Supabase
                 String js = "window._nativeFCMToken = '" + token + "';" +
                     "if(typeof window.saveNativeFCMToken === 'function') {" +
                     "  window.saveNativeFCMToken('" + token + "');" +
@@ -191,8 +207,8 @@ public class MainActivity extends AppCompatActivity {
     private void createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel ch = new NotificationChannel(
-                "korneo_notifications", "РљРѕСЂРЅРµРѕ СѓРІРµРґРѕРјР»РµРЅРёСЏ", NotificationManager.IMPORTANCE_HIGH);
-            ch.setDescription("Р—Р°РґР°С‡Рё, С‡Р°С‚С‹, РјРѕРЅС‚Р°Р¶Рё");
+                "korneo_notifications", "Корнео уведомления", NotificationManager.IMPORTANCE_HIGH);
+            ch.setDescription("Задачи, чаты, монтажи");
             ch.enableVibration(true);
             NotificationManager nm = getSystemService(NotificationManager.class);
             if (nm != null) nm.createNotificationChannel(ch);
@@ -211,6 +227,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         if (webView != null) webView.onResume();
+        // Check for update once per session (first resume after cold start)
         if (!updateCheckedThisSession) {
             updateCheckedThisSession = true;
             new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(

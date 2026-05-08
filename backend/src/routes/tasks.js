@@ -5,6 +5,7 @@ import { notifyTaskAssignment } from '../utils/pushNotifications.js';
 
 const router = express.Router();
 
+// Get all tasks with filters
 router.get('/', authenticateToken, async (req, res) => {
 	try {
 		const { project_id, assignee_id, status } = req.query;
@@ -12,6 +13,7 @@ router.get('/', authenticateToken, async (req, res) => {
 		let query = supabase
 			.from('tasks')
 			.select(`
+				*,
 				project:projects(id, name),
 				assignee:users!tasks_assignee_id_fkey(id, name, email)
 			`)
@@ -30,6 +32,7 @@ router.get('/', authenticateToken, async (req, res) => {
 			query = query.eq('status', status);
 		}
 
+		// Workers can only see their own tasks
 		if (req.user.role === 'worker') {
 			query = query.eq('assignee_id', req.user.id);
 		}
@@ -47,17 +50,20 @@ router.get('/', authenticateToken, async (req, res) => {
 	}
 });
 
+// Get archived tasks
 router.get('/archived', authenticateToken, async (req, res) => {
 	try {
 		let query = supabase
 			.from('tasks')
 			.select(`
+				*,
 				project:projects(id, name),
 				assignee:users!tasks_assignee_id_fkey(id, name, email)
 			`)
 			.eq('is_archived', true)
 			.order('created_at', { ascending: false });
 
+		// Workers can only see their own archived tasks
 		if (req.user.role === 'worker') {
 			query = query.eq('assignee_id', req.user.id);
 		}
@@ -75,6 +81,7 @@ router.get('/archived', authenticateToken, async (req, res) => {
 	}
 });
 
+// Get single task
 router.get('/:id', authenticateToken, async (req, res) => {
 	try {
 		const { id } = req.params;
@@ -82,6 +89,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
 		const { data: task, error } = await supabase
 			.from('tasks')
 			.select(`
+				*,
 				project:projects(id, name),
 				assignee:users!tasks_assignee_id_fkey(id, name, email)
 			`)
@@ -92,9 +100,11 @@ router.get('/:id', authenticateToken, async (req, res) => {
 			return res.status(404).json({ error: 'Task not found' });
 		}
 
+		// Get related purchase requests
 		const { data: purchaseRequests } = await supabase
 			.from('purchase_requests')
 			.select(`
+				*,
 				creator:users!purchase_requests_created_by_fkey(id, name),
 				approved_by_user:users!purchase_requests_approved_by_fkey(id, name),
 				items:purchase_request_items(*)
@@ -109,9 +119,14 @@ router.get('/:id', authenticateToken, async (req, res) => {
 	}
 });
 
+// Helper function to parse date for storage
 const parseDueDate = (dateStr) => {
 	if (!dateStr) return null;
 	
+	// If date is in YYYY-MM-DD format (from HTML date input)
+	// Return it as-is - Supabase will handle it correctly as a DATE type
+	// The previous implementation with timezone caused the 3:00 AM issue
+	// because Supabase was interpreting the timezone offset incorrectly
 	if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
 		return dateStr;
 	}
@@ -119,6 +134,7 @@ const parseDueDate = (dateStr) => {
 	return dateStr;
 };
 
+// Create task (manager only)
 router.post('/', authenticateToken, requireManager, async (req, res) => {
 	try {
 		console.log('Creating task, user role:', req.user.role);
@@ -128,6 +144,7 @@ router.post('/', authenticateToken, requireManager, async (req, res) => {
 			return res.status(400).json({ error: 'Project ID and title are required' });
 		}
 
+		// Parse due_date with timezone fix
 		const parsedDueDate = parseDueDate(due_date);
 			
 		console.log('Creating task with due_date:', due_date, 'parsed as:', parsedDueDate);
@@ -152,6 +169,7 @@ router.post('/', authenticateToken, requireManager, async (req, res) => {
 
 		console.log('Task created successfully:', task);
 		
+		// Send push notification if task has assignee
 		if (task && task.assignee_id) {
 			try {
 				await notifyTaskAssignment(task.id);
@@ -167,11 +185,13 @@ router.post('/', authenticateToken, requireManager, async (req, res) => {
 	}
 });
 
+// Update task
 router.put('/:id', authenticateToken, async (req, res) => {
 	try {
 		const { id } = req.params;
 		const { title, description, assignee_id, status, due_date, is_archived } = req.body;
 
+		// Check if task exists
 		const { data: existingTask } = await supabase
 			.from('tasks')
 			.select('*')
@@ -182,10 +202,12 @@ router.put('/:id', authenticateToken, async (req, res) => {
 			return res.status(404).json({ error: 'Task not found' });
 		}
 
+		// Workers can only update their own tasks
 		if (req.user.role === 'worker' && existingTask.assignee_id !== req.user.id) {
 			return res.status(403).json({ error: 'You can only update your own tasks' });
 		}
 
+		// Parse due_date with timezone fix
 		const parsedDueDate = parseDueDate(due_date);
 		
 		console.log('Updating task', id, 'with due_date:', due_date, 'parsed as:', parsedDueDate);
@@ -199,6 +221,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
 			updated_at: new Date().toISOString()
 		};
 		
+		// Handle archiving/unarchiving
 		if (is_archived !== undefined) {
 			updateData.is_archived = is_archived;
 		}
@@ -226,6 +249,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
 	}
 });
 
+// Delete task (manager only)
 router.delete('/:id', authenticateToken, requireManager, async (req, res) => {
 	try {
 		const { id } = req.params;

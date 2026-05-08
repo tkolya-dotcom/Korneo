@@ -12,6 +12,7 @@ const PurchaseRequests = () => {
   const [filter, setFilter] = useState('all');
   const [error, setError] = useState('');
   
+  // Modal states
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showItemsModal, setShowItemsModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -22,6 +23,7 @@ const PurchaseRequests = () => {
   const [editingRequest, setEditingRequest] = useState(null);
   const [rejectReason, setRejectReason] = useState('');
   
+  // Form states
   const [formData, setFormData] = useState({
     task_id: '',
     installation_id: '',
@@ -32,9 +34,10 @@ const PurchaseRequests = () => {
   const [itemFormData, setItemFormData] = useState({
     name: '',
     quantity: 1,
-    unit: 'С€С‚'
+    unit: 'шт'
   });
   
+  // Material search states
   const [materialSearch, setMaterialSearch] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
@@ -88,11 +91,12 @@ const PurchaseRequests = () => {
     setError('');
     try {
       await purchaseRequestsApi.addItem(selectedRequest.id, itemFormData);
-      setItemFormData({ name: '', quantity: 1, unit: 'С€С‚' });
+      setItemFormData({ name: '', quantity: 1, unit: 'шт' });
       setMaterialSearch('');
       setSearchResults([]);
       setShowSearchResults(false);
       loadRequests();
+      // Refresh the selected request to show new item
       const data = await purchaseRequestsApi.getById(selectedRequest.id);
       setSelectedRequest(data.purchaseRequest);
     } catch (err) {
@@ -106,11 +110,12 @@ const PurchaseRequests = () => {
     try {
       await purchaseRequestsApi.updateItem(editingItem.id, itemFormData);
       setEditingItem(null);
-      setItemFormData({ name: '', quantity: 1, unit: 'С€С‚' });
+      setItemFormData({ name: '', quantity: 1, unit: 'шт' });
       setMaterialSearch('');
       setSearchResults([]);
       setShowSearchResults(false);
       loadRequests();
+      // Refresh the selected request to show updated item
       const data = await purchaseRequestsApi.getById(selectedRequest.id);
       setSelectedRequest(data.purchaseRequest);
     } catch (err) {
@@ -118,6 +123,7 @@ const PurchaseRequests = () => {
     }
   };
 
+  // Material search handler
   const handleMaterialSearch = async (searchTerm) => {
     setMaterialSearch(searchTerm);
     if (searchTerm.length < 2) {
@@ -137,11 +143,12 @@ const PurchaseRequests = () => {
     }
   };
 
+  // Select material from search results
   const handleSelectMaterial = (material) => {
     setItemFormData({
       ...itemFormData,
       name: material.name,
-      unit: material.default_unit || 'С€С‚'
+      unit: material.default_unit || 'шт'
     });
     setMaterialSearch(material.name);
     setSearchResults([]);
@@ -149,11 +156,12 @@ const PurchaseRequests = () => {
   };
 
   const handleDeleteItem = async (itemId) => {
-    if (!window.confirm('Р’С‹ СѓРІРµСЂРµРЅС‹, С‡С‚Рѕ С…РѕС‚РёС‚Рµ СѓРґР°Р»РёС‚СЊ СЌС‚РѕС‚ item?')) return;
+    if (!window.confirm('Вы уверены, что хотите удалить этот item?')) return;
     setError('');
     try {
       await purchaseRequestsApi.deleteItem(itemId);
       loadRequests();
+      // Refresh the selected request to show updated items
       const data = await purchaseRequestsApi.getById(selectedRequest.id);
       setSelectedRequest(data.purchaseRequest);
     } catch (err) {
@@ -182,15 +190,15 @@ const PurchaseRequests = () => {
 
   const getStatusLabel = (status) => {
     const labels = {
-      draft: 'Р§РµСЂРЅРѕРІРёРє',
-      pending: 'РћР¶РёРґР°РµС‚',
-      approved: 'РџРѕРґС‚РІРµСЂР¶РґРµРЅР°',
-      rejected: 'РћС‚РєР»РѕРЅРµРЅР°',
-      in_order: 'Р’ Р·Р°РєР°Р·Рµ',
-      ready_for_receipt: 'Р“РѕС‚РѕРІ Рє РїРѕР»СѓС‡РµРЅРёСЋ',
-      received: 'РџРѕР»СѓС‡РµРЅРѕ',
-      done: 'Р—Р°РІРµСЂС€С‘РЅ',
-      postponed: 'РћС‚Р»РѕР¶РµРЅ'
+      draft: 'Черновик',
+      pending: 'Ожидает',
+      approved: 'Подтверждена',
+      rejected: 'Отклонена',
+      in_order: 'В заказе',
+      ready_for_receipt: 'Готов к получению',
+      received: 'Получено',
+      done: 'Завершён',
+      postponed: 'Отложен'
     };
     return labels[status] || status;
   };
@@ -199,14 +207,14 @@ const PurchaseRequests = () => {
     if (request.task) {
       const projectName = request.task.project?.name;
       return projectName 
-        ? `Р—Р°РґР°С‡Р°: ${request.task.title} (РџСЂРѕРµРєС‚: ${projectName})`
-        : `Р—Р°РґР°С‡Р°: ${request.task.title}`;
+        ? `Задача: ${request.task.title} (Проект: ${projectName})`
+        : `Задача: ${request.task.title}`;
     }
     if (request.installation) {
       const projectName = request.installation.project?.name;
       return projectName 
-        ? `РњРѕРЅС‚Р°Р¶: ${request.installation.title} (РџСЂРѕРµРєС‚: ${projectName})`
-        : `РњРѕРЅС‚Р°Р¶: ${request.installation.title}`;
+        ? `Монтаж: ${request.installation.title} (Проект: ${projectName})`
+        : `Монтаж: ${request.installation.title}`;
     }
     return '-';
   };
@@ -238,6 +246,7 @@ const PurchaseRequests = () => {
     }
   };
 
+  // Open detail modal
   const openDetailModal = async (request) => {
     try {
       const data = await purchaseRequestsApi.getById(request.id);
@@ -248,6 +257,7 @@ const PurchaseRequests = () => {
     }
   };
 
+  // Handle approve request
   const handleApprove = async () => {
     if (!selectedRequest) return;
     setError('');
@@ -261,11 +271,13 @@ const PurchaseRequests = () => {
     }
   };
 
+  // Handle reject - open reason modal
   const openRejectModal = () => {
     setRejectReason('');
     setShowRejectModal(true);
   };
 
+  // Handle reject with reason
   const handleReject = async () => {
     if (!selectedRequest) return;
     setError('');
@@ -281,6 +293,7 @@ const PurchaseRequests = () => {
     }
   };
 
+  // Handle submit for review (worker edits and resubmits)
   const handleSubmitForReview = async () => {
     if (!selectedRequest) return;
     setError('');
@@ -295,46 +308,46 @@ const PurchaseRequests = () => {
   };
 
   if (loading) {
-    return <div className="loading">Р—Р°РіСЂСѓР·РєР°...</div>;
+    return <div className="loading">Загрузка...</div>;
   }
 
   return (
     <div>
       <header className="header">
-        <h1>Р—Р°СЏРІРєРё РЅР° Р·Р°РєСѓРїРєСѓ</h1>
+        <h1>Заявки на закупку</h1>
         <nav className="header-nav">
-          <Link to="/">Р“Р»Р°РІРЅР°СЏ</Link>
-          <Link to="/projects">РџСЂРѕРµРєС‚С‹</Link>
-          <Link to="/tasks">Р—Р°РґР°С‡Рё</Link>
-          <Link to="/installations">РњРѕРЅС‚Р°Р¶Рё</Link>
-          <Link to="/purchase-requests">Р—Р°СЏРІРєРё</Link>
+          <Link to="/">Главная</Link>
+          <Link to="/projects">Проекты</Link>
+          <Link to="/tasks">Задачи</Link>
+          <Link to="/installations">Монтажи</Link>
+          <Link to="/purchase-requests">Заявки</Link>
         </nav>
       </header>
 
       <main className="container">
         <div className="card">
           <div className="card-header">
-            <h3 className="card-title">РЎРїРёСЃРѕРє Р·Р°СЏРІРѕРє</h3>
+            <h3 className="card-title">Список заявок</h3>
             <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
               <select
                 value={filter}
                 onChange={(e) => setFilter(e.target.value)}
                 style={{ padding: '8px', borderRadius: '4px', border: '1px solid #e0e0e0' }}
               >
-                <option value="all">Р’СЃРµ</option>
-                <option value="draft">Р§РµСЂРЅРѕРІРёРєРё</option>
-                <option value="pending">РћР¶РёРґР°СЋС‰РёРµ</option>
-                <option value="approved">РџРѕРґС‚РІРµСЂР¶РґС‘РЅРЅС‹Рµ</option>
-                <option value="rejected">РћС‚РєР»РѕРЅС‘РЅРЅС‹Рµ</option>
-                <option value="in_order">Р’ Р·Р°РєР°Р·Рµ</option>
-                <option value="ready_for_receipt">Р“РѕС‚РѕРІ Рє РїРѕР»СѓС‡РµРЅРёСЋ</option>
-                <option value="received">РџРѕР»СѓС‡РµРЅРѕ</option>
-                <option value="done">Р—Р°РІРµСЂС€С‘РЅРЅС‹Рµ</option>
-                <option value="postponed">РћС‚Р»РѕР¶РµРЅРЅС‹Рµ</option>
+                <option value="all">Все</option>
+                <option value="draft">Черновики</option>
+                <option value="pending">Ожидающие</option>
+                <option value="approved">Подтверждённые</option>
+                <option value="rejected">Отклонённые</option>
+                <option value="in_order">В заказе</option>
+                <option value="ready_for_receipt">Готов к получению</option>
+                <option value="received">Получено</option>
+                <option value="done">Завершённые</option>
+                <option value="postponed">Отложенные</option>
               </select>
               {canManageItems && (
                 <button className="btn btn-primary" onClick={() => setShowCreateModal(true)}>
-                  РЎРѕР·РґР°С‚СЊ Р·Р°СЏРІРєСѓ
+                  Создать заявку
                 </button>
               )}
             </div>
@@ -344,19 +357,19 @@ const PurchaseRequests = () => {
 
           {requests.length === 0 ? (
             <div className="empty-state">
-              <h3>РќРµС‚ Р·Р°СЏРІРѕРє</h3>
-              <p>Р—Р°СЏРІРєРё РЅР° Р·Р°РєСѓРїРєСѓ РјР°С‚РµСЂРёР°Р»РѕРІ РїРѕСЏРІСЏС‚СЃСЏ Р·РґРµСЃСЊ</p>
+              <h3>Нет заявок</h3>
+              <p>Заявки на закупку материалов появятся здесь</p>
             </div>
           ) : (
             <table className="table">
               <thead>
                 <tr>
-                  <th>РЎРІСЏР·Р°РЅРЅС‹Р№ РѕР±СЉРµРєС‚</th>
-                  <th>РЎРѕР·РґР°С‚РµР»СЊ</th>
-                  <th>РЎС‚Р°С‚СѓСЃ</th>
-                  <th>РљРѕРјРјРµРЅС‚Р°СЂРёР№</th>
-                  <th>Р”Р°С‚Р° СЃРѕР·РґР°РЅРёСЏ</th>
-                  <th>Р”РµР№СЃС‚РІРёСЏ</th>
+                  <th>Связанный объект</th>
+                  <th>Создатель</th>
+                  <th>Статус</th>
+                  <th>Комментарий</th>
+                  <th>Дата создания</th>
+                  <th>Действия</th>
                 </tr>
               </thead>
               <tbody>
@@ -384,14 +397,14 @@ const PurchaseRequests = () => {
                               onClick={() => handleStatusChange(request.id, 'approved', '')}
                               style={{ padding: '5px 10px', fontSize: '12px' }}
                             >
-                              РџРѕРґС‚РІРµСЂРґРёС‚СЊ
+                              Подтвердить
                             </button>
                             <button
                               className="btn btn-danger"
                               onClick={() => handleStatusChange(request.id, 'rejected', '')}
                               style={{ padding: '5px 10px', fontSize: '12px' }}
                             >
-                              РћС‚РєР»РѕРЅРёС‚СЊ
+                              Отклонить
                             </button>
                           </div>
                         )}
@@ -401,7 +414,7 @@ const PurchaseRequests = () => {
                             onClick={() => openItemsModal(request)}
                             style={{ padding: '5px 10px', fontSize: '12px' }}
                           >
-                            РЈРїСЂР°РІР»РµРЅРёРµ items ({request.items?.length || 0})
+                            Управление items ({request.items?.length || 0})
                           </button>
                         )}
                         {((isManager || (isWorker && request.creator?.id === user?.id)) && (request.status === 'draft' || request.status === 'rejected')) && (
@@ -410,7 +423,7 @@ const PurchaseRequests = () => {
                             onClick={() => openEditModal(request)}
                             style={{ padding: '5px 10px', fontSize: '12px' }}
                           >
-                            Р РµРґР°РєС‚РёСЂРѕРІР°С‚СЊ
+                            Редактировать
                           </button>
                         )}
                         {request.items && request.items.length > 0 && (
@@ -423,7 +436,7 @@ const PurchaseRequests = () => {
                               ))}
                               {request.items.length > 2 && (
                                 <li style={{ fontSize: '12px', color: '#757575' }}>
-                                  ...РµС‰С‘ {request.items.length - 2} РїРѕР·РёС†РёР№
+                                  ...ещё {request.items.length - 2} позиций
                                 </li>
                               )}
                             </ul>
@@ -444,38 +457,38 @@ const PurchaseRequests = () => {
         <div className="modal-overlay" onClick={() => setShowCreateModal(false)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>РЎРѕР·РґР°С‚СЊ Р·Р°СЏРІРєСѓ РЅР° Р·Р°РєСѓРїРєСѓ</h2>
+              <h2>Создать заявку на закупку</h2>
               <button className="modal-close" onClick={() => setShowCreateModal(false)}>&times;</button>
             </div>
             <form onSubmit={handleCreateRequest}>
               {error && <div className="error">{error}</div>}
               <div className="form-group">
-                <label>РЎРІСЏР·Р°С‚СЊ СЃ Р·Р°РґР°С‡РµР№</label>
+                <label>Связать с задачей</label>
                 <select
                   value={formData.task_id}
                   onChange={e => setFormData({ ...formData, task_id: e.target.value, installation_id: '' })}
                 >
-                  <option value="">Р’С‹Р±РµСЂРёС‚Рµ Р·Р°РґР°С‡Сѓ</option>
+                  <option value="">Выберите задачу</option>
                   {tasks.map(task => (
                     <option key={task.id} value={task.id}>{task.title}</option>
                   ))}
                 </select>
               </div>
               <div className="form-group">
-                <label>РЎРІСЏР·Р°С‚СЊ СЃ РјРѕРЅС‚Р°Р¶РѕРј</label>
+                <label>Связать с монтажом</label>
                 <select
                   value={formData.installation_id}
                   onChange={e => setFormData({ ...formData, installation_id: e.target.value, task_id: '' })}
                   disabled={!!formData.task_id}
                 >
-                  <option value="">Р’С‹Р±РµСЂРёС‚Рµ РјРѕРЅС‚Р°Р¶</option>
+                  <option value="">Выберите монтаж</option>
                   {installations.map(inst => (
                     <option key={inst.id} value={inst.id}>{inst.title}</option>
                   ))}
                 </select>
               </div>
               <div className="form-group">
-                <label>РљРѕРјРјРµРЅС‚Р°СЂРёР№</label>
+                <label>Комментарий</label>
                 <textarea
                   value={formData.comment}
                   onChange={e => setFormData({ ...formData, comment: e.target.value })}
@@ -483,10 +496,10 @@ const PurchaseRequests = () => {
               </div>
               <div className="modal-footer">
                 <button type="button" className="btn btn-secondary" onClick={() => setShowCreateModal(false)}>
-                  РћС‚РјРµРЅР°
+                  Отмена
                 </button>
                 <button type="submit" className="btn btn-primary">
-                  РЎРѕР·РґР°С‚СЊ
+                  Создать
                 </button>
               </div>
             </form>
@@ -499,38 +512,38 @@ const PurchaseRequests = () => {
         <div className="modal-overlay" onClick={() => { setShowEditModal(false); setEditingRequest(null); }}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>Р РµРґР°РєС‚РёСЂРѕРІР°С‚СЊ Р·Р°СЏРІРєСѓ РЅР° Р·Р°РєСѓРїРєСѓ</h2>
+              <h2>Редактировать заявку на закупку</h2>
               <button className="modal-close" onClick={() => { setShowEditModal(false); setEditingRequest(null); }}>&times;</button>
             </div>
             <form onSubmit={handleEditRequest}>
               {error && <div className="error">{error}</div>}
               <div className="form-group">
-                <label>РЎРІСЏР·Р°С‚СЊ СЃ Р·Р°РґР°С‡РµР№</label>
+                <label>Связать с задачей</label>
                 <select
                   value={formData.task_id}
                   onChange={e => setFormData({ ...formData, task_id: e.target.value, installation_id: '' })}
                 >
-                  <option value="">Р’С‹Р±РµСЂРёС‚Рµ Р·Р°РґР°С‡Сѓ</option>
+                  <option value="">Выберите задачу</option>
                   {tasks.map(task => (
                     <option key={task.id} value={task.id}>{task.title}</option>
                   ))}
                 </select>
               </div>
               <div className="form-group">
-                <label>РЎРІСЏР·Р°С‚СЊ СЃ РјРѕРЅС‚Р°Р¶РѕРј</label>
+                <label>Связать с монтажом</label>
                 <select
                   value={formData.installation_id}
                   onChange={e => setFormData({ ...formData, installation_id: e.target.value, task_id: '' })}
                   disabled={!!formData.task_id}
                 >
-                  <option value="">Р’С‹Р±РµСЂРёС‚Рµ РјРѕРЅС‚Р°Р¶</option>
+                  <option value="">Выберите монтаж</option>
                   {installations.map(inst => (
                     <option key={inst.id} value={inst.id}>{inst.title}</option>
                   ))}
                 </select>
               </div>
               <div className="form-group">
-                <label>РљРѕРјРјРµРЅС‚Р°СЂРёР№</label>
+                <label>Комментарий</label>
                 <textarea
                   value={formData.comment}
                   onChange={e => setFormData({ ...formData, comment: e.target.value })}
@@ -538,10 +551,10 @@ const PurchaseRequests = () => {
               </div>
               <div className="modal-footer">
                 <button type="button" className="btn btn-secondary" onClick={() => { setShowEditModal(false); setEditingRequest(null); }}>
-                  РћС‚РјРµРЅР°
+                  Отмена
                 </button>
                 <button type="submit" className="btn btn-primary">
-                  РЎРѕС…СЂР°РЅРёС‚СЊ
+                  Сохранить
                 </button>
               </div>
             </form>
@@ -554,7 +567,7 @@ const PurchaseRequests = () => {
         <div className="modal-overlay" onClick={() => { setShowItemsModal(false); setSelectedRequest(null); setEditingItem(null); }}>
           <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px' }}>
             <div className="modal-header">
-              <h2>РЈРїСЂР°РІР»РµРЅРёРµ items Р·Р°СЏРІРєРё</h2>
+              <h2>Управление items заявки</h2>
               <button className="modal-close" onClick={() => { setShowItemsModal(false); setSelectedRequest(null); setEditingItem(null); }}>&times;</button>
             </div>
             <div style={{ padding: '20px' }}>
@@ -562,17 +575,17 @@ const PurchaseRequests = () => {
               
               {/* Add/Edit Item Form */}
               <div style={{ marginBottom: '20px', padding: '15px', backgroundColor: '#f5f5f5', borderRadius: '4px' }}>
-                <h4>{editingItem ? 'Р РµРґР°РєС‚РёСЂРѕРІР°С‚СЊ item' : 'Р”РѕР±Р°РІРёС‚СЊ item'}</h4>
+                <h4>{editingItem ? 'Редактировать item' : 'Добавить item'}</h4>
                 <form onSubmit={editingItem ? handleUpdateItem : handleAddItem}>
                   <div className="form-group">
-                    <label>РќР°Р·РІР°РЅРёРµ *</label>
+                    <label>Название *</label>
                     <div style={{ position: 'relative' }}>
                       <input
                         type="text"
                         value={editingItem ? itemFormData.name : materialSearch}
                         onChange={e => editingItem ? setItemFormData({ ...itemFormData, name: e.target.value }) : handleMaterialSearch(e.target.value)}
                         required
-                        placeholder="РќР°РїСЂРёРјРµСЂ: Р‘РѕР»С‚С‹ Рњ10"
+                        placeholder="Например: Болты М10"
                         autoComplete="off"
                       />
                       {showSearchResults && searchResults.length > 0 && (
@@ -606,7 +619,7 @@ const PurchaseRequests = () => {
                             >
                               <span>{material.name}</span>
                               <span style={{ fontSize: '12px', color: '#757575' }}>
-                                {material.category} вЂў {material.default_unit}
+                                {material.category} • {material.default_unit}
                               </span>
                             </div>
                           ))}
@@ -625,7 +638,7 @@ const PurchaseRequests = () => {
                           fontSize: '12px',
                           color: '#757575'
                         }}>
-                          РџРѕРёСЃРє...
+                          Поиск...
                         </div>
                       )}
                     </div>
@@ -643,13 +656,13 @@ const PurchaseRequests = () => {
                           textDecoration: 'underline'
                         }}
                       >
-                        РџРѕРєР°Р·Р°С‚СЊ РЅР°Р№РґРµРЅРЅС‹Рµ РјР°С‚РµСЂРёР°Р»С‹ ({searchResults.length})
+                        Показать найденные материалы ({searchResults.length})
                       </button>
                     )}
                   </div>
                   <div style={{ display: 'flex', gap: '10px' }}>
                     <div className="form-group" style={{ flex: 1 }}>
-                      <label>РљРѕР»РёС‡РµСЃС‚РІРѕ *</label>
+                      <label>Количество *</label>
                       <input
                         type="number"
                         min="1"
@@ -659,28 +672,28 @@ const PurchaseRequests = () => {
                       />
                     </div>
                     <div className="form-group" style={{ flex: 1 }}>
-                      <label>Р•РґРёРЅРёС†Р°</label>
+                      <label>Единица</label>
                       <select
                         value={itemFormData.unit}
                         onChange={e => setItemFormData({ ...itemFormData, unit: e.target.value })}
                       >
-                        <option value="С€С‚">С€С‚</option>
-                        <option value="РєРі">РєРі</option>
-                        <option value="Рј">Рј</option>
-                        <option value="Рј2">Рј2</option>
-                        <option value="Рј3">Рј3</option>
-                        <option value="СѓРїР°РєРѕРІРєР°">СѓРїР°РєРѕРІРєР°</option>
-                        <option value="РєРѕРјРїР»РµРєС‚">РєРѕРјРїР»РµРєС‚</option>
+                        <option value="шт">шт</option>
+                        <option value="кг">кг</option>
+                        <option value="м">м</option>
+                        <option value="м2">м2</option>
+                        <option value="м3">м3</option>
+                        <option value="упаковка">упаковка</option>
+                        <option value="комплект">комплект</option>
                       </select>
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
                     <button type="submit" className="btn btn-primary">
-                      {editingItem ? 'РЎРѕС…СЂР°РЅРёС‚СЊ' : 'Р”РѕР±Р°РІРёС‚СЊ'}
+                      {editingItem ? 'Сохранить' : 'Добавить'}
                     </button>
                     {editingItem && (
-                      <button type="button" className="btn btn-secondary" onClick={() => { setEditingItem(null); setItemFormData({ name: '', quantity: 1, unit: 'С€С‚' }); }}>
-                        РћС‚РјРµРЅР°
+                      <button type="button" className="btn btn-secondary" onClick={() => { setEditingItem(null); setItemFormData({ name: '', quantity: 1, unit: 'шт' }); }}>
+                        Отмена
                       </button>
                     )}
                   </div>
@@ -688,14 +701,14 @@ const PurchaseRequests = () => {
               </div>
 
               {/* Items List */}
-              <h4>РЎРїРёСЃРѕРє items</h4>
+              <h4>Список items</h4>
               {selectedRequest.items && selectedRequest.items.length > 0 ? (
                 <table className="table">
                   <thead>
                     <tr>
-                      <th>РќР°Р·РІР°РЅРёРµ</th>
-                      <th>РљРѕР»РёС‡РµСЃС‚РІРѕ</th>
-                      <th>Р”РµР№СЃС‚РІРёСЏ</th>
+                      <th>Название</th>
+                      <th>Количество</th>
+                      <th>Действия</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -710,14 +723,14 @@ const PurchaseRequests = () => {
                               onClick={() => { setEditingItem(item); setItemFormData({ name: item.name, quantity: item.quantity, unit: item.unit }); }}
                               style={{ padding: '5px 10px', fontSize: '12px' }}
                             >
-                              РР·РјРµРЅРёС‚СЊ
+                              Изменить
                             </button>
                             <button
                               className="btn btn-danger"
                               onClick={() => handleDeleteItem(item.id)}
                               style={{ padding: '5px 10px', fontSize: '12px' }}
                             >
-                              РЈРґР°Р»РёС‚СЊ
+                              Удалить
                             </button>
                           </div>
                         </td>
@@ -726,7 +739,7 @@ const PurchaseRequests = () => {
                   </tbody>
                 </table>
               ) : (
-                <p style={{ color: '#757575' }}>РќРµС‚ items РІ СЌС‚РѕР№ Р·Р°СЏРІРєРµ</p>
+                <p style={{ color: '#757575' }}>Нет items в этой заявке</p>
               )}
 
               {/* Submit for Review Button - for workers with draft/rejected requests */}
@@ -746,14 +759,14 @@ const PurchaseRequests = () => {
                     }}
                     style={{ width: '100%' }}
                   >
-                    РћС‚РїСЂР°РІРёС‚СЊ РЅР° СЂР°СЃСЃРјРѕС‚СЂРµРЅРёРµ
+                    Отправить на рассмотрение
                   </button>
                 </div>
               )}
             </div>
             <div className="modal-footer">
               <button type="button" className="btn btn-secondary" onClick={() => { setShowItemsModal(false); setSelectedRequest(null); setEditingItem(null); }}>
-                Р—Р°РєСЂС‹С‚СЊ
+                Закрыть
               </button>
             </div>
           </div>
@@ -765,7 +778,7 @@ const PurchaseRequests = () => {
         <div className="modal-overlay" onClick={() => { setShowDetailModal(false); setSelectedRequest(null); }}>
           <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '700px' }}>
             <div className="modal-header">
-              <h2>Р”РµС‚Р°Р»Рё Р·Р°СЏРІРєРё</h2>
+              <h2>Детали заявки</h2>
               <button className="modal-close" onClick={() => { setShowDetailModal(false); setSelectedRequest(null); }}>&times;</button>
             </div>
             <div style={{ padding: '20px' }}>
@@ -775,11 +788,11 @@ const PurchaseRequests = () => {
               <div style={{ marginBottom: '20px' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '15px' }}>
                   <div>
-                    <strong>РЎРІСЏР·Р°РЅРЅС‹Р№ РѕР±СЉРµРєС‚:</strong>
+                    <strong>Связанный объект:</strong>
                     <p>{getRelatedName(selectedRequest)}</p>
                   </div>
                   <div>
-                    <strong>РЎС‚Р°С‚СѓСЃ:</strong>
+                    <strong>Статус:</strong>
                     <p>
                       <span className={`status-badge status-${selectedRequest.status}`}>
                         {getStatusLabel(selectedRequest.status)}
@@ -787,37 +800,37 @@ const PurchaseRequests = () => {
                     </p>
                   </div>
                   <div>
-                    <strong>РЎРѕР·РґР°С‚РµР»СЊ:</strong>
+                    <strong>Создатель:</strong>
                     <p>{selectedRequest.creator?.name || '-'}</p>
                   </div>
                   <div>
-                    <strong>Р”Р°С‚Р° СЃРѕР·РґР°РЅРёСЏ:</strong>
+                    <strong>Дата создания:</strong>
                     <p>{new Date(selectedRequest.created_at).toLocaleString('ru-RU')}</p>
                   </div>
                 </div>
                 {selectedRequest.comment && selectedRequest.status !== 'rejected' && (
                   <div style={{ marginBottom: '15px' }}>
-                    <strong>РљРѕРјРјРµРЅС‚Р°СЂРёР№:</strong>
+                    <strong>Комментарий:</strong>
                     <p>{selectedRequest.comment}</p>
                   </div>
                 )}
                 {selectedRequest.status === 'rejected' && (
                   <div style={{ marginBottom: '15px', padding: '10px', backgroundColor: '#ffebee', borderRadius: '4px' }}>
-                    <strong>РџСЂРёС‡РёРЅР° РѕС‚РєР»РѕРЅРµРЅРёСЏ:</strong>
-                    <p>{selectedRequest.comment || 'РџСЂРёС‡РёРЅР° РЅРµ СѓРєР°Р·Р°РЅР°'}</p>
+                    <strong>Причина отклонения:</strong>
+                    <p>{selectedRequest.comment || 'Причина не указана'}</p>
                   </div>
                 )}
               </div>
 
               {/* Items List */}
-              <h4>РЎРїРёСЃРѕРє РїРѕР·РёС†РёР№</h4>
+              <h4>Список позиций</h4>
               {selectedRequest.items && selectedRequest.items.length > 0 ? (
                 <table className="table">
                   <thead>
                     <tr>
-                      <th>в„–</th>
-                      <th>РќР°Р·РІР°РЅРёРµ</th>
-                      <th>РљРѕР»РёС‡РµСЃС‚РІРѕ</th>
+                      <th>№</th>
+                      <th>Название</th>
+                      <th>Количество</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -831,25 +844,25 @@ const PurchaseRequests = () => {
                   </tbody>
                 </table>
               ) : (
-                <p style={{ color: '#757575' }}>РќРµС‚ РїРѕР·РёС†РёР№ РІ СЌС‚РѕР№ Р·Р°СЏРІРєРµ</p>
+                <p style={{ color: '#757575' }}>Нет позиций в этой заявке</p>
               )}
 
               {/* Manager Actions */}
               {isManager && selectedRequest.status === 'pending' && (
                 <div style={{ marginTop: '20px', padding: '15px', backgroundColor: '#f5f5f5', borderRadius: '4px' }}>
-                  <h4>Р”РµР№СЃС‚РІРёСЏ СЂСѓРєРѕРІРѕРґРёС‚РµР»СЏ</h4>
+                  <h4>Действия руководителя</h4>
                   <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
                     <button
                       className="btn btn-success"
                       onClick={handleApprove}
                     >
-                      РћРґРѕР±СЂРёС‚СЊ
+                      Одобрить
                     </button>
                     <button
                       className="btn btn-danger"
                       onClick={openRejectModal}
                     >
-                      РћС‚РєР»РѕРЅРёС‚СЊ
+                      Отклонить
                     </button>
                   </div>
                 </div>
@@ -858,9 +871,9 @@ const PurchaseRequests = () => {
               {/* Worker Actions - Edit and Submit for Review */}
               {isWorker && selectedRequest.creator?.id === user?.id && (selectedRequest.status === 'draft' || selectedRequest.status === 'rejected') && (
                 <div style={{ marginTop: '20px', padding: '15px', backgroundColor: '#e3f2fd', borderRadius: '4px' }}>
-                  <h4>Р”РµР№СЃС‚РІРёСЏ РёСЃРїРѕР»РЅРёС‚РµР»СЏ</h4>
+                  <h4>Действия исполнителя</h4>
                   <p style={{ marginBottom: '10px', color: '#757575' }}>
-                    Р’С‹ РјРѕР¶РµС‚Рµ РѕС‚СЂРµРґР°РєС‚РёСЂРѕРІР°С‚СЊ РїРѕР·РёС†РёРё Рё РѕС‚РїСЂР°РІРёС‚СЊ Р·Р°СЏРІРєСѓ РЅР° СЂР°СЃСЃРјРѕС‚СЂРµРЅРёРµ
+                    Вы можете отредактировать позиции и отправить заявку на рассмотрение
                   </p>
                   <button
                     className="btn btn-primary"
@@ -869,14 +882,14 @@ const PurchaseRequests = () => {
                       openItemsModal(selectedRequest);
                     }}
                   >
-                    Р РµРґР°РєС‚РёСЂРѕРІР°С‚СЊ Рё РѕС‚РїСЂР°РІРёС‚СЊ РЅР° СЂР°СЃСЃРјРѕС‚СЂРµРЅРёРµ
+                    Редактировать и отправить на рассмотрение
                   </button>
                 </div>
               )}
             </div>
             <div className="modal-footer">
               <button type="button" className="btn btn-secondary" onClick={() => { setShowDetailModal(false); setSelectedRequest(null); }}>
-                Р—Р°РєСЂС‹С‚СЊ
+                Закрыть
               </button>
             </div>
           </div>
@@ -888,29 +901,29 @@ const PurchaseRequests = () => {
         <div className="modal-overlay" onClick={() => { setShowRejectModal(false); setRejectReason(''); }}>
           <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '400px' }}>
             <div className="modal-header">
-              <h2>РџСЂРёС‡РёРЅР° РѕС‚РєР»РѕРЅРµРЅРёСЏ</h2>
+              <h2>Причина отклонения</h2>
               <button className="modal-close" onClick={() => { setShowRejectModal(false); setRejectReason(''); }}>&times;</button>
             </div>
             <form onSubmit={(e) => { e.preventDefault(); handleReject(); }}>
               <div style={{ padding: '20px' }}>
                 {error && <div className="error">{error}</div>}
                 <div className="form-group">
-                  <label>РЈРєР°Р¶РёС‚Рµ РїСЂРёС‡РёРЅСѓ РѕС‚РєР»РѕРЅРµРЅРёСЏ Р·Р°СЏРІРєРё:</label>
+                  <label>Укажите причину отклонения заявки:</label>
                   <textarea
                     value={rejectReason}
                     onChange={(e) => setRejectReason(e.target.value)}
                     required
-                    placeholder="РќР°РїСЂРёРјРµСЂ: РќРµРґРѕСЃС‚Р°С‚РѕС‡РЅРѕ СЃСЂРµРґСЃС‚РІ РІ Р±СЋРґР¶РµС‚Рµ"
+                    placeholder="Например: Недостаточно средств в бюджете"
                     style={{ minHeight: '100px' }}
                   />
                 </div>
               </div>
               <div className="modal-footer">
                 <button type="button" className="btn btn-secondary" onClick={() => { setShowRejectModal(false); setRejectReason(''); }}>
-                  РћС‚РјРµРЅР°
+                  Отмена
                 </button>
                 <button type="submit" className="btn btn-danger">
-                  РћС‚РєР»РѕРЅРёС‚СЊ
+                  Отклонить
                 </button>
               </div>
             </form>

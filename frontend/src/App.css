@@ -1,3 +1,4 @@
+* {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
@@ -356,6 +357,7 @@ body {
 .empty-state { text-align: center; padding: 40px; color: var(--text-secondary); }
 .empty-state h3 { margin-bottom: 10px; }
 
+/* Progress Bar Styles */
 .progress-container {
   padding: 5px 0;
 }
@@ -382,6 +384,7 @@ body {
   font-size: 12px;
 }
 
+/* Status Breakdown Styles */
 .status-breakdown {
   display: flex;
   flex-direction: column;
@@ -430,6 +433,7 @@ body {
   font-size: 12px;
 }
 
+/* User Status Card Styles */
 .user-status-counts {
   display: flex;
   gap: 10px;

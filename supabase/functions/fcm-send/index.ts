@@ -19,6 +19,7 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
+    // Payload: { user_id, title, body, data? }
     const { user_id, title, body, data } = await req.json()
     console.log('fcm-send: Payload:', { user_id, title, body, data });
 
@@ -26,6 +27,7 @@ serve(async (req) => {
       throw new Error('Missing required fields: user_id, title, body')
     }
 
+    // 1. Get user's FCM token from database
     const { data: userData, error: userError } = await supabaseAdmin
       .from('users')
       .select('fcm_token')
@@ -37,7 +39,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           error: 'User FCM token not found',
-          message: 'РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РЅРµ Р·Р°СЂРµРіРёСЃС‚СЂРёСЂРѕРІР°РЅ РґР»СЏ FCM СѓРІРµРґРѕРјР»РµРЅРёР№'
+          message: 'Пользователь не зарегистрирован для FCM уведомлений'
         }),
         { 
           status: 404, 
@@ -46,8 +48,10 @@ serve(async (req) => {
       )
     }
 
+    // 2. Send FCM notification via Firebase HTTP v1 API
     const FCM_API_URL = `https://fcm.googleapis.com/v1/projects/${Deno.env.get('FIREBASE_PROJECT_ID')}/messages:send`
     
+    // Get access token using service account
     const accessToken = await getFirebaseAccessToken()
     
     const fcmMessage = {
@@ -89,6 +93,7 @@ serve(async (req) => {
 
     console.log('fcm-send: Success:', result.name);
 
+    // 3. Save to notification_queue
     await supabaseAdmin.from('notification_queue').insert([{
       user_id: user_id,
       title: title,
@@ -103,7 +108,7 @@ serve(async (req) => {
       JSON.stringify({ 
         success: true, 
         messageId: result.name,
-        message: 'РЈРІРµРґРѕРјР»РµРЅРёРµ РѕС‚РїСЂР°РІР»РµРЅРѕ СѓСЃРїРµС€РЅРѕ'
+        message: 'Уведомление отправлено успешно'
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
@@ -116,6 +121,7 @@ serve(async (req) => {
   }
 })
 
+// Helper: Get Firebase access token using service account
 async function getFirebaseAccessToken(): Promise<string> {
   const serviceAccountB64 = Deno.env.get('FIREBASE_SERVICE_ACCOUNT')
   
@@ -123,12 +129,14 @@ async function getFirebaseAccessToken(): Promise<string> {
     throw new Error('FIREBASE_SERVICE_ACCOUNT not configured')
   }
 
+  // Decode base64 to UTF-8 JSON string
   const serviceAccountJson = new TextDecoder().decode(
     Uint8Array.from(atob(serviceAccountB64), c => c.charCodeAt(0))
   )
   
   const serviceAccount = JSON.parse(serviceAccountJson)
   
+  // Create JWT for Google OAuth
   const now = Math.floor(Date.now() / 1000)
   const payload = {
     iss: serviceAccount.client_email,
@@ -141,6 +149,7 @@ async function getFirebaseAccessToken(): Promise<string> {
 
   const jwt = await createJWT(payload, serviceAccount.private_key)
 
+  // Exchange JWT for access token
   const response = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
     headers: {
@@ -161,6 +170,7 @@ async function getFirebaseAccessToken(): Promise<string> {
   return data.access_token
 }
 
+// Helper: Create JWT signed with ES256
 async function createJWT(payload: object, privateKey: string): Promise<string> {
   const encoder = new TextEncoder()
   const header = { alg: 'RS256', typ: 'JWT' }
@@ -172,6 +182,7 @@ async function createJWT(payload: object, privateKey: string): Promise<string> {
   
   const unsigned = `${headerB64}.${payloadB64}`
   
+  // Import private key
   const keyData = await crypto.subtle.importKey(
     'pkcs8',
     pemToArrayBuffer(privateKey),
@@ -180,6 +191,7 @@ async function createJWT(payload: object, privateKey: string): Promise<string> {
     ['sign']
   )
   
+  // Sign
   const signature = await crypto.subtle.sign(
     'RSASSA-PKCS1-v1_5',
     keyData,
@@ -192,6 +204,7 @@ async function createJWT(payload: object, privateKey: string): Promise<string> {
   return `${unsigned}.${signatureB64}`
 }
 
+// Helper: Convert PEM to ArrayBuffer
 function pemToArrayBuffer(pem: string): ArrayBuffer {
   const b64 = pem
     .replace('-----BEGIN PRIVATE KEY-----', '')

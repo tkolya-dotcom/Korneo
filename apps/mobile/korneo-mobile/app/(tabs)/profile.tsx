@@ -24,9 +24,9 @@ export default function Profile() {
         .update({ fcm_token: fcmToken })
         .eq('id', session.id);
       if (error) throw error;
-      Alert.alert('РЈСЃРїРµС…', 'Token СЃРѕС…СЂР°РЅРµРЅ');
+      Alert.alert('Успех', 'Token сохранен');
     } catch (error) {
-      Alert.alert('РћС€РёР±РєР°', 'РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕС…СЂР°РЅРёС‚СЊ');
+      Alert.alert('Ошибка', 'Не удалось сохранить');
     }
     setEditing(false);
   };
@@ -37,7 +37,7 @@ export default function Profile() {
     <View className="flex-1 bg-primary p-6 space-y-6">
       <View className="items-center space-y-4">
         <View className="w-24 h-24 bg-gradient-card rounded-full items-center justify-center">
-          <Text className="text-3xl font-orbitron text-accent">рџ‘¤</Text>
+          <Text className="text-3xl font-orbitron text-accent">👤</Text>
         </View>
         <Text className="text-2xl font-orbitron text-accent">{user.name}</Text>
         <Text className={`px-4 py-2 rounded-full ${
@@ -58,21 +58,21 @@ export default function Profile() {
               value={fcmToken}
               onChangeText={setFcmToken}
               multiline
-              placeholder="Р’СЃС‚Р°РІСЊС‚Рµ FCM token"
+              placeholder="Вставьте FCM token"
             />
             <View className="flex-row gap-2">
               <TouchableOpacity className="flex-1 bg-accent p-3 rounded-lg" onPress={saveFcmToken}>
-                <Text className="text-primary font-semibold text-center">РЎРѕС…СЂР°РЅРёС‚СЊ</Text>
+                <Text className="text-primary font-semibold text-center">Сохранить</Text>
               </TouchableOpacity>
               <TouchableOpacity className="flex-1 bg-muted p-3 rounded-lg" onPress={() => setEditing(false)}>
-                <Text className="text-text font-semibold text-center">РћС‚РјРµРЅР°</Text>
+                <Text className="text-text font-semibold text-center">Отмена</Text>
               </TouchableOpacity>
             </View>
           </View>
         ) : (
           <TouchableOpacity className="flex-row justify-between items-center" onPress={() => setEditing(true)}>
-            <Text className="text-text-muted flex-1" numberOfLines={2}>{user.fcm_token || 'РќРµ СѓСЃС‚Р°РЅРѕРІР»РµРЅ'}</Text>
-            <Text className="text-accent font-semibold">Р РµРґР°РєС‚РёСЂРѕРІР°С‚СЊ</Text>
+            <Text className="text-text-muted flex-1" numberOfLines={2}>{user.fcm_token || 'Не установлен'}</Text>
+            <Text className="text-accent font-semibold">Редактировать</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -80,12 +80,12 @@ export default function Profile() {
       {/* Settings */}
       <View className="space-y-3">
         <TouchableOpacity className="bg-gradient-card p-4 rounded-lg border border-border">
-          <Text className="text-text font-semibold">РЈРІРµРґРѕРјР»РµРЅРёСЏ</Text>
-          <Text className="text-text-muted text-sm">Push РІРєР»СЋС‡РµРЅС‹</Text>
+          <Text className="text-text font-semibold">Уведомления</Text>
+          <Text className="text-text-muted text-sm">Push включены</Text>
         </TouchableOpacity>
         <TouchableOpacity className="bg-gradient-card p-4 rounded-lg border border-border">
           <Text className="text-text font-semibold">ATS Creds</Text>
-          <Text className="text-text-muted text-sm">РЎРёРЅС…СЂРѕРЅРёР·Р°С†РёСЏ СЃ ATS</Text>
+          <Text className="text-text-muted text-sm">Синхронизация с ATS</Text>
         </TouchableOpacity>
       </View>
 
@@ -93,7 +93,7 @@ export default function Profile() {
         className="bg-danger/20 border border-danger p-6 rounded-xl items-center mt-auto"
         onPress={signOut}
       >
-        <Text className="text-danger font-semibold text-lg">Р’С‹С…РѕРґ</Text>
+        <Text className="text-danger font-semibold text-lg">Выход</Text>
       </TouchableOpacity>
     </View>
   );

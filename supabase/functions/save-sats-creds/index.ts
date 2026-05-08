@@ -1,3 +1,15 @@
+/**
+ * Edge Function: save-sats-creds
+ *
+ * Сохраняет / возвращает учётные данные для bi.sats.spb.ru.
+ * Пароль никогда не передаётся на фронтенд — только факт наличия.
+ *
+ * POST  /functions/v1/save-sats-creds  { username, password }  — сохранить
+ * GET   /functions/v1/save-sats-creds                          — получить (только username + флаг has_password)
+ * DELETE /functions/v1/save-sats-creds                         — удалить
+ *
+ * Доступ: только manager / deputy_head / admin
+ */
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
@@ -30,6 +42,7 @@ Deno.serve(async (req: Request) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   );
 
+  // Проверяем пользователя и роль
   const user = await getAuthUser(req);
   if (!user) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -49,6 +62,7 @@ Deno.serve(async (req: Request) => {
     });
   }
 
+  // ── GET: возвращаем username + has_password (пароль НЕ передаём) ──────────
   if (req.method === "GET") {
     const { data } = await supabase
       .from("external_credentials")
@@ -62,6 +76,7 @@ Deno.serve(async (req: Request) => {
       });
     }
 
+    // Получаем имя того, кто последний сохранял
     let updatedByName: string | null = null;
     if (data.updated_by) {
       const { data: updater } = await supabase
@@ -78,6 +93,7 @@ Deno.serve(async (req: Request) => {
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 
+  // ── POST: сохраняем username + зашифрованный пароль ──────────────────────
   if (req.method === "POST") {
     const { username, password } = await req.json();
 
@@ -87,6 +103,8 @@ Deno.serve(async (req: Request) => {
       });
     }
 
+    // Используем RPC-функцию с SECURITY DEFINER — она сама шифрует через pgcrypto
+    // Передаём enc_key через SET LOCAL
     const { error } = await supabase.rpc("upsert_external_credential", {
       p_system_key: SYSTEM_KEY,
       p_username:   username.trim(),
@@ -100,12 +118,15 @@ Deno.serve(async (req: Request) => {
       });
     }
 
+    // Обновляем env-переменные в памяти Edge Function синхронизации не нужно —
+    // sync-sites каждый раз читает из БД через RPC get_external_credential_password
 
     return new Response(JSON.stringify({ saved: true }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 
+  // ── DELETE: удаляем запись ────────────────────────────────────────────────
   if (req.method === "DELETE") {
     await supabase
       .from("external_credentials")

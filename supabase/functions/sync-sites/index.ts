@@ -1,6 +1,18 @@
+/**
+ * Edge Function: sync-sites
+ *
+ * Синхронизирует данные площадок с bi.sats.spb.ru → Supabase.
+ * Обрабатывает только площадки, у которых id_ploshadki заполнен в таблице installations.
+ *
+ * Запрос: POST /functions/v1/sync-sites
+ * Body (опционально): { "site_ids": [196621538, ...] }  — конкретные ID, иначе все из installations
+ *
+ * Авторизация: Bearer <SUPABASE_SERVICE_ROLE_KEY>  или  x-sync-secret: <SYNC_SECRET>
+ */
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
+// ── Конфигурация ─────────────────────────────────────────────────────────────
 const SATS_BASE    = "https://bi.sats.spb.ru/suremts";
 const SATS_USER    = Deno.env.get("SATS_USERNAME") ?? "dispatcher";
 const SATS_PASS    = Deno.env.get("SATS_PASSWORD") ?? "";
@@ -8,16 +20,17 @@ const SYNC_SECRET  = Deno.env.get("SYNC_SECRET")   ?? "";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")  ?? "";
 const SERVICE_KEY  = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
+// Категории устройств по типу (ключевые слова в нижнем регистре)
 const CATEGORY_MAP: Record<string, string> = {
-  "РєРѕРјРјСѓС‚Р°С‚РѕСЂ": "switch",
-  "РјР°СЂС€СЂСѓС‚РёР·Р°С‚РѕСЂ": "switch",
+  "коммутатор": "switch",
+  "маршрутизатор": "switch",
   "switch": "switch",
   "router": "switch",
-  "РёР±Рї": "ups",
+  "ибп": "ups",
   "ups": "ups",
-  "РёСЃС‚РѕС‡РЅРёРє Р±РµСЃРїРµСЂРµР±РѕР№РЅРѕРіРѕ": "ups",
-  "РєРѕРЅРґРёС†РёРѕРЅРµСЂ": "ac",
-  "СЃРїР»РёС‚": "ac",
+  "источник бесперебойного": "ups",
+  "кондиционер": "ac",
+  "сплит": "ac",
   "mitsubishi": "ac",
   "daikin": "ac",
   "haier": "ac",
@@ -31,18 +44,22 @@ function detectCategory(typeStr: string, modelStr: string): string {
   return "other";
 }
 
+// ── APEX-сессия ──────────────────────────────────────────────────────────────
 let apexSession: string | null = null;
 
 async function getApexSession(): Promise<string> {
   if (apexSession) return apexSession;
 
+  // Шаг 1: загружаем главную страницу — получаем session в URL редиректа
   const homeResp = await fetch(`${SATS_BASE}/f?p=101`, { redirect: "follow" });
   const homeUrl  = homeResp.url; // f?p=101:5:SESSION::NO:RP::
   const match    = homeUrl.match(/f\?p=101:\d+:(\d+)/);
-  if (!match) throw new Error(`РќРµ СѓРґР°Р»РѕСЃСЊ РїРѕР»СѓС‡РёС‚СЊ APEX-СЃРµСЃСЃРёСЋ РёР· URL: ${homeUrl}`);
+  if (!match) throw new Error(`Не удалось получить APEX-сессию из URL: ${homeUrl}`);
 
   apexSession = match[1];
 
+  // Шаг 2: если нужна авторизация — логинимся
+  // (сессия dispatcher обычно уже авторизована через IP/сессию)
   if (SATS_PASS) {
     await fetch(`${SATS_BASE}/wwv_flow.accept`, {
       method: "POST",
@@ -60,13 +77,16 @@ async function getApexSession(): Promise<string> {
   return apexSession;
 }
 
+// ── Получение данных площадки (страница 8) ───────────────────────────────────
 async function fetchSiteDetail(siteId: number): Promise<Record<string, string>> {
   const session = await getApexSession();
   const url     = `${SATS_BASE}/f?p=101:8:${session}::NO:RP:P8_ID:${siteId}`;
   const resp    = await fetch(url);
   const html    = await resp.text();
 
+  // Парсим поля через регулярки (Oracle APEX рендерит dl/dt/dd)
   const extract = (label: string): string => {
+    // Ищем: <dt>...LABEL...</dt>\s*<dd>VALUE</dd>
     const re = new RegExp(
       `<dt[^>]*>[^<]*${escapeRe(label)}[^<]*<\\/dt>\\s*<dd[^>]*>([\\s\\S]*?)<\\/dd>`,
       "i"
@@ -76,43 +96,50 @@ async function fetchSiteDetail(siteId: number): Promise<Record<string, string>> 
     return m[1].replace(/<[^>]+>/g, "").trim();
   };
 
+  // Контакты: секция "Контакты" → список телефон + имя
   const contacts: Array<{ phone: string; name: string }> = [];
-  const contactSection = html.match(/РљРѕРЅС‚Р°РєС‚С‹:?([\s\S]*?)(?:Р Р°СЃРїРѕР»РѕР¶РµРЅРёРµ С€РєР°С„РѕРІ|<\/div>)/i)?.[1] ?? "";
-  const phoneRe = /(\+?[\d\s\-]{10,})\s*[вЂ”вЂ“-]\s*([^<\n]+)/g;
+  const contactSection = html.match(/Контакты:?([\s\S]*?)(?:Расположение шкафов|<\/div>)/i)?.[1] ?? "";
+  const phoneRe = /(\+?[\d\s\-]{10,})\s*[—–-]\s*([^<\n]+)/g;
   let pm: RegExpExecArray | null;
   while ((pm = phoneRe.exec(contactSection)) !== null) {
     contacts.push({ phone: pm[1].trim(), name: pm[2].trim() });
   }
 
+  // Шкафы: секция "Расположение шкафов"
   const cabinets: Array<{ name: string; floor: string; room: string }> = [];
-  const cabSection = html.match(/Р Р°СЃРїРѕР»РѕР¶РµРЅРёРµ С€РєР°С„РѕРІ:?([\s\S]*?)(?:<\/div>|РћР±РѕСЂСѓРґРѕРІР°РЅРёРµ)/i)?.[1] ?? "";
-  const cabRe = /([РўРЁ\w\sв„–]+?)\s*(?:в†’|Р­С‚Р°Р¶).*?Р­С‚Р°Р¶:\s*(\d+)[.\s]+РџРѕРјРµС‰РµРЅРёРµ:\s*([^<.\n]+)/gi;
+  const cabSection = html.match(/Расположение шкафов:?([\s\S]*?)(?:<\/div>|Оборудование)/i)?.[1] ?? "";
+  // Каждая строка: имя_шкафа → Этаж: N. Помещение: X.
+  const cabRe = /([ТШ\w\s№]+?)\s*(?:→|Этаж).*?Этаж:\s*(\d+)[.\s]+Помещение:\s*([^<.\n]+)/gi;
   let cm: RegExpExecArray | null;
   while ((cm = cabRe.exec(cabSection)) !== null) {
     cabinets.push({ name: cm[1].trim(), floor: cm[2].trim(), room: cm[3].trim() });
   }
 
   return {
-    type:            extract("РўРёРї"),
-    segment:         extract("РЎРµРіРјРµРЅС‚"),
-    status:          extract("РЎС‚Р°С‚СѓСЃ"),
-    district:        extract("Р Р°Р№РѕРЅ"),
-    address:         extract("РђРґСЂРµСЃ"),
-    connection_type: extract("РўРёРї РїРѕРґРєР»СЋС‡РµРЅРёСЏ"),
-    commissioned_at: extract("Р”Р°С‚Р° РІРІРѕРґР° РІ СЌРєСЃРїР»СѓР°С‚Р°С†РёСЋ"),
-    description:     extract("РћРїРёСЃР°РЅРёРµ"),
+    type:            extract("Тип"),
+    segment:         extract("Сегмент"),
+    status:          extract("Статус"),
+    district:        extract("Район"),
+    address:         extract("Адрес"),
+    connection_type: extract("Тип подключения"),
+    commissioned_at: extract("Дата ввода в эксплуатацию"),
+    description:     extract("Описание"),
     _contacts:       JSON.stringify(contacts),
     _cabinets:       JSON.stringify(cabinets),
   };
 }
 
+// ── Получение оборудования площадки ─────────────────────────────────────────
 async function fetchSiteEquipment(siteId: number): Promise<EquipItem[]> {
   const session = await getApexSession();
 
+  // Страница 8 вкладка Оборудование
   const url  = `${SATS_BASE}/f?p=101:8:${session}::NO:RP:P8_ID:${siteId}`;
   const resp = await fetch(url);
   const html = await resp.text();
 
+  // Извлекаем ссылки на карточки оборудования: /f?p=101:22:SESSION::NO:RP:P22_ID:XXXXX
+  // Также стр.47 (UPS), стр.34 (шкаф), стр.56 (прочее)
   const equipPageRe = /f\?p=101:(22|47|56|34):[\d]+::NO:RP:P(?:22|47|56|34)_ID:(\d+)/g;
   const found = new Map<string, { page: string; equipId: string }>();
   let m: RegExpExecArray | null;
@@ -121,15 +148,18 @@ async function fetchSiteEquipment(siteId: number): Promise<EquipItem[]> {
     if (!found.has(key)) found.set(key, { page: m[1], equipId: m[2] });
   }
 
+  // Для каждого устройства получаем карточку
   const items: EquipItem[] = [];
   const promises = [...found.values()].map(async ({ page, equipId }) => {
     try {
       const item = await fetchEquipCard(page, equipId, session);
       if (item) items.push(item);
     } catch {
+      // пропускаем ошибочные карточки
     }
   });
 
+  // Параллельно, но не более 5 одновременно
   await Promise.allSettled(promises);
   return items;
 }
@@ -168,57 +198,64 @@ async function fetchEquipCard(page: string, equipId: string, session: string): P
     return m[1].replace(/<[^>]+>/g, "").trim();
   };
 
-  const typeStr  = extract("РўРёРї СѓСЃС‚СЂРѕР№СЃС‚РІР°");
-  const model    = extract("РњРѕРґРµР»СЊ");
+  const typeStr  = extract("Тип устройства");
+  const model    = extract("Модель");
   const category = detectCategory(typeStr, model);
 
+  // Мощность: страница 22 → "Номинальная мощность,Вт"; страница 47 → "Мощность, ВА"
   let powerWatts: number | null = null;
   let powerVa:    number | null = null;
 
   if (page === "22") {
-    const raw = extract("РќРѕРјРёРЅР°Р»СЊРЅР°СЏ РјРѕС‰РЅРѕСЃС‚СЊ");
+    const raw = extract("Номинальная мощность");
     const val = parseFloat(raw.replace(/[^\d.]/g, ""));
     if (!isNaN(val) && val > 0) powerWatts = val;
   } else if (page === "47") {
-    const raw = extract("РњРѕС‰РЅРѕСЃС‚СЊ");
+    const raw = extract("Мощность");
     const val = parseFloat(raw.replace(/[^\d.]/g, ""));
     if (!isNaN(val) && val > 0) powerVa = val;
   }
 
+  // Определяем имя устройства из заголовка h1 или title
   const nameMatch = html.match(/<h1[^>]*>([^<]+)<\/h1>/i);
   const name      = nameMatch ? nameMatch[1].trim() : `equip-${equipId}`;
 
-  const breadcrumb = html.match(/РџР»РѕС‰Р°РґРєРё[\s\S]*?\\([\s\S]*?)\\([^\\<]+)\\[^\\<]+$/m);
+  // Шкаф/родитель из breadcrumb: Площадки \ [EMTS...] \ ТШ №1 \ имя
+  const breadcrumb = html.match(/Площадки[\s\S]*?\\([\s\S]*?)\\([^\\<]+)\\[^\\<]+$/m);
   const cabinet    = breadcrumb ? breadcrumb[2].trim() : "";
 
   return {
     emts_equip_id:    parseInt(equipId),
     name,
     model,
-    manufacturer:     extract("Р¤РёСЂРјР° РёР·РіРѕС‚РѕРІРёС‚РµР»СЊ"),
+    manufacturer:     extract("Фирма изготовитель"),
     device_type:      typeStr,
     device_category:  category,
     cabinet,
-    status:           extract("РЎС‚Р°С‚СѓСЃ"),
-    serial_number:    extract("РЎРµСЂРёР№РЅС‹Р№ РЅРѕРјРµСЂ"),
-    inventory_number: extract("РРЅРІРµРЅС‚Р°СЂРЅС‹Р№ РЅРѕРјРµСЂ"),
+    status:           extract("Статус"),
+    serial_number:    extract("Серийный номер"),
+    inventory_number: extract("Инвентарный номер"),
     power_watts:      powerWatts,
     power_va:         powerVa,
   };
 }
 
+// ── Утилиты ──────────────────────────────────────────────────────────────────
 function escapeRe(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function parseDate(s: string): string | null {
   if (!s) return null;
+  // DD.MM.YYYY → YYYY-MM-DD
   const m = s.match(/^(\d{2})\.(\d{2})\.(\d{4})/);
   if (m) return `${m[3]}-${m[2]}-${m[1]}`;
   return null;
 }
 
+// ── Основной обработчик ──────────────────────────────────────────────────────
 Deno.serve(async (req: Request) => {
+  // CORS для браузерных вызовов
   if (req.method === "OPTIONS") {
     return new Response(null, {
       headers: {
@@ -228,6 +265,7 @@ Deno.serve(async (req: Request) => {
     });
   }
 
+  // Аутентификация: service_role token или x-sync-secret
   const authHeader = req.headers.get("authorization") ?? "";
   const syncSecret = req.headers.get("x-sync-secret")  ?? "";
   const isServiceRole = authHeader.includes(Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "____");
@@ -237,11 +275,13 @@ Deno.serve(async (req: Request) => {
     return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
   }
 
+  // Инициализируем Supabase с service_role
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   );
 
+  // Получаем список площадок для синхронизации
   let siteIds: number[] = [];
 
   try {
@@ -249,9 +289,10 @@ Deno.serve(async (req: Request) => {
     if (Array.isArray(body.site_ids) && body.site_ids.length > 0) {
       siteIds = body.site_ids.map(Number).filter(Boolean);
     }
-  } catch { /* С‚РµР»Рѕ РјРѕР¶РµС‚ Р±С‹С‚СЊ РїСѓСЃС‚С‹Рј */ }
+  } catch { /* тело может быть пустым */ }
 
   if (siteIds.length === 0) {
+    // Берём все installations с заполненным id_ploshadki
     const { data: installs } = await supabase
       .from("installations")
       .select("id_ploshadki, servisnyy_id, title")
@@ -263,15 +304,17 @@ Deno.serve(async (req: Request) => {
   }
 
   if (siteIds.length === 0) {
-    return new Response(JSON.stringify({ message: "РќРµС‚ РїР»РѕС‰Р°РґРѕРє РґР»СЏ СЃРёРЅС…СЂРѕРЅРёР·Р°С†РёРё" }), { status: 200 });
+    return new Response(JSON.stringify({ message: "Нет площадок для синхронизации" }), { status: 200 });
   }
 
   const results: Array<{ site_id: number; status: string; error?: string }> = [];
 
   for (const siteId of siteIds) {
     try {
+      // 1. Получаем базовые данные площадки
       const detail = await fetchSiteDetail(siteId);
 
+      // Парсим наименование из HTML для emts_code
       const session  = await getApexSession();
       const pageUrl  = `${SATS_BASE}/f?p=101:8:${session}::NO:RP:P8_ID:${siteId}`;
       const pageResp = await fetch(pageUrl);
@@ -282,6 +325,7 @@ Deno.serve(async (req: Request) => {
       const codeMatch  = fullTitle.match(/\[([^\]]+)\]/);
       const emtsCode   = codeMatch ? codeMatch[1] : null;
 
+      // 2. Upsert в sites_cache
       const { data: siteRow, error: siteErr } = await supabase
         .from("sites_cache")
         .upsert({
@@ -307,8 +351,10 @@ Deno.serve(async (req: Request) => {
 
       const dbSiteId = siteRow.id;
 
+      // 3. Получаем оборудование
       const equipment = await fetchSiteEquipment(siteId);
 
+      // 4. Для оборудования без мощности — запрашиваем lookup-power
       const lookupUrl = `${SUPABASE_URL}/functions/v1/lookup-power`;
       const uniqueModels = [...new Set(
         equipment
@@ -316,6 +362,7 @@ Deno.serve(async (req: Request) => {
           .map((e) => e.model)
       )];
 
+      // Запрашиваем мощности параллельно (не более 5 одновременно)
       const powerMap = new Map<string, { watts: number | null; va: number | null }>();
       const lookupChunks = [];
       for (let i = 0; i < uniqueModels.length; i += 5) {
@@ -342,11 +389,12 @@ Deno.serve(async (req: Request) => {
               if (json.found) {
                 powerMap.set(model, { watts: json.power_watts ?? null, va: json.power_va ?? null });
               }
-            } catch { /* РїСЂРѕРїСѓСЃРєР°РµРј РѕС€РёР±РєРё */ }
+            } catch { /* пропускаем ошибки */ }
           })
         );
       }
 
+      // Применяем найденные мощности к оборудованию
       const equipWithPower = equipment.map((e) => {
         if (e.power_watts === null && e.power_va === null && powerMap.has(e.model)) {
           const p = powerMap.get(e.model)!;
@@ -355,6 +403,7 @@ Deno.serve(async (req: Request) => {
         return e;
       });
 
+      // 5. Удаляем старое оборудование и вставляем новое
       await supabase.from("site_equipment_cache").delete().eq("site_id", dbSiteId);
 
       if (equipWithPower.length > 0) {
@@ -368,6 +417,7 @@ Deno.serve(async (req: Request) => {
       results.push({ site_id: siteId, status: "error", error: String(err) });
     }
 
+    // Небольшая пауза между запросами чтобы не нагружать APEX-сервер
     await new Promise((r) => setTimeout(r, 300));
   }
 

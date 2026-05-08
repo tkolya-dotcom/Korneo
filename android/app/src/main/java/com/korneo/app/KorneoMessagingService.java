@@ -25,8 +25,9 @@ public class KorneoMessagingService extends FirebaseMessagingService {
 
     private static final String TAG          = "KorneoFCM";
     private static final String CHANNEL_ID   = "korneo_notifications";
-    private static final String CHANNEL_NAME = "РљРѕСЂРЅРµРѕ СѓРІРµРґРѕРјР»РµРЅРёСЏ";
+    private static final String CHANNEL_NAME = "Корнео уведомления";
 
+    // Supabase конфиг — должен совпадать с index.html
     private static final String SUPABASE_URL     = "https://jmxjbdnqnzkzxgsfywha.supabase.co";
     private static final String SUPABASE_ANON_KEY =
         "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9" +
@@ -39,15 +40,20 @@ public class KorneoMessagingService extends FirebaseMessagingService {
     private static final String KEY_USER_ID   = "user_id";
     private static final String KEY_AUTH_TOKEN = "auth_token";
 
+    // ── onNewToken: вызывается когда Firebase обновляет токен ────────────────
+    // Происходит при первом запуске, переустановке или сбросе токена
     @Override
     public void onNewToken(String token) {
         Log.d(TAG, "New FCM token: " + token.substring(0, 20) + "...");
 
+        // 1. Сохраняем токен локально
         getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             .edit()
             .putString(KEY_FCM_TOKEN, token)
             .apply();
 
+        // 2. Если есть сохранённый user_id и auth_token — сразу отправляем в Supabase
+        //    Это работает даже при закрытом приложении
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         String userId    = prefs.getString(KEY_USER_ID, null);
         String authToken = prefs.getString(KEY_AUTH_TOKEN, null);
@@ -55,23 +61,27 @@ public class KorneoMessagingService extends FirebaseMessagingService {
         if (userId != null && authToken != null) {
             sendTokenToSupabase(token, userId, authToken);
         }
+        // Если нет сессии — токен сохранён локально и будет передан через WebView при следующем запуске
     }
 
+    // ── onMessageReceived: data-only сообщения при закрытом приложении ───────
+    // Notification-сообщения Android показывает сам через FCM SDK (не нужен этот метод)
     @Override
     public void onMessageReceived(RemoteMessage remoteMessage) {
         Log.d(TAG, "Message received from: " + remoteMessage.getFrom());
         createNotificationChannel();
 
-        String title = "РљРѕСЂРЅРµРѕ";
+        String title = "Корнео";
         String body  = "";
 
         if (remoteMessage.getNotification() != null) {
             title = remoteMessage.getNotification().getTitle() != null
-                ? remoteMessage.getNotification().getTitle() : "РљРѕСЂРЅРµРѕ";
+                ? remoteMessage.getNotification().getTitle() : "Корнео";
             body  = remoteMessage.getNotification().getBody() != null
                 ? remoteMessage.getNotification().getBody() : "";
         } else if (!remoteMessage.getData().isEmpty()) {
-            title = remoteMessage.getData().getOrDefault("title", "РљРѕСЂРЅРµРѕ");
+            // data-only сообщение — отображаем вручную
+            title = remoteMessage.getData().getOrDefault("title", "Корнео");
             body  = remoteMessage.getData().getOrDefault("body",
                     remoteMessage.getData().getOrDefault("message", ""));
         }
@@ -81,6 +91,7 @@ public class KorneoMessagingService extends FirebaseMessagingService {
         }
     }
 
+    // ── Отправка токена в Supabase напрямую (без WebView) ────────────────────
     private void sendTokenToSupabase(String fcmToken, String userId, String authToken) {
         new Thread(() -> {
             try {
@@ -109,6 +120,7 @@ public class KorneoMessagingService extends FirebaseMessagingService {
         }).start();
     }
 
+    // ── Показ уведомления ─────────────────────────────────────────────────────
     private void showNotification(String title, String body) {
         Intent intent = new Intent(this, MainActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
@@ -139,14 +151,16 @@ public class KorneoMessagingService extends FirebaseMessagingService {
             NotificationChannel channel = new NotificationChannel(
                 CHANNEL_ID, CHANNEL_NAME, NotificationManager.IMPORTANCE_HIGH
             );
-            channel.setDescription("Р—Р°РґР°С‡Рё, РјРѕРЅС‚Р°Р¶Рё, С‡Р°С‚С‹");
+            channel.setDescription("Задачи, монтажи, чаты");
             channel.enableVibration(true);
             NotificationManager manager = getSystemService(NotificationManager.class);
             if (manager != null) manager.createNotificationChannel(channel);
         }
     }
 
+    // ── Статические методы — вызываются из MainActivity ──────────────────────
 
+    /** Сохраняет сессию пользователя локально для обновления токена при закрытом приложении */
     public static void saveUserSession(Context ctx, String userId, String authToken) {
         ctx.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             .edit()
@@ -156,6 +170,7 @@ public class KorneoMessagingService extends FirebaseMessagingService {
         Log.d(TAG, "User session saved for offline token refresh");
     }
 
+    /** Очищает сессию при выходе из аккаунта */
     public static void clearUserSession(Context ctx) {
         ctx.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             .edit()
@@ -164,6 +179,7 @@ public class KorneoMessagingService extends FirebaseMessagingService {
             .apply();
     }
 
+    /** Возвращает сохранённый FCM токен */
     public static String getSavedToken(Context ctx) {
         return ctx.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             .getString(KEY_FCM_TOKEN, null);

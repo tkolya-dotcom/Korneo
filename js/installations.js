@@ -1,3 +1,6 @@
+/**
+ * Управление монтажами
+ */
 
 import { repositories } from './api.js';
 import { authService } from './auth.js';
@@ -5,41 +8,54 @@ import { APP_CONFIG } from './config.js';
 
 const { installationStatus } = APP_CONFIG;
 
+/**
+ * Сервис управления монтажами
+ */
 export class InstallationService {
   constructor() {
     this.repository = repositories.installations;
   }
 
+  /**
+   * Получение всех монтажей
+   */
   async getInstallations(filters = {}) {
     try {
       return await this.repository.search(filters, {
         sortBy: { field: 'created_at', ascending: false }
       });
     } catch (error) {
-      console.error('РћС€РёР±РєР° РїРѕР»СѓС‡РµРЅРёСЏ РјРѕРЅС‚Р°Р¶РµР№:', error);
+      console.error('Ошибка получения монтажей:', error);
       throw error;
     }
   }
 
+  /**
+   * Получение монтажа по ID
+   */
   async getInstallation(installationId) {
     try {
       return await this.repository.getById(installationId);
     } catch (error) {
-      console.error('РћС€РёР±РєР° РїРѕР»СѓС‡РµРЅРёСЏ РјРѕРЅС‚Р°Р¶Р°:', error);
+      console.error('Ошибка получения монтажа:', error);
       throw error;
     }
   }
 
+  /**
+   * Создание нового монтажа
+   */
   async createInstallation(installationData) {
     try {
       const currentUser = authService.getCurrentUser();
       
       if (!currentUser) {
-        throw new Error('РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РЅРµ Р°РІС‚РѕСЂРёР·РѕРІР°РЅ');
+        throw new Error('Пользователь не авторизован');
       }
 
+      // Проверка прав
       if (!authService.hasRole([APP_CONFIG.roles.ENGINEER, APP_CONFIG.roles.MANAGER, APP_CONFIG.roles.DEPUTY_HEAD, APP_CONFIG.roles.ADMIN])) {
-        throw new Error('РќРµРґРѕСЃС‚Р°С‚РѕС‡РЅРѕ РїСЂР°РІ РґР»СЏ СЃРѕР·РґР°РЅРёСЏ РјРѕРЅС‚Р°Р¶Р°');
+        throw new Error('Недостаточно прав для создания монтажа');
       }
 
       const installation = {
@@ -52,28 +68,32 @@ export class InstallationService {
 
       return await this.repository.create(installation);
     } catch (error) {
-      console.error('РћС€РёР±РєР° СЃРѕР·РґР°РЅРёСЏ РјРѕРЅС‚Р°Р¶Р°:', error);
+      console.error('Ошибка создания монтажа:', error);
       throw error;
     }
   }
 
+  /**
+   * Обновление монтажа
+   */
   async updateInstallation(installationId, updates) {
     try {
       const installation = await this.getInstallation(installationId);
       
       if (!installation) {
-        throw new Error('РњРѕРЅС‚Р°Р¶ РЅРµ РЅР°Р№РґРµРЅ');
+        throw new Error('Монтаж не найден');
       }
 
       const currentUser = authService.getCurrentUser();
       
+      // Проверка прав
       const canEdit = 
         installation.created_by === currentUser?.id ||
         installation.assignee_id === currentUser?.id ||
         authService.hasRole([APP_CONFIG.roles.MANAGER, APP_CONFIG.roles.DEPUTY_HEAD, APP_CONFIG.roles.ADMIN]);
 
       if (!canEdit) {
-        throw new Error('РќРµРґРѕСЃС‚Р°С‚РѕС‡РЅРѕ РїСЂР°РІ РґР»СЏ СЂРµРґР°РєС‚РёСЂРѕРІР°РЅРёСЏ');
+        throw new Error('Недостаточно прав для редактирования');
       }
 
       return await this.repository.update(installationId, {
@@ -81,24 +101,30 @@ export class InstallationService {
         updated_at: new Date().toISOString()
       });
     } catch (error) {
-      console.error('РћС€РёР±РєР° РѕР±РЅРѕРІР»РµРЅРёСЏ РјРѕРЅС‚Р°Р¶Р°:', error);
+      console.error('Ошибка обновления монтажа:', error);
       throw error;
     }
   }
 
+  /**
+   * Удаление монтажа
+   */
   async deleteInstallation(installationId) {
     try {
       if (!authService.hasRole([APP_CONFIG.roles.MANAGER, APP_CONFIG.roles.DEPUTY_HEAD, APP_CONFIG.roles.ADMIN])) {
-        throw new Error('РќРµРґРѕСЃС‚Р°С‚РѕС‡РЅРѕ РїСЂР°РІ РґР»СЏ СѓРґР°Р»РµРЅРёСЏ РјРѕРЅС‚Р°Р¶РµР№');
+        throw new Error('Недостаточно прав для удаления монтажей');
       }
 
       return await this.repository.delete(installationId);
     } catch (error) {
-      console.error('РћС€РёР±РєР° СѓРґР°Р»РµРЅРёСЏ РјРѕРЅС‚Р°Р¶Р°:', error);
+      console.error('Ошибка удаления монтажа:', error);
       throw error;
     }
   }
 
+  /**
+   * Изменение статуса монтажа
+   */
   async updateInstallationStatus(installationId, newStatus) {
     try {
       const updates = { 
@@ -112,55 +138,73 @@ export class InstallationService {
       
       return await this.repository.update(installationId, updates);
     } catch (error) {
-      console.error('РћС€РёР±РєР° РёР·РјРµРЅРµРЅРёСЏ СЃС‚Р°С‚СѓСЃР°:', error);
+      console.error('Ошибка изменения статуса:', error);
       throw error;
     }
   }
 
+  /**
+   * Получение монтажей по статусу
+   */
   async getInstallationsByStatus(status) {
     try {
       return await this.repository.search({ status });
     } catch (error) {
-      console.error('РћС€РёР±РєР° РїРѕР»СѓС‡РµРЅРёСЏ РјРѕРЅС‚Р°Р¶РµР№ РїРѕ СЃС‚Р°С‚СѓСЃСѓ:', error);
+      console.error('Ошибка получения монтажей по статусу:', error);
       throw error;
     }
   }
 
+  /**
+   * Получение монтажей по проекту
+   */
   async getInstallationsByProject(projectId) {
     try {
       return await this.repository.search({ project_id: projectId });
     } catch (error) {
-      console.error('РћС€РёР±РєР° РїРѕР»СѓС‡РµРЅРёСЏ РјРѕРЅС‚Р°Р¶РµР№ РїСЂРѕРµРєС‚Р°:', error);
+      console.error('Ошибка получения монтажей проекта:', error);
       throw error;
     }
   }
 
+  /**
+   * Получение монтажей исполнителя
+   */
   async getInstallationsByAssignee(assigneeId) {
     try {
       return await this.repository.search({ assignee_id: assigneeId });
     } catch (error) {
-      console.error('РћС€РёР±РєР° РїРѕР»СѓС‡РµРЅРёСЏ РјРѕРЅС‚Р°Р¶РµР№ РёСЃРїРѕР»РЅРёС‚РµР»СЏ:', error);
+      console.error('Ошибка получения монтажей исполнителя:', error);
       throw error;
     }
   }
 
+  /**
+   * Назначение ответственного за монтаж
+   */
   async assignInstallation(installationId, assigneeId) {
     try {
       return await this.updateInstallation(installationId, {
         assignee_id: assigneeId
       });
     } catch (error) {
-      console.error('РћС€РёР±РєР° РЅР°Р·РЅР°С‡РµРЅРёСЏ РѕС‚РІРµС‚СЃС‚РІРµРЅРЅРѕРіРѕ:', error);
+      console.error('Ошибка назначения ответственного:', error);
       throw error;
     }
   }
 
+  /**
+   * Подписка на изменения монтажей (Realtime)
+   */
   subscribeToInstallations(callback) {
     return this.repository.onChanges((payload) => {
       callback(payload);
     });
   }
 
+  /**
+   * Статистика по монтажам
+   */
   async getInstallationStats() {
     try {
       const allInstallations = await this.getInstallations();
@@ -173,11 +217,14 @@ export class InstallationService {
         archived: allInstallations.filter(i => i.is_archived).length
       };
     } catch (error) {
-      console.error('РћС€РёР±РєР° РїРѕР»СѓС‡РµРЅРёСЏ СЃС‚Р°С‚РёСЃС‚РёРєРё:', error);
+      console.error('Ошибка получения статистики:', error);
       return null;
     }
   }
 
+  /**
+   * Получение оборудования монтажа (7 СК)
+   */
   getEquipmentList(installation) {
     const equipment = [];
     
@@ -201,6 +248,9 @@ export class InstallationService {
     return equipment;
   }
 
+  /**
+   * Обновление оборудования монтажа
+   */
   async updateEquipment(installationId, index, equipmentData) {
     try {
       const suffix = index === 0 ? '' : index;
@@ -221,14 +271,16 @@ export class InstallationService {
 
       return await this.updateInstallation(installationId, updates);
     } catch (error) {
-      console.error('РћС€РёР±РєР° РѕР±РЅРѕРІР»РµРЅРёСЏ РѕР±РѕСЂСѓРґРѕРІР°РЅРёСЏ:', error);
+      console.error('Ошибка обновления оборудования:', error);
       throw error;
     }
   }
 }
 
+// Экспорт экземпляра
 export const installationService = new InstallationService();
 
+// Экспорт для совместимости с window
 if (typeof window !== 'undefined') {
   window.installationService = installationService;
 }

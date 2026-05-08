@@ -1,19 +1,35 @@
+/**
+ * atss-upload.js
+ * ==============
+ * Загрузка план-графика АТСС (.xlsx) в таблицу atss_q1_2026 через Supabase.
+ *
+ * Зависимости (уже подключены в index.html проекта):
+ *   - @supabase/supabase-js (window.supabase)
+ *   - SheetJS / xlsx (window.XLSX) — подключается в atss-upload.html
+ *
+ * Использование:
+ *   import { atssUploadService } from './js/atss-upload.js';
+ *   atssUploadService.initUI('atss-upload-container');
+ */
 
 import { SUPABASE_CONFIG, APP_CONFIG } from './config.js';
 import { getSupabase } from './api.js';
 import { authService } from './auth.js';
 
+// ── Константы ────────────────────────────────────────────────────────────────
 
 const TABLE      = 'atss_q1_2026';
-const SHEET_NAME = '1 РєРІР°СЂС‚Р°Р» 2026';
+const SHEET_NAME = '1 квартал 2026';
 const BATCH_SIZE = 50;
 
+// Роли, которым разрешена загрузка
 const ALLOWED_ROLES = [
   APP_CONFIG.roles.ADMIN,
   APP_CONFIG.roles.MANAGER,
   APP_CONFIG.roles.DEPUTY_HEAD,
 ];
 
+// ── Вспомогательные функции ──────────────────────────────────────────────────
 
 function safeInt(v) {
   if (v === null || v === undefined || v === '') return null;
@@ -39,16 +55,21 @@ function fmtDate(v) {
   return isNaN(n) ? null : n;
 }
 
+// ── Парсинг XLSX ──────────────────────────────────────────────────────────────
 
+/**
+ * Читает ArrayBuffer xlsx-файла, возвращает массив плоских объектов
+ * готовых для upsert в Supabase.
+ */
 function parseXlsx(arrayBuffer) {
-  if (!window.XLSX) throw new Error('Р‘РёР±Р»РёРѕС‚РµРєР° XLSX РЅРµ Р·Р°РіСЂСѓР¶РµРЅР°');
+  if (!window.XLSX) throw new Error('Библиотека XLSX не загружена');
 
   const wb = window.XLSX.read(arrayBuffer, { type: 'array', cellDates: true });
   const ws = wb.Sheets[SHEET_NAME];
 
   if (!ws) {
     const available = wb.SheetNames.join(', ');
-    throw new Error(`Р›РёСЃС‚ "${SHEET_NAME}" РЅРµ РЅР°Р№РґРµРЅ. Р”РѕСЃС‚СѓРїРЅС‹Рµ: ${available}`);
+    throw new Error(`Лист "${SHEET_NAME}" не найден. Доступные: ${available}`);
   }
 
   const rows = window.XLSX.utils.sheet_to_json(ws, {
@@ -57,6 +78,7 @@ function parseXlsx(arrayBuffer) {
     raw: false,
   });
 
+  // Группируем строки по площадке (servisnyy_id + id_ploshadki)
   const groups = new Map();
 
   for (let ri = 1; ri < rows.length; ri++) {
@@ -92,6 +114,7 @@ function parseXlsx(arrayBuffer) {
     });
   }
 
+  // Разворачиваем в плоские объекты для upsert
   return [...groups.values()].map(g => {
     const rec = {
       tip:                  g.tip,
@@ -100,7 +123,9 @@ function parseXlsx(arrayBuffer) {
       adres_razmeshcheniya: g.adres_razmeshcheniya,
       rayon:                g.rayon,
       planovaya_data_1_kv_2026: fmtDate(g.plan_date),
+      // СК 1 (без цифры — как в реальной таблице)
       id_sk: null, naimenovanie_sk: null, status_oborudovaniya: null, tip_sk_po_dogovoru: null,
+      // СК 2–6
       id_sk2: null, naimenovanie_sk2: null, status_oborudovaniya2: null, tip_sk_po_dogovoru2: null,
       id_sk3: null, naimenovanie_sk3: null, status_oborudovaniya3: null, tip_sk_po_dogovoru3: null,
       id_sk4: null, naimenovanie_sk4: null, status_oborudovaniya4: null, tip_sk_po_dogovoru4: null,
@@ -120,7 +145,14 @@ function parseXlsx(arrayBuffer) {
   });
 }
 
+// ── Upsert в Supabase ─────────────────────────────────────────────────────────
 
+/**
+ * Отправляет записи батчами.
+ * @param {Array} records
+ * @param {Function} onProgress (done, total, errCount)
+ * @returns {Array} массив ошибок [{from, to, message}]
+ */
 async function upsertBatches(records, onProgress) {
   const client = getSupabase();
   const total  = records.length;
@@ -134,7 +166,7 @@ async function upsertBatches(records, onProgress) {
       .from(TABLE)
       .upsert(batch, {
         onConflict:       'id_ploshadki',
-        ignoreDuplicates: false,           // false = РѕР±РЅРѕРІР»СЏС‚СЊ РїСЂРё РёР·РјРµРЅРµРЅРёРё
+        ignoreDuplicates: false,           // false = обновлять при изменении
       });
 
     if (error) {
@@ -148,6 +180,7 @@ async function upsertBatches(records, onProgress) {
   return errors;
 }
 
+// ── UI ────────────────────────────────────────────────────────────────────────
 
 const CSS = `
   .atss-uploader {
@@ -252,6 +285,7 @@ const CSS = `
 `;
 
 function buildUI(el) {
+  // Вставляем стили один раз
   if (!document.getElementById('atss-upload-style')) {
     const style = document.createElement('style');
     style.id = 'atss-upload-style';
@@ -261,12 +295,12 @@ function buildUI(el) {
 
   el.innerHTML = `
     <div class="atss-uploader">
-      <h3>рџ“‹ Р—Р°РіСЂСѓР·РєР° РїР»Р°РЅ-РіСЂР°С„РёРєР° РђРўРЎРЎ</h3>
+      <h3>📋 Загрузка план-графика АТСС</h3>
       <div class="atss-field">
-        <label>Р¤Р°Р№Р» Excel (.xlsx)</label>
+        <label>Файл Excel (.xlsx)</label>
         <input id="atss-file-input" type="file" accept=".xlsx,.xls"/>
       </div>
-      <button id="atss-upload-btn" class="atss-btn">в¬† Р—Р°РіСЂСѓР·РёС‚СЊ РІ Р±Р°Р·Сѓ</button>
+      <button id="atss-upload-btn" class="atss-btn">⬆ Загрузить в базу</button>
       <div class="atss-progress" id="atss-progress">
         <div class="atss-bar-bg">
           <div class="atss-bar" id="atss-bar"></div>
@@ -295,7 +329,7 @@ function buildUI(el) {
 
   btn.addEventListener('click', async () => {
     const file = fileInp?.files?.[0];
-    if (!file) { addLog('вљ  Р’С‹Р±РµСЂРёС‚Рµ С„Р°Р№Р» .xlsx', 'err'); return; }
+    if (!file) { addLog('⚠ Выберите файл .xlsx', 'err'); return; }
 
     btn.disabled = true;
     log.innerHTML = '';
@@ -305,58 +339,69 @@ function buildUI(el) {
     bar.style.width = '0%';
 
     try {
-      addLog(`рџ“‚ Р§РёС‚Р°РµРј: ${file.name}`);
-      status.textContent = 'Р Р°Р·Р±РёСЂР°РµРј С„Р°Р№Р»вЂ¦';
+      // 1. Парсим файл
+      addLog(`📂 Читаем: ${file.name}`);
+      status.textContent = 'Разбираем файл…';
 
       const buffer  = await file.arrayBuffer();
       const records = parseXlsx(buffer);
 
-      addLog(`вњ“ РџР»РѕС‰Р°РґРѕРє РЅР°Р№РґРµРЅРѕ: ${records.length}`, 'ok');
-      addLog(`в¬† РћС‚РїСЂР°РІР»СЏРµРј РІ Supabase Р±Р°С‚С‡Р°РјРё РїРѕ ${BATCH_SIZE}вЂ¦`);
+      addLog(`✓ Площадок найдено: ${records.length}`, 'ok');
+      addLog(`⬆ Отправляем в Supabase батчами по ${BATCH_SIZE}…`);
 
+      // 2. Upsert
       const errors = await upsertBatches(records, (done, total, errCnt) => {
         const pct = Math.round((done / total) * 100);
         bar.style.width = pct + '%';
-        status.textContent = `${done} / ${total} Р·Р°РїРёСЃРµР№ В· РѕС€РёР±РѕРє: ${errCnt}`;
+        status.textContent = `${done} / ${total} записей · ошибок: ${errCnt}`;
       });
 
+      // 3. Итог
       if (errors.length === 0) {
         bar.classList.add('success');
-        addLog(`вњ… Р“РѕС‚РѕРІРѕ! Р—Р°РіСЂСѓР¶РµРЅРѕ ${records.length} Р·Р°РїРёСЃРµР№`, 'ok');
-        status.textContent = `вњ… РЈСЃРїРµС€РЅРѕ Р·Р°РіСЂСѓР¶РµРЅРѕ ${records.length} Р·Р°РїРёСЃРµР№`;
+        addLog(`✅ Готово! Загружено ${records.length} записей`, 'ok');
+        status.textContent = `✅ Успешно загружено ${records.length} записей`;
       } else {
         bar.classList.add('error');
-        addLog(`вљ  Р—Р°РІРµСЂС€РµРЅРѕ СЃ ${errors.length} РѕС€РёР±РєР°РјРё:`, 'err');
-        errors.forEach(e => addLog(`  СЃС‚СЂРѕРєРё ${e.from}вЂ“${e.to}: ${e.message}`, 'err'));
-        status.textContent = `вљ  Р—Р°РІРµСЂС€РµРЅРѕ СЃ РѕС€РёР±РєР°РјРё (${errors.length})`;
+        addLog(`⚠ Завершено с ${errors.length} ошибками:`, 'err');
+        errors.forEach(e => addLog(`  строки ${e.from}–${e.to}: ${e.message}`, 'err'));
+        status.textContent = `⚠ Завершено с ошибками (${errors.length})`;
       }
 
     } catch (err) {
       bar.classList.add('error');
-      addLog(`вќЊ ${err.message}`, 'err');
-      status.textContent = 'вќЊ РћС€РёР±РєР°';
+      addLog(`❌ ${err.message}`, 'err');
+      status.textContent = '❌ Ошибка';
     } finally {
       btn.disabled = false;
     }
   });
 }
 
+// ── Публичный API ─────────────────────────────────────────────────────────────
 
 export const atssUploadService = {
 
+  /**
+   * Инициализирует UI загрузчика в указанном контейнере.
+   * Показывает форму только если у пользователя есть нужная роль.
+   *
+   * @param {string} containerId — id HTML-элемента
+   */
   initUI(containerId) {
     const el = document.getElementById(containerId);
     if (!el) {
-      console.error(`atss-upload: СЌР»РµРјРµРЅС‚ #${containerId} РЅРµ РЅР°Р№РґРµРЅ`);
+      console.error(`atss-upload: элемент #${containerId} не найден`);
       return;
     }
 
+    // Проверка роли
     const userRole = localStorage.getItem('user_role') || '';
     if (!ALLOWED_ROLES.includes(userRole)) {
       el.innerHTML = `
         <div class="atss-uploader">
           <div class="atss-no-access">
-            рџ”’ Р—Р°РіСЂСѓР·РєР° РґРѕСЃС‚СѓРїРЅР° С‚РѕР»СЊРєРѕ РјРµРЅРµРґР¶РµСЂР°Рј Рё Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂР°Рј
+            🔒 Загрузка доступна только менеджерам и администраторам
           </div>
         </div>
       `;
@@ -366,11 +411,25 @@ export const atssUploadService = {
     buildUI(el);
   },
 
+  /**
+   * Только парсинг xlsx без UI — возвращает массив записей.
+   * Можно использовать для предпросмотра данных перед отправкой.
+   *
+   * @param {File} file
+   * @returns {Promise<Array>}
+   */
   async parseFile(file) {
     const buffer = await file.arrayBuffer();
     return parseXlsx(buffer);
   },
 
+  /**
+   * Только отправка — если нужно самому управлять прогрессом.
+   *
+   * @param {Array} records
+   * @param {Function} onProgress
+   * @returns {Promise<Array>} ошибки
+   */
   async upload(records, onProgress = () => {}) {
     return upsertBatches(records, onProgress);
   },

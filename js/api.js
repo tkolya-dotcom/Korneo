@@ -1,23 +1,35 @@
+/**
+ * Supabase API клиент
+ * Обёртка над Supabase JS SDK
+ */
 
 import { SUPABASE_CONFIG } from './config.js';
 
+// Импортируем Supabase клиент (через CDN для браузера)
 let supabase = null;
 
+/**
+ * Инициализация Supabase клиента
+ */
 export function initSupabase() {
   if (!supabase) {
+    // Для браузерной версии используем глобальный объект
     if (window.supabase) {
       supabase = window.supabase.createClient(
         SUPABASE_CONFIG.url,
         SUPABASE_CONFIG.anonKey
       );
     } else {
-      console.error('вќЊ Supabase SDK РЅРµ Р·Р°РіСЂСѓР¶РµРЅ!');
+      console.error('❌ Supabase SDK не загружен!');
       throw new Error('Supabase SDK not loaded');
     }
   }
   return supabase;
 }
 
+/**
+ * Получить экземпляр клиента
+ */
 export function getSupabase() {
   if (!supabase) {
     return initSupabase();
@@ -25,22 +37,30 @@ export function getSupabase() {
   return supabase;
 }
 
+/**
+ * Базовый CRUD класс для работы с таблицами
+ */
 export class BaseRepository {
   constructor(tableName) {
     this.tableName = tableName;
     this.supabase = getSupabase();
   }
 
+  /**
+   * Получить все записи
+   */
   async getAll(options = {}) {
     try {
       let query = this.supabase.from(this.tableName).select('*');
       
+      // Применение фильтров
       if (options.filter) {
         Object.entries(options.filter).forEach(([key, value]) => {
           query = query.eq(key, value);
         });
       }
       
+      // Сортировка
       if (options.sortBy) {
         query = query.order(options.sortBy.field, { 
           ascending: options.sortBy.ascending !== false 
@@ -57,6 +77,9 @@ export class BaseRepository {
     }
   }
 
+  /**
+   * Получить запись по ID
+   */
   async getById(id) {
     try {
       const { data, error } = await this.supabase
@@ -73,6 +96,9 @@ export class BaseRepository {
     }
   }
 
+  /**
+   * Создать запись
+   */
   async create(record) {
     try {
       const { data, error } = await this.supabase
@@ -89,6 +115,9 @@ export class BaseRepository {
     }
   }
 
+  /**
+   * Обновить запись
+   */
   async update(id, updates) {
     try {
       const { data, error } = await this.supabase
@@ -106,6 +135,9 @@ export class BaseRepository {
     }
   }
 
+  /**
+   * Удалить запись
+   */
   async delete(id) {
     try {
       const { error } = await this.supabase
@@ -121,14 +153,19 @@ export class BaseRepository {
     }
   }
 
+  /**
+   * Поиск записей
+   */
   async search(filters, options = {}) {
     try {
       let query = this.supabase.from(this.tableName).select('*');
       
+      // Применение фильтров
       Object.entries(filters).forEach(([key, value]) => {
         if (Array.isArray(value)) {
           query = query.in(key, value);
         } else if (typeof value === 'object') {
+          // Операторы: { gt: 5 }, { gte: 5 }, { lt: 10 }, { lte: 10 }, { like: '%text%' }
           const operator = Object.keys(value)[0];
           const val = value[operator];
           
@@ -157,6 +194,7 @@ export class BaseRepository {
         }
       });
       
+      // Лимит и оффсет
       if (options.limit) {
         query = query.limit(options.limit);
       }
@@ -175,6 +213,9 @@ export class BaseRepository {
     }
   }
 
+  /**
+   * Подписаться на изменения (Realtime)
+   */
   onChanges(callback, filters = {}) {
     const channel = this.supabase
       .channel(`${this.tableName}_changes`)
@@ -198,7 +239,11 @@ export class BaseRepository {
   }
 }
 
+/**
+ * Специализированные репозитории
+ */
 
+// Пользователи
 export class UsersRepository extends BaseRepository {
   constructor() {
     super('users');
@@ -235,6 +280,7 @@ export class UsersRepository extends BaseRepository {
   }
 }
 
+// Задачи
 export class TasksRepository extends BaseRepository {
   constructor() {
     super('tasks');
@@ -266,16 +312,19 @@ export class TasksRepository extends BaseRepository {
   }
 }
 
+// Проекты
 export class ProjectsRepository extends BaseRepository {
   constructor() {
     super('projects');
   }
 
   async getWithTasksCount() {
+    // TODO: Использовать RPC функцию для получения счётчика
     return await this.getAll();
   }
 }
 
+// Монтажи
 export class InstallationsRepository extends BaseRepository {
   constructor() {
     super('installations');
@@ -290,6 +339,7 @@ export class InstallationsRepository extends BaseRepository {
   }
 }
 
+// Сообщения
 export class MessagesRepository extends BaseRepository {
   constructor() {
     super('messages');
@@ -322,6 +372,7 @@ export class MessagesRepository extends BaseRepository {
   }
 }
 
+// Чаты
 export class ChatsRepository extends BaseRepository {
   constructor() {
     super('chats');
@@ -332,6 +383,7 @@ export class ChatsRepository extends BaseRepository {
       .rpc('get_user_chats', { user_id: userId });
     
     if (error) {
+      // Fallback: ручное получение через join
       return await this._getUserChatsFallback(userId);
     }
     
@@ -351,6 +403,7 @@ export class ChatsRepository extends BaseRepository {
   }
 }
 
+// Комментарии
 export class CommentsRepository extends BaseRepository {
   constructor() {
     super('comments');
@@ -374,6 +427,7 @@ export class CommentsRepository extends BaseRepository {
   }
 }
 
+// Материалы
 export class MaterialsRepository extends BaseRepository {
   constructor() {
     super('materials');
@@ -388,6 +442,7 @@ export class MaterialsRepository extends BaseRepository {
   }
 }
 
+// Заявки на материалы
 export class MaterialsRequestsRepository extends BaseRepository {
   constructor() {
     super('materials_requests');
@@ -411,12 +466,16 @@ export class MaterialsRequestsRepository extends BaseRepository {
   }
 }
 
+// Задачи АВР (Аварийно-Восстановительные Работы)
 export class TasksAVRRepository extends BaseRepository {
   constructor() {
     super('tasks_avr');
   }
 }
 
+/**
+ * Экспорт экземпляров репозиториев
+ */
 export const repositories = {
   users: new UsersRepository(),
   tasks: new TasksRepository(),
@@ -430,6 +489,7 @@ export const repositories = {
   materialsRequests: new MaterialsRequestsRepository()
 };
 
+// Экспорт для совместимости с window
 if (typeof window !== 'undefined') {
   window.repositories = repositories;
   window.BaseRepository = BaseRepository;

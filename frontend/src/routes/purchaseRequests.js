@@ -4,6 +4,7 @@ import { authenticateToken, requireManager } from '../middleware/auth.js';
 
 const router = express.Router();
 
+// Get all purchase requests with filters
 router.get('/', authenticateToken, async (req, res) => {
   try {
     const { status, project_id, created_by } = req.query;
@@ -11,6 +12,7 @@ router.get('/', authenticateToken, async (req, res) => {
     let query = supabase
       .from('purchase_requests')
       .select(`
+        *,
         task:tasks(id, title, project_id, project:projects(id, name)),
         installation:installations(id, title, project_id, project:projects(id, name)),
         creator:users!purchase_requests_created_by_fkey(id, name, email),
@@ -31,6 +33,7 @@ router.get('/', authenticateToken, async (req, res) => {
       query = query.eq('created_by', created_by);
     }
 
+    // Workers can only see their own purchase requests
     if (req.user.role === 'worker') {
       query = query.eq('created_by', req.user.id);
     }
@@ -48,6 +51,7 @@ router.get('/', authenticateToken, async (req, res) => {
   }
 });
 
+// Get single purchase request
 router.get('/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
@@ -55,6 +59,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
     const { data: purchaseRequest, error } = await supabase
       .from('purchase_requests')
       .select(`
+        *,
         task:tasks(id, title, project_id, project:projects(id, name)),
         installation:installations(id, title, project_id, project:projects(id, name)),
         creator:users!purchase_requests_created_by_fkey(id, name, email),
@@ -75,6 +80,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
   }
 });
 
+// Create purchase request
 router.post('/', authenticateToken, async (req, res) => {
   try {
     const { task_id, installation_id, comment, items } = req.body;
@@ -83,6 +89,7 @@ router.post('/', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: 'Task ID or Installation ID is required' });
     }
 
+    // Verify the user has access to this task/installation
     if (task_id) {
       const { data: task } = await supabase
         .from('tasks')
@@ -107,6 +114,7 @@ router.post('/', authenticateToken, async (req, res) => {
       }
     }
 
+    // Create purchase request
     const { data: purchaseRequest, error } = await supabase
       .from('purchase_requests')
       .insert([{
@@ -123,6 +131,7 @@ router.post('/', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: error.message });
     }
 
+    // Add items if provided
     if (items && items.length > 0) {
       const itemsWithRequestId = items.map(item => ({
         purchase_request_id: purchaseRequest.id,
@@ -137,14 +146,17 @@ router.post('/', authenticateToken, async (req, res) => {
         .insert(itemsWithRequestId);
 
       if (itemsError) {
+        // Rollback purchase request if items fail
         await supabase.from('purchase_requests').delete().eq('id', purchaseRequest.id);
         return res.status(400).json({ error: itemsError.message });
       }
     }
 
+    // Fetch the complete purchase request with items
     const { data: completeRequest } = await supabase
       .from('purchase_requests')
       .select(`
+        *,
         items:purchase_request_items(*)
       `)
       .eq('id', purchaseRequest.id)
@@ -157,6 +169,7 @@ router.post('/', authenticateToken, async (req, res) => {
   }
 });
 
+// Update purchase request status (approve/reject - manager only)
 router.put('/:id/status', authenticateToken, requireManager, async (req, res) => {
   try {
     const { id } = req.params;
@@ -189,11 +202,13 @@ router.put('/:id/status', authenticateToken, requireManager, async (req, res) =>
   }
 });
 
+// Update purchase request (comment or draft status)
 router.put('/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { comment } = req.body;
 
+    // Check if purchase request exists and belongs to user
     const { data: existing } = await supabase
       .from('purchase_requests')
       .select('*')
@@ -204,6 +219,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'Purchase request not found' });
     }
 
+    // Workers can only update their own draft/pending requests
     if (req.user.role === 'worker' && existing.created_by !== req.user.id) {
       return res.status(403).json({ error: 'You can only update your own requests' });
     }
@@ -233,6 +249,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
   }
 });
 
+// Add item to purchase request
 router.post('/:id/items', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
@@ -242,6 +259,7 @@ router.post('/:id/items', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: 'Name, quantity and unit are required' });
     }
 
+    // Check if purchase request exists
     const { data: purchaseRequest } = await supabase
       .from('purchase_requests')
       .select('*')
@@ -252,6 +270,7 @@ router.post('/:id/items', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'Purchase request not found' });
     }
 
+    // Workers can only add items to their own draft/pending requests
     if (req.user.role === 'worker') {
       if (purchaseRequest.created_by !== req.user.id) {
         return res.status(403).json({ error: 'You can only add items to your own requests' });
@@ -284,11 +303,13 @@ router.post('/:id/items', authenticateToken, async (req, res) => {
   }
 });
 
+// Update purchase request item
 router.put('/items/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { name, quantity, unit, note } = req.body;
 
+    // Check if item exists
     const { data: existingItem } = await supabase
       .from('purchase_request_items')
       .select('*, purchase_request:purchase_requests(*)')
@@ -299,6 +320,7 @@ router.put('/items/:id', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'Item not found' });
     }
 
+    // Workers can only update items in their own draft/pending requests
     if (req.user.role === 'worker') {
       const purchaseRequest = existingItem.purchase_request;
       if (purchaseRequest.created_by !== req.user.id) {
@@ -333,10 +355,12 @@ router.put('/items/:id', authenticateToken, async (req, res) => {
   }
 });
 
+// Delete purchase request item
 router.delete('/items/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
 
+    // Check if item exists
     const { data: existingItem } = await supabase
       .from('purchase_request_items')
       .select('*, purchase_request:purchase_requests(*)')
@@ -347,6 +371,7 @@ router.delete('/items/:id', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'Item not found' });
     }
 
+    // Workers can only delete items in their own draft/pending requests
     if (req.user.role === 'worker') {
       const purchaseRequest = existingItem.purchase_request;
       if (purchaseRequest.created_by !== req.user.id) {
@@ -373,10 +398,12 @@ router.delete('/items/:id', authenticateToken, async (req, res) => {
   }
 });
 
+// Delete purchase request
 router.delete('/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
 
+    // Check if purchase request exists
     const { data: purchaseRequest } = await supabase
       .from('purchase_requests')
       .select('*')
@@ -387,6 +414,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'Purchase request not found' });
     }
 
+    // Workers can only delete their own draft/pending requests
     if (req.user.role === 'worker') {
       if (purchaseRequest.created_by !== req.user.id) {
         return res.status(403).json({ error: 'You can only delete your own requests' });

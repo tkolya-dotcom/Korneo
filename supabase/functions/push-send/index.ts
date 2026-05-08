@@ -1,3 +1,23 @@
+/**
+ * push-send — универсальная отправка push-уведомлений
+ *
+ * Поддерживает:
+ *   1. FCM HTTP v1 API (Android / нативные токены из users.fcm_token)
+ *   2. FCM через user_push_subs (p256dh = 'fcm' — запись от saveNativeFCMToken)
+ *   3. Web Push VAPID (браузеры через user_push_subs)
+ *
+ * Payload:
+ *   chat_id          — отправить всем участникам чата кроме exclude_user_id
+ *   target_user_id   — отправить конкретному пользователю (для уведомлений о задачах и т.д.)
+ *   sender_name      — заголовок уведомления
+ *   text             — тело уведомления
+ *   exclude_user_id  — не отправлять этому пользователю (отправитель сообщения)
+ *
+ * Env vars:
+ *   FIREBASE_SERVICE_ACCOUNT — base64(JSON service account)
+ *   FIREBASE_PROJECT_ID
+ *   VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT
+ */
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -7,6 +27,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// ─── Firebase access token (FCM HTTP v1) ──────────────────────────────────
 
 async function getFirebaseAccessToken(): Promise<string> {
   const b64 = Deno.env.get("FIREBASE_SERVICE_ACCOUNT");
@@ -42,6 +63,7 @@ async function getFirebaseAccessToken(): Promise<string> {
   return data.access_token;
 }
 
+// ─── FCM HTTP v1 send ───────────────────────────────────────────────────
 
 async function sendFCMv1(fcmToken: string, title: string, body: string, data?: Record<string,string>): Promise<number> {
   const projectId = Deno.env.get("FIREBASE_PROJECT_ID");
@@ -76,6 +98,7 @@ async function sendFCMv1(fcmToken: string, title: string, body: string, data?: R
   return res.status;
 }
 
+// ─── Web Push VAPID ─────────────────────────────────────────────────────
 
 function b64urlDecode(s: string): Uint8Array {
   const pad = s.length % 4 === 0 ? "" : "=".repeat(4 - s.length % 4);
@@ -101,6 +124,7 @@ async function sendWebPush(sub: { endpoint: string; p256dh: string; auth: string
   const sig      = await crypto.subtle.sign({ name:"ECDSA", hash:"SHA-256" }, vapidKey, new TextEncoder().encode(unsigned));
   const jwt      = `${unsigned}.${b64urlEncode(sig)}`;
 
+  // Encrypt payload
   const payload  = JSON.stringify({ title, body, data, icon: "./icon-192.png", tag: "korneo" });
   const salt     = crypto.getRandomValues(new Uint8Array(16));
   const recvKey  = await crypto.subtle.importKey("raw", b64urlDecode(sub.p256dh), { name:"ECDH", namedCurve:"P-256" }, true, []);
@@ -129,6 +153,7 @@ async function sendWebPush(sub: { endpoint: string; p256dh: string; auth: string
   return res.status;
 }
 
+// ─── Main handler ─────────────────────────────────────────────────────────
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -142,11 +167,14 @@ serve(async (req) => {
     const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const { chat_id, target_user_id, sender_name, text, exclude_user_id } = await req.json();
 
+    // Собираем user_ids которым отправляем
     let userIds: string[] = [];
 
     if (target_user_id) {
+      // Прямая отправка конкретному пользователю
       userIds = [target_user_id];
     } else if (chat_id) {
+      // Все участники чата кроме отправителя
       const { data: members } = await supabase
         .from("chat_members")
         .select("user_id")
@@ -160,16 +188,18 @@ serve(async (req) => {
     }
 
     const title = sender_name ?? "Korneo";
-    const body  = text?.length > 120 ? text.slice(0,120) + "вЂ¦" : (text ?? "");
+    const body  = text?.length > 120 ? text.slice(0,120) + "…" : (text ?? "");
     let sentCount = 0;
 
     for (const uid of userIds) {
+      // ── 1. Пробуем FCM v1 через users.fcm_token (Android) ──────────────
       const { data: user } = await supabase.from("users").select("fcm_token").eq("id", uid).single();
 
       if (user?.fcm_token) {
         try {
           const status = await sendFCMv1(user.fcm_token, title, body, { user_id: uid });
           if (status < 300) { sentCount++; continue; }
+          // Если токен протух — очищаем
           if (status === 404 || status === 410) {
             await supabase.from("users").update({ fcm_token: null }).eq("id", uid);
           }
@@ -178,12 +208,14 @@ serve(async (req) => {
         }
       }
 
+      // ── 2. Fallback: Web Push через user_push_subs ───────────────────
       const { data: subs } = await supabase
         .from("user_push_subs")
         .select("endpoint, p256dh, auth")
         .eq("user_id", uid);
 
       for (const sub of subs ?? []) {
+        // Пропускаем FCM-записи (p256dh='fcm') — уже обработали выше
         if (!sub.endpoint || !sub.p256dh || sub.p256dh === "fcm") continue;
         try {
           const status = await sendWebPush(sub, title, body, { chat_id });

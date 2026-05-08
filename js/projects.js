@@ -1,44 +1,60 @@
+/**
+ * Управление проектами
+ */
 
 import { repositories } from './api.js';
 import { authService } from './auth.js';
 import { APP_CONFIG } from './config.js';
 
+/**
+ * Сервис управления проектами
+ */
 export class ProjectService {
   constructor() {
     this.repository = repositories.projects;
     this.tasksRepository = repositories.tasks;
   }
 
+  /**
+   * Получение всех проектов
+   */
   async getProjects() {
     try {
       return await this.repository.getAll({
         sortBy: { field: 'created_at', ascending: false }
       });
     } catch (error) {
-      console.error('РћС€РёР±РєР° РїРѕР»СѓС‡РµРЅРёСЏ РїСЂРѕРµРєС‚РѕРІ:', error);
+      console.error('Ошибка получения проектов:', error);
       throw error;
     }
   }
 
+  /**
+   * Получение проекта по ID
+   */
   async getProject(projectId) {
     try {
       return await this.repository.getById(projectId);
     } catch (error) {
-      console.error('РћС€РёР±РєР° РїРѕР»СѓС‡РµРЅРёСЏ РїСЂРѕРµРєС‚Р°:', error);
+      console.error('Ошибка получения проекта:', error);
       throw error;
     }
   }
 
+  /**
+   * Создание нового проекта
+   */
   async createProject(projectData) {
     try {
       const currentUser = authService.getCurrentUser();
       
       if (!currentUser) {
-        throw new Error('РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РЅРµ Р°РІС‚РѕСЂРёР·РѕРІР°РЅ');
+        throw new Error('Пользователь не авторизован');
       }
 
+      // Проверка прав
       if (!authService.hasRole([APP_CONFIG.roles.ENGINEER, APP_CONFIG.roles.MANAGER, APP_CONFIG.roles.DEPUTY_HEAD, APP_CONFIG.roles.ADMIN])) {
-        throw new Error('РќРµРґРѕСЃС‚Р°С‚РѕС‡РЅРѕ РїСЂР°РІ РґР»СЏ СЃРѕР·РґР°РЅРёСЏ РїСЂРѕРµРєС‚Р°');
+        throw new Error('Недостаточно прав для создания проекта');
       }
 
       return await this.repository.create({
@@ -46,11 +62,14 @@ export class ProjectService {
         created_at: new Date().toISOString()
       });
     } catch (error) {
-      console.error('РћС€РёР±РєР° СЃРѕР·РґР°РЅРёСЏ РїСЂРѕРµРєС‚Р°:', error);
+      console.error('Ошибка создания проекта:', error);
       throw error;
     }
   }
 
+  /**
+   * Обновление проекта
+   */
   async updateProject(projectId, updates) {
     try {
       return await this.repository.update(projectId, {
@@ -58,26 +77,33 @@ export class ProjectService {
         updated_at: new Date().toISOString()
       });
     } catch (error) {
-      console.error('РћС€РёР±РєР° РѕР±РЅРѕРІР»РµРЅРёСЏ РїСЂРѕРµРєС‚Р°:', error);
+      console.error('Ошибка обновления проекта:', error);
       throw error;
     }
   }
 
+  /**
+   * Удаление проекта
+   */
   async deleteProject(projectId) {
     try {
+      // Проверяем, есть ли задачи в проекте
       const tasks = await this.tasksRepository.search({ project_id: projectId });
       
       if (tasks && tasks.length > 0) {
-        throw new Error('РќРµР»СЊР·СЏ СѓРґР°Р»РёС‚СЊ РїСЂРѕРµРєС‚ СЃ Р°РєС‚РёРІРЅС‹РјРё Р·Р°РґР°С‡Р°РјРё');
+        throw new Error('Нельзя удалить проект с активными задачами');
       }
 
       return await this.repository.delete(projectId);
     } catch (error) {
-      console.error('РћС€РёР±РєР° СѓРґР°Р»РµРЅРёСЏ РїСЂРѕРµРєС‚Р°:', error);
+      console.error('Ошибка удаления проекта:', error);
       throw error;
     }
   }
 
+  /**
+   * Получение проекта с задачами
+   */
   async getProjectWithTasks(projectId) {
     try {
       const [project, tasks] = await Promise.all([
@@ -91,11 +117,14 @@ export class ProjectService {
         stats: this.calculateProjectStats(tasks)
       };
     } catch (error) {
-      console.error('РћС€РёР±РєР° РїРѕР»СѓС‡РµРЅРёСЏ РїСЂРѕРµРєС‚Р° СЃ Р·Р°РґР°С‡Р°РјРё:', error);
+      console.error('Ошибка получения проекта с задачами:', error);
       throw error;
     }
   }
 
+  /**
+   * Подсчёт статистики проекта
+   */
   calculateProjectStats(tasks) {
     const total = tasks.length;
     const completed = tasks.filter(t => t.status === APP_CONFIG.taskStatus.COMPLETED).length;
@@ -113,6 +142,9 @@ export class ProjectService {
     };
   }
 
+  /**
+   * Получение всех проектов со статистикой
+   */
   async getAllProjectsWithStats() {
     try {
       const projects = await this.getProjects();
@@ -131,11 +163,14 @@ export class ProjectService {
 
       return projectsWithStats;
     } catch (error) {
-      console.error('РћС€РёР±РєР° РїРѕР»СѓС‡РµРЅРёСЏ РїСЂРѕРµРєС‚РѕРІ СЃРѕ СЃС‚Р°С‚РёСЃС‚РёРєРѕР№:', error);
+      console.error('Ошибка получения проектов со статистикой:', error);
       throw error;
     }
   }
 
+  /**
+   * Подписка на изменения проекта (Realtime)
+   */
   subscribeToProject(projectId, callback) {
     return this.repository.onChanges(
       (payload) => {
@@ -148,8 +183,10 @@ export class ProjectService {
   }
 }
 
+// Экспорт экземпляра
 export const projectService = new ProjectService();
 
+// Экспорт для совместимости с window
 if (typeof window !== 'undefined') {
   window.projectService = projectService;
 }

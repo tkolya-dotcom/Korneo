@@ -1,7 +1,13 @@
+/**
+ * Система уведомлений (Push + FCM)
+ */
 
 import { APP_CONFIG, FIREBASE_CONFIG, VAPID_PUBLIC_KEY } from './config.js';
 import { authService } from './auth.js';
 
+/**
+ * Сервис Push-уведомлений
+ */
 export class NotificationService {
   constructor() {
     this.subscription = null;
@@ -9,37 +15,48 @@ export class NotificationService {
     this.permissionGranted = false;
   }
 
+  /**
+   * Инициализация Firebase Messaging
+   */
   async initFirebaseMessaging() {
     try {
+      // Проверяем, загружен ли Firebase
       if (!window.firebase) {
-        console.warn('вљ пёЏ Firebase РЅРµ РёРЅРёС†РёР°Р»РёР·РёСЂРѕРІР°РЅ');
+        console.warn('⚠️ Firebase не инициализирован');
         return null;
       }
 
       const messaging = window.firebase.messaging();
       this.messaging = messaging;
 
+      // Запрашиваем разрешение
       const permission = await this.requestPermission();
       
       if (!permission) {
         return null;
       }
 
+      // Получаем токен
       const token = await this.getToken();
       
       if (token) {
+        // Сохраняем токен в профиль пользователя
         await authService.userProfileService.updateFCMToken(token);
         
+        // Слушаем входящие сообщения
         this.onMessage();
       }
 
       return token;
     } catch (error) {
-      console.error('вќЊ РћС€РёР±РєР° РёРЅРёС†РёР°Р»РёР·Р°С†РёРё Firebase Messaging:', error);
+      console.error('❌ Ошибка инициализации Firebase Messaging:', error);
       return null;
     }
   }
 
+  /**
+   * Запрос разрешения на уведомления
+   */
   async requestPermission() {
     try {
       if ('Notification' in window) {
@@ -47,25 +64,29 @@ export class NotificationService {
         this.permissionGranted = permission === 'granted';
         
         if (this.permissionGranted) {
-          console.log('вњ… Р Р°Р·СЂРµС€РµРЅРёРµ РЅР° СѓРІРµРґРѕРјР»РµРЅРёСЏ РїРѕР»СѓС‡РµРЅРѕ');
+          console.log('✅ Разрешение на уведомления получено');
           
+          // Регистрируем Service Worker
           await this.registerServiceWorker();
           
           return true;
         } else {
-          console.warn('вљ пёЏ РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ Р·Р°РїСЂРµС‚РёР» СѓРІРµРґРѕРјР»РµРЅРёСЏ');
+          console.warn('⚠️ Пользователь запретил уведомления');
           return false;
         }
       } else {
-        console.warn('вљ пёЏ Browser does not support notifications');
+        console.warn('⚠️ Browser does not support notifications');
         return false;
       }
     } catch (error) {
-      console.error('вќЊ РћС€РёР±РєР° Р·Р°РїСЂРѕСЃР° СЂР°Р·СЂРµС€РµРЅРёСЏ:', error);
+      console.error('❌ Ошибка запроса разрешения:', error);
       return false;
     }
   }
 
+  /**
+   * Регистрация Service Worker
+   */
   async registerServiceWorker() {
     try {
       if ('serviceWorker' in navigator) {
@@ -73,29 +94,36 @@ export class NotificationService {
           scope: './'
         });
 
-        console.log('вњ… Service Worker Р·Р°СЂРµРіРёСЃС‚СЂРёСЂРѕРІР°РЅ:', registration.scope);
+        console.log('✅ Service Worker зарегистрирован:', registration.scope);
         
+        // Проверяем наличие активной подписки
         this.subscription = await registration.pushManager.getSubscription();
         
         if (!this.subscription) {
+          // Создаём новую подписку
           await this.createSubscription(registration);
         }
 
         return registration;
       } else {
-        console.warn('вљ пёЏ Service Workers РЅРµ РїРѕРґРґРµСЂР¶РёРІР°СЋС‚СЃСЏ');
+        console.warn('⚠️ Service Workers не поддерживаются');
         return null;
       }
     } catch (error) {
-      console.error('вќЊ РћС€РёР±РєР° СЂРµРіРёСЃС‚СЂР°С†РёРё Service Worker:', error);
+      console.error('❌ Ошибка регистрации Service Worker:', error);
       return null;
     }
   }
 
+  /**
+   * Создание подписки на Push
+   */
   async createSubscription(registration) {
     try {
+      // Конвертируем VAPID ключ
       const vapidKey = this.urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
       
+      // Создаём подписку
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: vapidKey
@@ -103,22 +131,26 @@ export class NotificationService {
 
       this.subscription = subscription;
 
+      // Отправляем подписку на сервер
       await this.saveSubscription(subscription);
 
-      console.log('вњ… Push РїРѕРґРїРёСЃРєР° СЃРѕР·РґР°РЅР°');
+      console.log('✅ Push подписка создана');
       return subscription;
     } catch (error) {
-      console.error('вќЊ РћС€РёР±РєР° СЃРѕР·РґР°РЅРёСЏ РїРѕРґРїРёСЃРєРё:', error);
+      console.error('❌ Ошибка создания подписки:', error);
       return null;
     }
   }
 
+  /**
+   * Сохранение подписки в БД
+   */
   async saveSubscription(subscription) {
     try {
       const currentUser = authService.getCurrentUser();
       
       if (!currentUser) {
-        throw new Error('РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РЅРµ Р°РІС‚РѕСЂРёР·РѕРІР°РЅ');
+        throw new Error('Пользователь не авторизован');
       }
 
       const supabase = window.supabase.createClient(
@@ -126,6 +158,7 @@ export class NotificationService {
         window.SUPABASE_CONFIG.anonKey
       );
 
+      // Преобразуем подписку в формат для БД
       const subscriptionData = {
         user_id: currentUser.id,
         endpoint: subscription.endpoint,
@@ -137,6 +170,7 @@ export class NotificationService {
         )
       };
 
+      // Проверяем существующую подписку
       const { data: existing } = await supabase
         .from('user_push_subs')
         .select('id')
@@ -146,6 +180,7 @@ export class NotificationService {
       let result;
 
       if (existing) {
+        // Обновляем
         result = await supabase
           .from('user_push_subs')
           .update({
@@ -154,6 +189,7 @@ export class NotificationService {
           })
           .eq('id', existing.id);
       } else {
+        // Создаём новую
         result = await supabase
           .from('user_push_subs')
           .insert([subscriptionData]);
@@ -161,23 +197,27 @@ export class NotificationService {
 
       if (result.error) throw result.error;
       
-      console.log('вњ… РџРѕРґРїРёСЃРєР° СЃРѕС…СЂР°РЅРµРЅР° РІ Р‘Р”');
+      console.log('✅ Подписка сохранена в БД');
       return true;
     } catch (error) {
-      console.error('вќЊ РћС€РёР±РєР° СЃРѕС…СЂР°РЅРµРЅРёСЏ РїРѕРґРїРёСЃРєРё:', error);
+      console.error('❌ Ошибка сохранения подписки:', error);
       return false;
     }
   }
 
+  /**
+   * Обработка входящих сообщений (когда приложение активно)
+   */
   onMessage() {
     if (!this.messaging) return;
 
     window.firebase.onMessage((payload) => {
-      console.log('рџ“© Р’С…РѕРґСЏС‰РµРµ СЃРѕРѕР±С‰РµРЅРёРµ:', payload);
+      console.log('📩 Входящее сообщение:', payload);
 
       const notification = payload.notification;
       
       if (notification) {
+        // Показываем уведомление
         this.showLocalNotification({
           title: notification.title,
           body: notification.body,
@@ -188,9 +228,12 @@ export class NotificationService {
     });
   }
 
+  /**
+   * Показ локального уведомления
+   */
   showLocalNotification({ title, body, data = {}, icon = '/icon-192.png' }) {
     if (!this.permissionGranted) {
-      console.warn('вљ пёЏ РќРµС‚ СЂР°Р·СЂРµС€РµРЅРёСЏ РЅР° РїРѕРєР°Р· СѓРІРµРґРѕРјР»РµРЅРёР№');
+      console.warn('⚠️ Нет разрешения на показ уведомлений');
       return;
     }
 
@@ -206,7 +249,7 @@ export class NotificationService {
       actions: [
         {
           action: 'open',
-          title: 'РћС‚РєСЂС‹С‚СЊ'
+          title: 'Открыть'
         }
       ]
     };
@@ -214,33 +257,40 @@ export class NotificationService {
     new Notification(title, options);
   }
 
+  /**
+   * Получение токена FCM
+   */
   async getToken() {
     try {
       if (!this.messaging) {
-        throw new Error('Firebase Messaging РЅРµ РёРЅРёС†РёР°Р»РёР·РёСЂРѕРІР°РЅ');
+        throw new Error('Firebase Messaging не инициализирован');
       }
 
       const token = await window.firebase.messaging.getToken(this.messaging, {
         vapidKey: VAPID_PUBLIC_KEY
       });
 
-      console.log('рџЋ« FCM Token РїРѕР»СѓС‡РµРЅ:', token.substring(0, 20) + '...');
+      console.log('🎫 FCM Token получен:', token.substring(0, 20) + '...');
       return token;
     } catch (error) {
-      console.error('вќЊ РћС€РёР±РєР° РїРѕР»СѓС‡РµРЅРёСЏ С‚РѕРєРµРЅР°:', error);
+      console.error('❌ Ошибка получения токена:', error);
       return null;
     }
   }
 
+  /**
+   * Отписка от Push-уведомлений
+   */
   async unsubscribe() {
     try {
       if (this.subscription) {
         await this.subscription.unsubscribe();
         this.subscription = null;
         
-        console.log('вњ… РћС‚РїРёСЃРєР° РѕС‚ Push РІС‹РїРѕР»РЅРµРЅР°');
+        console.log('✅ Отписка от Push выполнена');
       }
 
+      // Удаляем подписку из БД
       const currentUser = authService.getCurrentUser();
       
       if (currentUser) {
@@ -257,15 +307,21 @@ export class NotificationService {
 
       return true;
     } catch (error) {
-      console.error('вќЊ РћС€РёР±РєР° РѕС‚РїРёСЃРєРё:', error);
+      console.error('❌ Ошибка отписки:', error);
       return false;
     }
   }
 
+  /**
+   * Проверка поддержки Push API
+   */
   isSupported() {
     return 'PushManager' in window && 'serviceWorker' in navigator;
   }
 
+  /**
+   * Утилита: Base64 → Uint8Array
+   */
   urlBase64ToUint8Array(base64String) {
     const padding = '='.repeat((4 - base64String.length % 4) % 4);
     const base64 = (base64String + padding)
@@ -282,6 +338,9 @@ export class NotificationService {
     return outputArray;
   }
 
+  /**
+   * Утилита: ArrayBuffer → Base64
+   */
   arrayBufferToBase64(buffer) {
     let binary = '';
     const bytes = new Uint8Array(buffer);
@@ -295,8 +354,10 @@ export class NotificationService {
   }
 }
 
+// Экспорт экземпляра
 export const notificationService = new NotificationService();
 
+// Экспорт для совместимости с window
 if (typeof window !== 'undefined') {
   window.notificationService = notificationService;
 }
