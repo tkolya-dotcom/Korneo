@@ -3388,6 +3388,29 @@
         let currentView = 'dashboard';
         let currentProjectId = null;
         let loginInProgress = false;
+
+        async function withTimeout(promise, ms, timeoutMessage) {
+            let timerId;
+            const timeoutPromise = new Promise((_, reject) => {
+                timerId = setTimeout(() => reject(new Error(timeoutMessage || 'Operation timeout')), ms);
+            });
+            try {
+                return await Promise.race([promise, timeoutPromise]);
+            } finally {
+                clearTimeout(timerId);
+            }
+        }
+
+        function buildFallbackProfile(user, existingProfile) {
+            const meta = user?.user_metadata || {};
+            if (existingProfile && existingProfile.id === user?.id) return existingProfile;
+            return {
+                id: user?.id,
+                email: user?.email,
+                name: meta.name || (user?.email ? user.email.split('@')[0] : 'Пользователь'),
+                role: meta.role || 'worker'
+            };
+        }
         
         // Purchase request state
         let prType = null;
@@ -4716,11 +4739,23 @@
                 localStorage.setItem('supabaseClient_session', JSON.stringify(authData.session));
                         
                 // Get user profile from users table
-                const { data: userData, error: userError } = await supabaseClient
-                    .from('users')
-                    .select('*')
-                    .eq('id', authData.user.id)
-                    .single();
+                let userData = null;
+                let userError = null;
+                try {
+                    const result = await withTimeout(
+                        supabaseClient
+                            .from('users')
+                            .select('*')
+                            .eq('id', authData.user.id)
+                            .single(),
+                        12000,
+                        'users_profile_timeout'
+                    );
+                    userData = result?.data ?? null;
+                    userError = result?.error ?? null;
+                } catch (profileLoadError) {
+                    userError = profileLoadError;
+                }
                         
                 if (userError && userError.code !== 'PGRST116') {
                     console.error('Error fetching user profile:', userError);
@@ -4730,12 +4765,9 @@
                         
                 // Set the current user profile
                 currentUser = { id: authData.user.id, email: authData.user.email };
-                currentUserProfile = userData && userData.role ? userData : { 
-                    id: authData.user.id, 
-                    email: authData.user.email, 
-                    name: authData.user.email.split('@')[0],
-                    role: 'worker'
-                };
+                currentUserProfile = userData && userData.role
+                    ? userData
+                    : buildFallbackProfile(authData.user, currentUserProfile);
                         
                 console.log('Calling showApp()...');
                 showApp();
@@ -5032,29 +5064,50 @@
                 }
 
                 // Get user profile from users table
-                const { data: userData, error: profileError } = await supabaseClient
-                    .from('users')
-                    .select('*')
-                    .eq('id', user.id)
-                    .single();
+                let userData = null;
+                let profileError = null;
+                try {
+                    const result = await withTimeout(
+                        supabaseClient
+                            .from('users')
+                            .select('*')
+                            .eq('id', user.id)
+                            .single(),
+                        12000,
+                        'users_profile_timeout'
+                    );
+                    userData = result?.data ?? null;
+                    profileError = result?.error ?? null;
+                } catch (profileLoadError) {
+                    profileError = profileLoadError;
+                }
 
                 if (profileError && profileError.code !== 'PGRST116') {
                     console.error('Error fetching user profile:', profileError);
                 }
 
                 currentUser = { id: user.id, email: user.email };
-                currentUserProfile = userData && userData.role ? userData : {
-                    id: user.id,
-                    email: user.email,
-                    name: user.email.split('@')[0],
-                    role: 'worker'
-                };
+                currentUserProfile = userData && userData.role
+                    ? userData
+                    : buildFallbackProfile(user, currentUserProfile);
                 
                 console.log('User loaded:', currentUserProfile.name);
                 // Если есть нативный FCM токен — сохраняем
                 if (window._savePendingFCMToken) window._savePendingFCMToken();
             } catch (error) {
                 console.error('Error loading user profile:', error);
+                const token = localStorage.getItem('token');
+                if (token) {
+                    try {
+                        const { data: { user } } = await supabaseClient.auth.getUser(token);
+                        if (user) {
+                            currentUser = { id: user.id, email: user.email };
+                            currentUserProfile = buildFallbackProfile(user, currentUserProfile);
+                            console.warn('Using fallback profile due to profile load error');
+                            return;
+                        }
+                    } catch (_) {}
+                }
                 currentUser = null;
                 currentUserProfile = null;
                 localStorage.removeItem('token');
