@@ -14695,7 +14695,8 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
                     return;
                 }
 
-                const isOwn = msg.user_id === currentUser.id;
+                const appUserId = currentUserProfile?.id || currentUser?.id;
+                const isOwn = String(msg.user_id) === String(appUserId);
                 const time = new Date(msg.created_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
                 const dateStr = new Date(msg.created_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
                 
@@ -14745,7 +14746,7 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
                 } else {
                     // Regular text message
                     const reactions = msg.content?.reactions || {};
-                    const currentUserId = currentUser?.id;
+                    const currentUserId = currentUserProfile?.id || currentUser?.id;
                     const reactionHtml = Object.entries(reactions).map(([emoji, users]) => {
                         const count = Array.isArray(users) ? users.length : 0;
                         if (count === 0) return '';
@@ -15250,7 +15251,7 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
                     .from('messages')
                     .insert({
                         chat_id: messengerState.selectedChat.chat_id,
-                        user_id: currentUser.id,
+                        user_id: appUserId,
                         content: msgContent
                     })
                     .select(`
@@ -15489,43 +15490,40 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
             }, 50);
         };
         
-        // Удалить сообщение только у себя (добавить в deleted_for)
+        async function hardDeleteMessage(msgId) {
+            const { error } = await supabaseClient
+                .from('messages')
+                .delete()
+                .eq('id', msgId);
+            if (error) throw error;
+            messengerState.messages = messengerState.messages.filter(m => String(m.id) !== String(msgId));
+            renderMessages();
+        }
+
+        // Удалить сообщение (физически из БД)
         window.deleteMessageForMe = async function(msgId) {
             const menu = document.getElementById('delete-message-menu');
             if (menu) menu.remove();
             
             try {
-                // Получаем текущий список deleted_for
+                const appUserId = currentUserProfile?.id || currentUser?.id;
                 const { data: msg, error: fetchError } = await supabaseClient
                     .from('messages')
-                    .select('deleted_for')
+                    .select('id,user_id')
                     .eq('id', msgId)
                     .single();
                 
                 if (fetchError) throw fetchError;
-                
-                // Добавляем текущего пользователя в deleted_for
-                const currentDeletedFor = msg.deleted_for || [];
-                const userId = currentUser.id;
-                
-                if (currentDeletedFor.includes(userId)) {
-                    showToast('Сообщение уже удалено');
+
+                const isOwn = String(msg.user_id) === String(appUserId);
+                const isManager = currentUserProfile?.role === 'manager' || currentUserProfile?.role === 'support';
+                if (!isOwn && !isManager) {
+                    showToast('Нет прав на удаление этого сообщения');
                     return;
                 }
-                
-                const newDeletedFor = [...currentDeletedFor, userId];
-                
-                const { error } = await supabaseClient
-                    .from('messages')
-                    .update({ deleted_for: newDeletedFor })
-                    .eq('id', msgId);
-                
-                if (error) throw error;
-                
-                // Удаляем из локального состояния
-                messengerState.messages = messengerState.messages.filter(m => m.id !== msgId);
-                renderMessages();
-                showToast('Сообщение удалено у вас');
+
+                await hardDeleteMessage(msgId);
+                showToast('Сообщение удалено навсегда');
                 
             } catch (err) {
                 console.error('deleteMessageForMe error:', err);
@@ -15541,17 +15539,23 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
             if (!confirm('Удалить сообщение у всех участников чата?')) return;
             
             try {
-                const { error } = await supabaseClient
+                const appUserId = currentUserProfile?.id || currentUser?.id;
+                const { data: msg, error: fetchError } = await supabaseClient
                     .from('messages')
-                    .delete()
-                    .eq('id', msgId);
-                
-                if (error) throw error;
-                
-                // Удаляем из локального состояния
-                messengerState.messages = messengerState.messages.filter(m => m.id !== msgId);
-                renderMessages();
-                showToast('Сообщение удалено');
+                    .select('id,user_id')
+                    .eq('id', msgId)
+                    .single();
+
+                if (fetchError) throw fetchError;
+                const isOwn = String(msg?.user_id) === String(appUserId);
+                const isManager = currentUserProfile?.role === 'manager' || currentUserProfile?.role === 'support';
+                if (!isOwn && !isManager) {
+                    showToast('Нет прав на удаление этого сообщения');
+                    return;
+                }
+
+                await hardDeleteMessage(msgId);
+                showToast('Сообщение удалено у всех навсегда');
                 
             } catch (err) {
                 console.error('deleteMessageForAll error:', err);
