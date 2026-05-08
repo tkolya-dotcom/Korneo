@@ -2007,11 +2007,20 @@
             border: 1px solid rgba(255,255,255,0.08);
             border-radius: 14px;
             padding: 14px 16px;
+            /* Work cards are shared group objects; keep them stable across realtime refreshes. */
             align-self: flex-start;
-            animation: fadeIn 0.2s ease;
+            margin-left: 0;
+            margin-right: auto;
+            animation: none;
+            transition: none;
+            transform: none;
             font-size: 13px;
         }
-        .bubble-job.own { align-self: flex-end; }
+        .bubble-job.own {
+            align-self: flex-start;
+            margin-left: 0;
+            margin-right: auto;
+        }
         .bubble-job-address {
             font-size: 14px;
             font-weight: 600;
