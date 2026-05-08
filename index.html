@@ -15238,6 +15238,7 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
             const input = document.getElementById('message-input');
             const text = input?.value?.trim();
             if (!text || !messengerState.selectedChat) return;
+            const appUserId = currentUserProfile?.id || currentUser?.id;
 
             const msgContent = { text };
             if (messengerState.replyTo) {
@@ -15284,7 +15285,7 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
                     chat_id: messengerState.selectedChat.chat_id,
                     sender_name: senderName,
                     text: text,
-                    exclude_user_id: currentUser.id
+                    exclude_user_id: appUserId
                 });
                 console.log('🔑 Push token:', sendToken ? `${sendToken.substring(0, 20)}...` : 'NO TOKEN');
                 
@@ -15299,7 +15300,7 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
                         chat_id: messengerState.selectedChat.chat_id,
                         sender_name: senderName,
                         text: text,
-                        exclude_user_id: currentUser.id
+                        exclude_user_id: appUserId
                     })
                 }).then(async r => {
                     console.log('🔔 Push response status:', r.status);
@@ -15318,7 +15319,7 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
                         .from('chat_members')
                         .select('user_id')
                         .eq('chat_id', messengerState.selectedChat.chat_id)
-                        .neq('user_id', currentUser.id);
+                        .neq('user_id', appUserId);
                     
                     for (const member of members || []) {
                         await supabaseClient.from('notification_queue').insert({
