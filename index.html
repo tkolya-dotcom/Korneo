@@ -14826,8 +14826,10 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
                     const card = normalizeMsgContent(msg.content);
                     const status = card.status || 'created';
                     const statusLabel = workCardStatusLabel(status);
-                    const canPlan = elevated && status !== 'planned' && status !== 'done' && status !== 'completed';
-                    const canFinish = (elevated || isEng || isOwn) && (status === 'planned' || status === 'active' || status === 'in_progress');
+                    const canPlan = elevated && status === 'created';
+                    const currentProfileId = String(currentUserProfile?.id || currentUser?.id || '');
+                    const canFinishCardOwner = currentProfileId && [card.creator_id, card.assignee_id, msg.user_id].filter(Boolean).map(String).includes(currentProfileId);
+                    const canFinish = (elevated || canFinishCardOwner || isOwn) && (status === 'planned' || status === 'active' || status === 'in_progress' || status === 'overdue');
                     const statusClass = status === 'done' || status === 'completed' ? ' done' : (status === 'overdue' ? ' overdue' : (status === 'planned' || status === 'active' || status === 'in_progress' ? ' active' : ''));
                     const cardReactions = card.reactions || {};
                     const reactionHtml = Array.isArray(cardReactions)
@@ -14836,17 +14838,20 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
                             const count = Array.isArray(users) ? users.length : 0;
                             return count ? '<span class="msg-reaction">' + emoji + ' <b>' + count + '</b></span>' : '';
                         }).filter(Boolean).join('');
+                    const canDeleteWorkMessage = currentUserProfile?.role === 'manager' || currentUserProfile?.role === 'deputy_head';
                     const actions = [
                         '<button class="job-action-btn" onclick="replyToMessage(\'' + msg.id + '\')">↩ Ответить</button>',
                         '<button class="job-action-btn" onclick="showReactionPicker(\'' + msg.id + '\', event)">😀 Реакция</button>',
                         canPlan ? '<button class="job-action-btn job-btn-confirm" onclick="planWorkCard(\'' + msg.id + '\')">📅 Запланировать</button>' : '',
-                        canFinish ? '<button class="job-action-btn job-btn-finish" onclick="finishWorkCard(\'' + msg.id + '\')">✅ Завершить</button>' : ''
+                        canFinish ? '<button class="job-action-btn job-btn-finish" onclick="finishWorkCard(\'' + msg.id + '\')">✅ Завершить</button>' : '',
+                        canDeleteWorkMessage ? '<button class="job-action-btn job-btn-delete" onclick="showDeleteMessageMenu(\'' + msg.id + '\', true, event)" style="background:rgba(239,68,68,0.2);color:#EF4444">🗑 Удалить</button>' : ''
                     ].filter(Boolean).join('');
                     html = [
                         '<div class="bubble-job' + statusClass + ' ' + (isOwn ? 'own' : '') + '" data-msg-id="' + msg.id + '">',
                         isGroupChat ? '  <div style="font-size:11px;color:#8aa0b8;margin-bottom:4px;font-weight:600">' + authorName + '</div>' : '',
                         '  <div class="bubble-job-address">📍 ' + (card.title || 'Работы по адресу') + '</div>',
                         '  <div class="bubble-job-info" style="color:#aaa;font-size:12px;margin-top:4px">EMTS: ' + (card.emts || '-') + ' • СК: ' + (card.sk_count ?? '-') + '</div>',
+                        card.naimenovanie_sk ? '  <div class="bubble-job-engineer">Наименование СК: ' + card.naimenovanie_sk + '</div>' : '',
                         '  <div class="bubble-job-engineer">Адрес: ' + (card.address || '-') + '</div>',
                         '  <div class="bubble-job-engineer">Часы: ' + (card.hours || card.planned_duration_hours || '-') + (card.planned_deadline ? ' • План: ' + card.planned_deadline : '') + '</div>',
                         '  <div class="bubble-job-engineer">Создал: ' + (card.creator_name || authorName || '-') + '</div>',
@@ -16152,6 +16157,14 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
                     if (r1.error) { loadError = r1.error.message || r1.error.code || JSON.stringify(r1.error); }
                     if (r2.error) { loadError = loadError || r2.error.message || r2.error.code || JSON.stringify(r2.error); }
                     const countSk = (a, keys) => keys.filter(k => a[k]).length;
+                    const getJobSkNames = (a) => [
+                        a.naimenovanie_sk1,
+                        a.naimenovanie_sk2,
+                        a.naimenovanie_sk3,
+                        a.naimenovanie_sk4,
+                        a.naimenovanie_sk5,
+                        a.naimenovanie_sk6
+                    ].map(v => String(v || '').trim()).filter(Boolean);
                     // Гибкий поиск lat/lng по разным вариантам названий колонок
                     const getLat = a => a.lat ?? a.shirota ?? a.latitude ?? a.y_coord ?? null;
                     const getLng = a => a.lng ?? a.lng ?? a.dolgota ?? a.longitude ?? a.x_coord ?? null;
@@ -16159,20 +16172,23 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
                         ...(r1.data || []).map(a => ({ ...a,
                             address: a.adres_razmeshcheniya,
                             district: a.rayon,
-                            sk: a.naimenovanie_sk,
+                            sk: getJobSkNames(a)[0] || '',
+                            sk_names: getJobSkNames(a),
                             serv_id: a.servisnyy_id,
-                            sk_count: countSk(a, ['id_sk','id_sk2','id_sk3','id_sk4','id_sk5']),
+                            sk_count: Math.max(getJobSkNames(a).length, countSk(a, ['id_sk','id_sk2','id_sk3','id_sk4','id_sk5','id_sk6'])),
                             lat: getLat(a), lng: getLng(a),
                             _src: 'atss' })),
                         ...(r2.data || []).map(a => ({ ...a,
                             address: a.adres_raspolozheniya,
                             district: a.ploshchadka,
-                            sk: a.naimenovanie_sk,
+                            sk: getJobSkNames(a)[0] || '',
+                            sk_names: getJobSkNames(a),
                             serv_id: a.servisnyy_id,
-                            sk_count: countSk(a, ['id_konditsionera1','id_konditsionera2','id_konditsionera3','id_konditsionera4','id_konditsionera5']),
+                            sk_count: Math.max(getJobSkNames(a).length, countSk(a, ['id_konditsionera1','id_konditsionera2','id_konditsionera3','id_konditsionera4','id_konditsionera5','id_konditsionera6'])),
                             lat: getLat(a), lng: getLng(a),
                             _src: 'kasip' }))
                     ];
+                    combined.forEach((a, i) => { a._jobKey = String(i); });
                     allAddressesCache = combined.length > 0 ? combined : null;
                     console.log('[Jobs] Combined addresses:', combined.length);
                     if (combined.length === 0 && !loadError) loadError = 'Таблицы пусты — проверьте RLS и наличие данных в Supabase';
@@ -16219,6 +16235,7 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
 
             const districts = [...new Set(allAddressesCache.map(a => a.district).filter(Boolean))].sort();
             const durationOptions = ['<option value="" disabled selected>Выберите часы...</option>'];
+            const workTypeOptions = ['ППО','АВР','НРД','Тех. Заявка'].map((v, i) => '<option value="' + v + '"' + (i === 0 ? ' selected' : '') + '>' + v + '</option>').join('');
             for (let h = 2; h <= 24; h++) {
                 durationOptions.push('<option value="' + h + '">' + h + ' ч' + (h === 1 ? 'ас' : (h < 5 ? 'аса' : 'асов')) + '</option>');
             }
@@ -16238,6 +16255,10 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
                     return '<option value="' + d + '">' + d + ' (' + cnt + ')</option>';
                 }).join(''),
                 '  </select>',
+                '  <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">',
+                '    <label style="color:var(--text-muted);font-size:13px;white-space:nowrap">🛠 Тип работ:</label>',
+                '    <select id="jobWorkTypeSelect" style="flex:1;padding:8px 12px;border-radius:10px;border:1px solid rgba(255,255,255,0.1);background:#1A1A2E;color:#fff;font-size:13px">' + workTypeOptions + '</select>',
+                '  </div>',
                 '  <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">',
                 '    <label style="color:var(--text-muted);font-size:13px;white-space:nowrap">⏱ Плановое время:</label>',
                 '    <select id="jobDurationSelect" style="flex:1;padding:8px 12px;border-radius:10px;border:1px solid rgba(255,255,255,0.1);background:#1A1A2E;color:#fff;font-size:13px">',
@@ -16261,7 +16282,7 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
             let filtered = allAddressesCache || [];
             if (district) filtered = filtered.filter(a => a.district === district);
             if (search.length >= 1) {
-                filtered = filtered.filter(a => (a.address || '').toLowerCase().includes(search));
+                filtered = filtered.filter(a => [(a.address || ''), (a.serv_id || ''), (a.sk || ''), ((a.sk_names || []).join(' '))].join(' ').toLowerCase().includes(search));
             }
             const total = filtered.length;
             const shown = filtered.slice(0, 80);
@@ -16271,7 +16292,7 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
             }
             const hint = total > 80 ? '<div style="color:var(--text-muted);font-size:11px;padding:4px 12px 8px;text-align:center">Показано 80 из ' + total + '. Уточните поиск.</div>' : '';
             list.innerHTML = hint + shown.map(a => [
-                '<div class="address-item" onclick="selectAddressForJob(\'' + a.id + '\',\'' + encodeURIComponent(a.address || '') + '\',\'' + (a.lat||0) + '\',\'' + (a.lng||0) + '\',\'' + a._src + '\')" style="cursor:pointer">',
+                '<div class="address-item" onclick="selectAddressForJob(\'' + a._jobKey + '\',\'' + encodeURIComponent(a.address || '') + '\',\'' + (a.lat||0) + '\',\'' + (a.lng||0) + '\',\'' + a._src + '\')" style="cursor:pointer">',
                 '  <div class="address-item-name">' + (a.address || 'Без адреса') + '</div>',
                 '  <div class="address-item-sub">' + [(a.district || ''), (a.sk || ''), (a.sk_count ? '❄️ ' + a.sk_count + ' СК' : ''), (a.serv_id ? 'ID: ' + a.serv_id : '')].filter(Boolean).join(' • ') + '</div>',
                 '</div>'
@@ -16286,16 +16307,23 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
                 hoursSelect?.focus();
                 return;
             }
-            document.getElementById('startJobModal')?.remove();
             const address = decodeURIComponent(encodedAddress);
             const chatId = messengerState.selectedChat.chat_id;
             
             // Находим адрес в кэше для получения sk_count и servisnyy_id
-            const addrData = allAddressesCache?.find(a => a.id_ploshadki == addressId && a._src === src);
+            const addrData = allAddressesCache?.find(a => a._jobKey === String(addressId) && a._src === src);
             const skCount = addrData?.sk_count || 1;
             const servId = addrData?.serv_id || '';
             const district = addrData?.district || '';
-            const skName = addrData?.sk || '';
+            const workType = document.getElementById('jobWorkTypeSelect')?.value || 'ППО';
+            const availableSkNames = addrData?.sk_names || [];
+            const selectedSkName = workType === 'АВР' ? await chooseWorkSkNamesForJob(availableSkNames) : (availableSkNames[0] || addrData?.sk || '');
+            if (workType === 'АВР' && !selectedSkName) {
+                showToast('Для АВР выберите от 1 до 6 СК');
+                return;
+            }
+            const skName = selectedSkName || '';
+            document.getElementById('startJobModal')?.remove();
             
             // Геокодинг если нет координат
             let finalLat = parseFloat(lat) || null;
@@ -16334,8 +16362,7 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
                     sk_count: skCount,
                     servisnyy_id: servId,
                     engineer_id: currentUser.id,
-                    status: 'active',
-                    started_at: new Date().toISOString(),
+                    status: 'pending',
                     chat_id: chatId,
                     planned_duration_hours: plannedHours
                 }).select().single();
@@ -16346,14 +16373,18 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
                     user_id: currentUser.id,
                     content: {
                         type: 'work_card',
-                        title: 'Работы по адресу',
+                        title: workType,
+                        work_type: workType,
                         address,
                         emts: servId || '',
                         sk_count: skCount,
+                        naimenovanie_sk: skName,
                         hours: plannedHours,
                         planned_duration_hours: plannedHours,
                         planned_deadline: '',
                         status: 'created',
+                        creator_id: currentUserProfile?.id || currentUser?.id,
+                        assignee_id: currentUserProfile?.id || currentUser?.id,
                         creator_name: currentUserProfile?.name || currentUser?.email || 'Пользователь',
                         created_at_label: new Date().toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }),
                         job_id: job.id
@@ -16363,7 +16394,7 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
                 });
                 if (msgErr) throw msgErr;
 
-                showToast('Работа начата (план: ' + plannedHours + ' ч): ' + address);
+                showToast('Работа создана (план: ' + plannedHours + ' ч): ' + address);
                 await loadMessages(chatId);
                 updateActiveJobsBanner(chatId);
                 
@@ -16373,6 +16404,39 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
                 console.error('startJob error:', err);
                 showToast('Ошибка: ' + (err.message || err));
             }
+        };
+
+        window.chooseWorkSkNamesForJob = function(names) {
+            const list = (names || []).map(v => String(v || '').trim()).filter(Boolean).slice(0, 6);
+            return new Promise(resolve => {
+                if (!list.length) {
+                    resolve('');
+                    return;
+                }
+                const modal = document.createElement('div');
+                modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.72);z-index:3200;display:flex;align-items:center;justify-content:center;padding:20px';
+                modal.innerHTML = [
+                    '<div style="background:#1A1A2E;border:1px solid rgba(255,255,255,.1);border-radius:16px;max-width:520px;width:100%;overflow:hidden">',
+                    '  <div style="padding:16px 20px;border-bottom:1px solid rgba(255,255,255,.08);color:#fff;font-weight:700">Выберите СК для АВР</div>',
+                    '  <div id="workSkChoiceList" style="padding:14px 18px;display:flex;flex-direction:column;gap:10px;max-height:360px;overflow:auto">' + list.map((name, idx) => '<label style="display:flex;gap:10px;align-items:flex-start;color:#fff;font-size:13px;line-height:1.35;background:rgba(255,255,255,.04);padding:10px;border-radius:10px"><input type="checkbox" value="' + idx + '" style="margin-top:2px"> <span>' + name + '</span></label>').join('') + '</div>',
+                    '  <div style="display:flex;justify-content:flex-end;gap:10px;padding:14px 18px;border-top:1px solid rgba(255,255,255,.08)">',
+                    '    <button id="workSkCancel" style="padding:9px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:transparent;color:#ccc;cursor:pointer">Отмена</button>',
+                    '    <button id="workSkOk" style="padding:9px 16px;border:none;border-radius:10px;background:#3B82F6;color:#fff;cursor:pointer">Выбрать</button>',
+                    '  </div>',
+                    '</div>'
+                ].join('');
+                document.body.appendChild(modal);
+                modal.querySelector('#workSkCancel').onclick = () => { modal.remove(); resolve(''); };
+                modal.querySelector('#workSkOk').onclick = () => {
+                    const selected = Array.from(modal.querySelectorAll('input[type=checkbox]:checked')).map(cb => list[Number(cb.value)]).filter(Boolean);
+                    if (!selected.length) {
+                        showToast('Выберите хотя бы один СК');
+                        return;
+                    }
+                    modal.remove();
+                    resolve(selected.join(', '));
+                };
+            });
         };
         
         // Уведомление техподдержки о новой работе
