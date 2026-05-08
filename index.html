@@ -5645,24 +5645,28 @@
             content.innerHTML = '<h2 style="margin-bottom:16px">Главная</h2><div id="loading-stats" style="text-align:center;padding:40px;color:var(--text-muted)">Загрузка данных...</div>';
 
             try {
-                // Load data in parallel
-                const dataPromises = [
-                    isManager ? getProjects() : getMyProjects(),
-                    isManager ? getTasks() : getMyTasks(),
-                    isManager ? getInstallations() : getMyInstallations(),
-                    getPurchaseRequests()
-                ];
-                if (isManager) {
-                    dataPromises.push(
-                        supabaseClient.from('warehouse').select('id', { count: 'exact', head: true }),
-                        supabaseClient.from('users').select('id, name, role, is_online, last_seen_at').order('name')
-                    );
-                }
+                const safeLoad = async (label, loader, fallback) => {
+                    try {
+                        return await loader();
+                    } catch (e) {
+                        console.error(`Dashboard source failed [${label}]:`, e);
+                        return fallback;
+                    }
+                };
 
-                const results = await Promise.all(dataPromises);
-                const [projects, tasks, installations, prs] = results;
-                const warehouseResult = isManager ? results[4] : null;
-                const usersData = isManager ? results[5] : null;
+                // Load data in parallel, but never fail the whole dashboard on one source
+                const [projects, tasks, installations, prs, warehouseResult, usersData] = await Promise.all([
+                    safeLoad('projects', () => isManager ? getProjects() : getMyProjects(), []),
+                    safeLoad('tasks', () => isManager ? getTasks() : getMyTasks(), []),
+                    safeLoad('installations', () => isManager ? getInstallations() : getMyInstallations(), []),
+                    safeLoad('purchase_requests', () => getPurchaseRequests(), []),
+                    isManager
+                        ? safeLoad('warehouse', () => supabaseClient.from('warehouse').select('id', { count: 'exact', head: true }), { count: 0 })
+                        : Promise.resolve(null),
+                    isManager
+                        ? safeLoad('users', () => supabaseClient.from('users').select('id, name, role, is_online, last_seen_at').order('name'), { data: [] })
+                        : Promise.resolve(null)
+                ]);
 
                 // Progress
                 const totalItems = tasks.length + installations.length;
