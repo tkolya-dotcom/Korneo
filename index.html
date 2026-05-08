@@ -3413,6 +3413,19 @@
             };
         }
 
+        function isValidUuid(value) {
+            return typeof value === 'string'
+                && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+        }
+
+        function getSafeAppUserId() {
+            const profileId = currentUserProfile?.id;
+            if (isValidUuid(profileId)) return profileId;
+            const authId = currentUser?.id;
+            if (isValidUuid(authId)) return authId;
+            return null;
+        }
+
         async function refreshCurrentUserProfileFromTable(userId) {
             if (!userId) return;
             try {
@@ -5890,7 +5903,7 @@
         }
         
         async function getMyProjects() {
-            const userId = currentUserProfile?.id;
+            const userId = getSafeAppUserId();
             if (!userId) return [];
 
             // Get projects where user has tasks or installations OR is the creator
@@ -6102,7 +6115,7 @@
         }
         
         async function getMyTasks() {
-            const userId = currentUserProfile?.id;
+            const userId = getSafeAppUserId();
             if (!userId) return [];
             const { data, error } = await supabaseClient
                 .from('tasks')
@@ -6458,7 +6471,7 @@
         }
 
         async function getMyInstallations() {
-            const userId = currentUserProfile?.id;
+            const userId = getSafeAppUserId();
             if (!userId) return [];
             const { data, error } = await supabaseClient
                 .from('installations')
