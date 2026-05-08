@@ -13840,19 +13840,22 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
 
         async function loadChats() {
             try {
+                const userIds = getCurrentUserIdCandidates();
+                if (!userIds.length) throw new Error('Не найден user_id для загрузки чатов');
+                const primaryUserId = userIds[0];
                 // Запрашиваем без pinned/muted — добавим если есть
                 let members = null, error = null;
                 const r1 = await supabaseClient
                     .from('chat_members')
                     .select('chat_id, pinned, muted, chats:chat_id(id, name, type, created_by)')
-                    .eq('user_id', currentUser.id);
+                    .eq('user_id', primaryUserId);
                 if (r1.error?.message?.includes('pinned') || r1.error?.message?.includes('muted')) {
                     // Колонок нет — запрашиваем без них
                     console.warn('pinned/muted columns missing, loading without them');
                     const r2 = await supabaseClient
                         .from('chat_members')
                         .select('chat_id, chats:chat_id(id, name, type, created_by)')
-                        .eq('user_id', currentUser.id);
+                        .eq('user_id', primaryUserId);
                     members = r2.data;
                     error = r2.error;
                 } else {
@@ -13893,7 +13896,7 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
                         .from('chat_members')
                         .select('chat_id, users:user_id(id, name, avatar_url, is_online, last_seen_at)')
                         .in('chat_id', privateChatIds)
-                        .neq('user_id', currentUser.id);
+                        .neq('user_id', primaryUserId);
 
                     const partnerMap = {};
                     (otherMembers || []).forEach(m => {
@@ -13943,7 +13946,7 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
                             .select('id', { count: 'exact', head: true })
                             .eq('chat_id', chat.chat_id)
                             .gt('created_at', lastSeen)
-                            .neq('user_id', currentUser.id);
+                            .neq('user_id', primaryUserId);
                         
                         if (!error && count > 0) {
                             unreadMap[chat.chat_id] = count;
@@ -14236,11 +14239,13 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
             if (!chat) return;
             const newVal = !chat.pinned;
             try {
-                console.log('📌 Toggle pin:', { chatId, newVal, userId: currentUser.id });
+                const userIds = getCurrentUserIdCandidates();
+                const primaryUserId = userIds[0];
+                console.log('📌 Toggle pin:', { chatId, newVal, userId: primaryUserId });
                 const { data, error } = await supabaseClient.from('chat_members')
                     .update({ pinned: newVal })
                     .eq('chat_id', chatId)
-                    .eq('user_id', currentUser.id)
+                    .eq('user_id', primaryUserId)
                     .select();
                 
                 if (error) throw error;
@@ -14260,9 +14265,10 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
             if (!chat) return;
             const newVal = !chat.muted;
             try {
+                const primaryUserId = getCurrentUserIdCandidates()[0];
                 await supabaseClient.from('chat_members')
                     .update({ muted: newVal })
-                    .eq('chat_id', chatId).eq('user_id', currentUser.id);
+                    .eq('chat_id', chatId).eq('user_id', primaryUserId);
                 chat.muted = newVal;
                 renderChatList();
                 showToast(newVal ? '🔕 Уведомления выключены' : '🔔 Уведомления включены');
@@ -14424,14 +14430,20 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
         window.hidePrivateChat = async function(chatId) {
             if (!confirm('Удалить чат? У вашего собеседника он останется со всей историей.')) return;
             try {
-                // Удаляем только себя из chat_members
-                const { error } = await supabaseClient
+                const userIds = getCurrentUserIdCandidates();
+                if (!userIds.length) throw new Error('Не найден user_id для удаления чата');
+                // Удаляем свои записи membership в БД (физически)
+                const { data: deletedRows, error } = await supabaseClient
                     .from('chat_members')
                     .delete()
                     .eq('chat_id', chatId)
-                    .eq('user_id', currentUser.id);
+                    .in('user_id', userIds)
+                    .select('user_id');
 
                 if (error) throw error;
+                if (!deletedRows || deletedRows.length === 0) {
+                    throw new Error('Не удалось удалить чат у себя (проверьте права RLS)');
+                }
 
                 if (messengerState.selectedChat?.chat_id === chatId) {
                     messengerState.selectedChat = null;
