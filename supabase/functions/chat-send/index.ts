@@ -31,10 +31,19 @@ serve(async (req) => {
 
     await supabaseAdmin.rpc('set_config', { name: 'app.current_user_id', value: user.id })
 
+    const contentForDb =
+      content && typeof content === 'object' && !Array.isArray(content)
+        ? content
+        : { text: String(content ?? '') }
+    const pushText =
+      contentForDb.type === 'work_card'
+        ? `Работа: ${contentForDb.title || contentForDb.address || 'по адресу'}`
+        : String(contentForDb.text || contentForDb.message || contentForDb.content || '')
+
     // Insert message (triggers Realtime)
     const { data: message } = await supabaseClient
       .from('messages')
-      .insert({ chat_id, content: { text: content } })
+      .insert({ chat_id, content: contentForDb })
       .select()
       .single()
 
@@ -67,7 +76,7 @@ serve(async (req) => {
           body: JSON.stringify({
             chat_id,
             sender_name: sender?.name || 'Новое сообщение',
-            text: content,
+            text: pushText,
             exclude_user_id: user.id
           })
         })

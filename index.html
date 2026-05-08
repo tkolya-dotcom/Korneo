@@ -13638,6 +13638,7 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
         let messengerState = {
             chats: [],
             messages: [],
+            messagesFingerprint: '',
             selectedChat: null,
             messagesSub: null,
             jobsSub: null,
@@ -13997,6 +13998,24 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
             if (status === 'done' || status === 'completed') return 'Завершено';
             if (status === 'overdue') return 'Просрочено';
             return 'Создано';
+        }
+
+        function getMessagesFingerprint(messages) {
+            return (messages || []).map(m => {
+                const content = normalizeMsgContent(m.content);
+                const receipts = (m.read_receipts || []).map(r => r.user_id + ':' + (r.read_at || '')).sort().join(',');
+                const jobStatus = m.job ? [m.job.status, m.job.started_at, m.job.finished_at, m.job.confirmed_by].join(':') : '';
+                return [
+                    m.id,
+                    m.created_at,
+                    m.user_id,
+                    m.type || '',
+                    m.job_id || '',
+                    JSON.stringify(content),
+                    receipts,
+                    jobStatus
+                ].join('|');
+            }).join('||');
         }
 
         function renderChatList() {
@@ -14416,6 +14435,7 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
                 if (messengerState.selectedChat?.chat_id === chatId) {
                     messengerState.selectedChat = null;
                     messengerState.messages = [];
+                    messengerState.messagesFingerprint = '';
                     document.getElementById('chat-main').innerHTML =
                         '<div class="no-chat">Выберите чат для начала общения</div>';
                 }
@@ -14443,6 +14463,7 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
                 if (messengerState.selectedChat?.chat_id === chatId) {
                     messengerState.selectedChat = null;
                     messengerState.messages = [];
+                    messengerState.messagesFingerprint = '';
                     document.getElementById('chat-main').innerHTML = '<div class="no-chat">Выберите чат</div>';
                 }
                 showToast('Группа удалена');
@@ -14475,6 +14496,7 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
                 if (messengerState.selectedChat?.chat_id === chatId) {
                     messengerState.selectedChat = null;
                     messengerState.messages = [];
+                    messengerState.messagesFingerprint = '';
                     document.getElementById('chat-main').innerHTML = '<div class="no-chat">Выберите чат</div>';
                 }
                 showToast('Чат удалён');
@@ -14507,6 +14529,7 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
             // Сбрасываем сообщения, polling, reply при смене чата
             _stopAllPolling();
             messengerState.messages = [];
+            messengerState.messagesFingerprint = '';
             messengerState.replyTo = null;
             const messagesList = document.getElementById('messages-list');
             if (messagesList) {
@@ -14733,12 +14756,16 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
                     (jobs || []).forEach(j => { jobMap[j.id] = j; });
                 }
 
-                messengerState.messages = (messages || []).map(m => ({
+                const nextMessages = (messages || []).map(m => ({
                     ...m,
                     content: normalizeMsgContent(m.content),
                     job: m.job_id ? jobMap[m.job_id] : null,
                     read_receipts: receiptsMap[m.id] || []
                 }));
+                const nextFingerprint = getMessagesFingerprint(nextMessages);
+                if (messengerState.messagesFingerprint === nextFingerprint) return;
+                messengerState.messages = nextMessages;
+                messengerState.messagesFingerprint = nextFingerprint;
                 renderMessages();
             } catch (err) {
                 console.error('Error loading messages:', err);
@@ -14760,6 +14787,9 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
             const selectedChat = messengerState.chats.find(c => c.chat_id === messengerState.selectedChat?.chat_id);
             const isGroupChat = selectedChat?.chats?.type === 'group';
 
+            const previousScrollHeight = messagesList.scrollHeight;
+            const distanceFromBottom = previousScrollHeight - messagesList.scrollTop - messagesList.clientHeight;
+            const wasNearBottom = distanceFromBottom < 140;
             messagesList.innerHTML = '';
             messagesList.dataset.rendered = 'true';
             let prevDate = null;
@@ -14902,7 +14932,11 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
             });
 
             messagesList.dataset.lastDate = prevDate || '';
-            messagesList.scrollTop = messagesList.scrollHeight;
+            if (wasNearBottom || previousScrollHeight === 0) {
+                messagesList.scrollTop = messagesList.scrollHeight;
+            } else {
+                messagesList.scrollTop = Math.max(0, messagesList.scrollTop + (messagesList.scrollHeight - previousScrollHeight));
+            }
             
             // Добавляем touch-обработчики для мобильных
             document.querySelectorAll('.msg-bubble').forEach(bubble => {
@@ -14932,6 +14966,7 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
                 const { error } = await supabaseClient.from('messages').update({ content: card }).eq('id', msgId);
                 if (error) throw error;
                 msg.content = card;
+                messengerState.messagesFingerprint = '';
                 renderMessages();
                 showToast('Работа запланирована');
             } catch(e) {
@@ -14953,6 +14988,7 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
                 const { error } = await supabaseClient.from('messages').update({ content: card }).eq('id', msgId);
                 if (error) throw error;
                 msg.content = card;
+                messengerState.messagesFingerprint = '';
                 renderMessages();
                 showToast('Работа завершена');
             } catch(e) {
@@ -15045,7 +15081,8 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
                             const { data: u } = await supabaseClient.from('users').select('name').eq('id', newMsg.user_id).single();
                             if (u) senderName = u.name;
                         }
-                        messengerState.messages.push({ ...newMsg, sender: { name: senderName } });
+                        messengerState.messages.push({ ...newMsg, content: normalizeMsgContent(newMsg.content), sender: { name: senderName } });
+                        messengerState.messagesFingerprint = '';
                         renderMessages();
                     }
                 })
@@ -15090,6 +15127,7 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
                     const idx = messengerState.messages.findIndex(m => m.id === updatedMsg.id);
                     if (idx > -1) {
                         messengerState.messages[idx] = { ...messengerState.messages[idx], ...updatedMsg, content: normalizeMsgContent(updatedMsg.content) };
+                        messengerState.messagesFingerprint = '';
                         renderMessages();
                     }
                 })
@@ -15179,8 +15217,9 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
                     window._fallbackPollInterval = null;
                     return;
                 }
-                // Полная перезагрузка сообщений каждые 2 секунды
-                await loadMessages(chatId);
+                // Не пересобираем весь чат на каждом тике: это дергает карточки работ.
+                // Realtime обновляет существующие сообщения, а polling только догружает новые.
+                await _catchUpPoll(chatId);
             }, 2000);
         }
 
@@ -15189,11 +15228,6 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
         async function _catchUpPoll(chatId) {
             try {
                 _pollCounter++;
-                // Каждые 5 циклов (2 секунды) — полная перезагрузка для обновления реакций
-                if (_pollCounter % 5 === 0) {
-                    await loadMessages(chatId);
-                    return;
-                }
                 const lastMsg = messengerState.messages[messengerState.messages.length - 1];
                 const since = lastMsg?.created_at || new Date(0).toISOString();
                 const { data: fresh } = await supabaseClient
@@ -15207,7 +15241,8 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
                 const existingIds = new Set(messengerState.messages.map(m => m.id));
                 const toAdd = fresh.filter(m => !existingIds.has(m.id));
                 if (toAdd.length > 0) {
-                    messengerState.messages.push(...toAdd);
+                    messengerState.messages.push(...toAdd.map(m => ({ ...m, content: normalizeMsgContent(m.content) })));
+                    messengerState.messagesFingerprint = '';
                     renderMessages();
                 }
             } catch (e) { /* silent */ }
