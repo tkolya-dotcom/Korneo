@@ -170,7 +170,7 @@ struct TasksView: View {
 
     private var visibleTasks: [TaskItem] {
         guard let user = appState.currentUser else { return [] }
-        if user.role?.hasCoordinatorRights == true {
+        if user.role != .worker {
             return viewModel.tasks
         }
         return viewModel.tasks.filter { $0.assigneeId == user.id }

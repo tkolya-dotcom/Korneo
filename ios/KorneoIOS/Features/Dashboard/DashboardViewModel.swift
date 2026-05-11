@@ -46,7 +46,7 @@ final class DashboardViewModel: ObservableObject {
 
     private func visibleTasksCount(_ tasks: [TaskItem], currentUser: User?) -> Int {
         guard let currentUser else { return 0 }
-        if currentUser.role?.hasCoordinatorRights == true {
+        if currentUser.role != .worker {
             return tasks.count
         }
         let myId = currentUser.id.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -56,7 +56,7 @@ final class DashboardViewModel: ObservableObject {
 
     private func visibleInstallationsCount(_ installations: [Installation], currentUser: User?) -> Int {
         guard let currentUser else { return 0 }
-        if currentUser.role?.hasCoordinatorRights == true {
+        if currentUser.role != .worker {
             return installations.count
         }
         let myId = currentUser.id.trimmingCharacters(in: .whitespacesAndNewlines)

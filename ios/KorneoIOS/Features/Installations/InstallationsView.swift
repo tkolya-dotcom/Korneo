@@ -159,7 +159,7 @@ struct InstallationsView: View {
 
     private var visibleInstallations: [Installation] {
         guard let user = appState.currentUser else { return [] }
-        if user.role?.hasCoordinatorRights == true {
+        if user.role != .worker {
             return viewModel.items
         }
         return viewModel.items.filter { $0.assigneeId == user.id }
