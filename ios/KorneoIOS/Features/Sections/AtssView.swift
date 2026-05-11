@@ -2,9 +2,27 @@
 import UniformTypeIdentifiers
 
 struct AtssView: View {
+    private enum SourceFilter: String, CaseIterable, Identifiable {
+        case all
+        case atss
+        case kasip
+
+        var id: String { rawValue }
+
+        var title: String {
+            switch self {
+            case .all: return "Все"
+            case .atss: return "ATSS"
+            case .kasip: return "KASIP-AZM"
+            }
+        }
+    }
+
     @EnvironmentObject private var appState: AppState
     @State private var rows: [GenericRecord] = []
     @State private var searchText = ""
+    @State private var sourceFilter: SourceFilter = .all
+    @State private var districtFilter = ""
     @State private var isLoading = false
     @State private var errorText: String?
     @State private var detailRow: GenericRecord?
@@ -18,15 +36,31 @@ struct AtssView: View {
     var body: some View {
         Group {
             if isLoading && visibleRows.isEmpty {
-                ProgressView("Loading ATSS...")
+                ProgressView("Загрузка АТСС...")
             } else if let errorText, visibleRows.isEmpty {
-                ContentUnavailableView("Error", systemImage: "exclamationmark.triangle", description: Text(errorText))
+                ContentUnavailableView("Ошибка", systemImage: "exclamationmark.triangle", description: Text(errorText))
             } else if visibleRows.isEmpty {
-                ContentUnavailableView("No ATSS records", systemImage: "doc.text.magnifyingglass")
+                ContentUnavailableView("Нет записей АТСС", systemImage: "doc.text.magnifyingglass")
             } else {
                 List {
+                    Section("Фильтры") {
+                        Picker("Источник", selection: $sourceFilter) {
+                            ForEach(SourceFilter.allCases) { filter in
+                                Text(filter.title).tag(filter)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+
+                        Picker("Район", selection: $districtFilter) {
+                            Text("Все районы").tag("")
+                            ForEach(districtOptions, id: \.self) { district in
+                                Text(district).tag(district)
+                            }
+                        }
+                    }
+
                     if let importStatusText, !importStatusText.isEmpty {
-                        Section("Import status") {
+                        Section("Статус импорта") {
                             Text(importStatusText)
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
@@ -48,14 +82,14 @@ struct AtssView: View {
                         }
                         .buttonStyle(.plain)
                         .contextMenu {
-                            Button("Details", systemImage: "doc.text.magnifyingglass") {
+                            Button("Детали", systemImage: "doc.text.magnifyingglass") {
                                 detailRow = row
                             }
                             if canDelete {
-                                Button("Edit", systemImage: "square.and.pencil") {
+                                Button("Редактировать", systemImage: "square.and.pencil") {
                                     editRow = row
                                 }
-                                Button("Delete", systemImage: "trash", role: .destructive) {
+                                Button("Удалить", systemImage: "trash", role: .destructive) {
                                     pendingDeleteRow = row
                                 }
                             }
@@ -65,14 +99,14 @@ struct AtssView: View {
                                 Button {
                                     editRow = row
                                 } label: {
-                                    Label("Edit", systemImage: "square.and.pencil")
+                                    Label("Редактировать", systemImage: "square.and.pencil")
                                 }
                                 .tint(.blue)
 
                                 Button(role: .destructive) {
                                     pendingDeleteRow = row
                                 } label: {
-                                    Label("Delete", systemImage: "trash")
+                                    Label("Удалить", systemImage: "trash")
                                 }
                             }
                         }
@@ -83,8 +117,8 @@ struct AtssView: View {
                 }
             }
         }
-        .navigationTitle("ATSS")
-        .searchable(text: $searchText, prompt: "Search by address, EMTS, SK, serial, inventory")
+        .navigationTitle("АТСС")
+        .searchable(text: $searchText, prompt: "Поиск по адресу, EMTS, СК, серийному и инвентарному")
         .toolbar {
             if canDelete {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -98,7 +132,7 @@ struct AtssView: View {
                         }
                     }
                     .disabled(isImporting)
-                    .accessibilityLabel("Import ATSS plan")
+                    .accessibilityLabel("Импорт плана АТСС")
                 }
             }
         }
@@ -129,7 +163,7 @@ struct AtssView: View {
                 .navigationTitle(atssTitle(for: row))
                 .toolbar {
                     ToolbarItem(placement: .topBarTrailing) {
-                        Button("Close") {
+                        Button("Закрыть") {
                             detailRow = nil
                         }
                     }
@@ -148,18 +182,18 @@ struct AtssView: View {
                 ) { draft in
                     await saveAtssEdit(row: row, draft: draft)
                 }
-                .navigationTitle("Edit ATSS")
+                .navigationTitle("Редактирование АТСС")
             }
         }
         .confirmationDialog(
-            "Delete this ATSS record?",
+            "Удалить запись АТСС?",
             isPresented: Binding(
                 get: { pendingDeleteRow != nil },
                 set: { if !$0 { pendingDeleteRow = nil } }
             ),
             titleVisibility: .visible
         ) {
-            Button(isDeleting ? "Deleting..." : "Delete", role: .destructive) {
+            Button(isDeleting ? "Удаление..." : "Удалить", role: .destructive) {
                 guard let row = pendingDeleteRow else { return }
                 Task {
                     isDeleting = true
@@ -168,9 +202,9 @@ struct AtssView: View {
                 }
             }
             .disabled(isDeleting)
-            Button("Cancel", role: .cancel) {}
+            Button("Отмена", role: .cancel) {}
         } message: {
-            Text("This action cannot be undone.")
+            Text("Это действие нельзя отменить.")
         }
     }
 
@@ -188,10 +222,40 @@ struct AtssView: View {
 
     private var visibleRows: [GenericRecord] {
         let q = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        guard !q.isEmpty else { return rows }
         return rows.filter { row in
-            atssSearchBlob(for: row).lowercased().contains(q)
+            if sourceFilter != .all {
+                let isKasip = isKasipRow(row)
+                if sourceFilter == .kasip && !isKasip {
+                    return false
+                }
+                if sourceFilter == .atss && isKasip {
+                    return false
+                }
+            }
+
+            if !districtFilter.isEmpty {
+                let district = first(row, keys: ["rayon", "district"]).lowercased()
+                if district != districtFilter.lowercased() {
+                    return false
+                }
+            }
+
+            if q.isEmpty {
+                return true
+            }
+            return atssSearchBlob(for: row).lowercased().contains(q)
         }
+    }
+
+    private var districtOptions: [String] {
+        var values = Set<String>()
+        for row in rows {
+            let district = first(row, keys: ["rayon", "district"])
+            if !district.isEmpty {
+                values.insert(district)
+            }
+        }
+        return values.sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
     }
 
     private func load() async {
@@ -257,10 +321,10 @@ struct AtssView: View {
     }
 
     private func saveAtssEdit(row: GenericRecord, draft: AtssEditDraft) async -> String? {
-        guard canDelete else { return "Permission denied" }
+        guard canDelete else { return "Недостаточно прав" }
         let source = sourceTable(for: row)
         let siteId = first(row, keys: ["id_ploshadki", "site_id", "id"])
-        guard !source.isEmpty, !siteId.isEmpty else { return "Invalid record id" }
+        guard !source.isEmpty, !siteId.isEmpty else { return "Некорректный идентификатор записи" }
 
         var patch: [String: JSONValue] = [:]
         putIfNotBlank(&patch, key: "servisnyy_id", value: draft.serviceId)
@@ -317,21 +381,21 @@ struct AtssView: View {
         let serials = joined(row, baseKey: "serial_number", fallbackKeys: ["equipment_serial_number"])
         let inventories = joined(row, baseKey: "inventory_number", fallbackKeys: ["id_sk", "id_konditsionera", "equipment_inventory_number"])
         return """
-        Address: \(safe(address))
-        District: \(safe(district))
+        Адрес: \(safe(address))
+        Район: \(safe(district))
         EMTS / Service ID: \(safe(emts))
-        \(plan.isEmpty ? "" : "Planned date: \(plan)\n")\(skNames.isEmpty ? "" : "SK names: \(skNames)\n")\(statuses.isEmpty ? "" : "SK statuses: \(statuses)\n")\(serials.isEmpty ? "" : "S/N: \(serials)\n")\(inventories.isEmpty ? "" : "Inventory: \(inventories)")
+        \(plan.isEmpty ? "" : "Плановая дата: \(plan)\n")\(skNames.isEmpty ? "" : "Наименования СК: \(skNames)\n")\(statuses.isEmpty ? "" : "Статусы СК: \(statuses)\n")\(serials.isEmpty ? "" : "Серийные номера: \(serials)\n")\(inventories.isEmpty ? "" : "Инвентарные номера: \(inventories)")
         """.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     private func atssDetail(for row: GenericRecord) -> String {
         var lines: [String] = []
-        appendLine(&lines, label: "Source", value: sourceLabel(sourceTable(for: row)))
-        appendLine(&lines, label: "Site ID", value: first(row, keys: ["id_ploshadki", "site_id", "id"]))
+        appendLine(&lines, label: "Источник", value: sourceLabel(sourceTable(for: row)))
+        appendLine(&lines, label: "ID площадки", value: first(row, keys: ["id_ploshadki", "site_id", "id"]))
         appendLine(&lines, label: "EMTS / Service ID", value: first(row, keys: ["emts", "servisnyy_id", "service_id"]))
-        appendLine(&lines, label: "Address", value: first(row, keys: ["adres_razmeshcheniya", "adres_raspolozheniya", "address", "adres", "address_text"]))
-        appendLine(&lines, label: "District", value: first(row, keys: ["rayon", "district"]))
-        appendLine(&lines, label: "Planned date", value: formattedAtssDate(first(row, keys: ["planovaya_data_1_kv_2026", "plan_yanvar", "plan_fevral", "plan_mart"])))
+        appendLine(&lines, label: "Адрес", value: first(row, keys: ["adres_razmeshcheniya", "adres_raspolozheniya", "address", "adres", "address_text"]))
+        appendLine(&lines, label: "Район", value: first(row, keys: ["rayon", "district"]))
+        appendLine(&lines, label: "Плановая дата", value: formattedAtssDate(first(row, keys: ["planovaya_data_1_kv_2026", "plan_yanvar", "plan_fevral", "plan_mart"])))
         for i in 1...6 {
             let skName = first(row, keys: ["naimenovanie_sk\(i)", "equipment_name\(i)", "name\(i)"])
             let status = first(row, keys: ["status_sk\(i)", "status_oborudovaniya\(i)", "equipment_status\(i)"])
@@ -341,9 +405,9 @@ struct AtssView: View {
                 continue
             }
             lines.append("SK \(i): \(safe(skName))")
-            appendLine(&lines, label: "Status", value: status)
+            appendLine(&lines, label: "Статус", value: status)
             appendLine(&lines, label: "S/N", value: serial)
-            appendLine(&lines, label: "Inventory", value: inventory)
+            appendLine(&lines, label: "Инвентарный", value: inventory)
             lines.append("")
         }
         return lines.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
@@ -368,9 +432,13 @@ struct AtssView: View {
 
     private func sourceLabel(_ table: String) -> String {
         if table == "kasip_azm_q1_2026" {
-            return "KASIP"
+            return "KASIP-AZM"
         }
         return "ATSS"
+    }
+
+    private func isKasipRow(_ row: GenericRecord) -> Bool {
+        sourceTable(for: row) == "kasip_azm_q1_2026"
     }
 
     private func first(_ row: GenericRecord, keys: [String]) -> String {
@@ -499,32 +567,32 @@ private struct AtssEditSheet: View {
     var body: some View {
         Form {
             if let errorText {
-                Section("Error") {
+                Section("Ошибка") {
                     Text(errorText).foregroundStyle(.red)
                 }
             }
-            Section("Main") {
+            Section("Основное") {
                 TextField("Service ID", text: $draft.serviceId)
-                TextField("Address", text: $draft.address)
-                TextField("District", text: $draft.district)
-                TextField("Plan date (dd.MM.yyyy or yyyymmdd)", text: $draft.planDate)
-                TextField("Comment", text: $draft.comment, axis: .vertical)
+                TextField("Адрес", text: $draft.address)
+                TextField("Район", text: $draft.district)
+                TextField("Плановая дата (dd.MM.yyyy или yyyymmdd)", text: $draft.planDate)
+                TextField("Комментарий", text: $draft.comment, axis: .vertical)
                     .lineLimit(2...5)
             }
-            Section("Source") {
+            Section("Источник") {
                 Text(sourceTable == "kasip_azm_q1_2026" ? "KASIP AZM" : "ATSS")
                     .foregroundStyle(.secondary)
             }
         }
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
-                Button("Cancel") {
+                Button("Отмена") {
                     dismiss()
                 }
                 .disabled(isSaving)
             }
             ToolbarItem(placement: .topBarTrailing) {
-                Button(isSaving ? "Saving..." : "Save") {
+                Button(isSaving ? "Сохранение..." : "Сохранить") {
                     Task { await save() }
                 }
                 .disabled(isSaving)
