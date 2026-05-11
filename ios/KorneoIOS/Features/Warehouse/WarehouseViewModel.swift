@@ -1,4 +1,4 @@
-import Foundation
+﻿import Foundation
 import Combine
 
 @MainActor
@@ -261,3 +261,4 @@ final class WarehouseViewModel: ObservableObject {
         return raw.lowercased() == "null" ? "" : raw
     }
 }
+

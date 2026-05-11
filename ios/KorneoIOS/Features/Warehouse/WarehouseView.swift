@@ -1,4 +1,4 @@
-import SwiftUI
+﻿import SwiftUI
 
 struct WarehouseView: View {
     private struct RestockDraft {
@@ -329,7 +329,7 @@ private struct WarehouseRestockSheet: View {
                     .disabled(isSaving)
             }
             ToolbarItem(placement: .topBarTrailing) {
-                Button(isSaving ? "Сохр..." : "Сохранить") {
+                Button(isSaving ? "Сохраняем..." : "Сохранить") {
                     Task { await onSave(draft) }
                 }
                 .disabled(isSaving || draft.materialId.isEmpty || draft.quantityValue <= 0)
@@ -384,7 +384,7 @@ private struct WarehouseIssueSheet: View {
                     .disabled(isSaving)
             }
             ToolbarItem(placement: .topBarTrailing) {
-                Button(isSaving ? "Сохр..." : "Сохранить") {
+                Button(isSaving ? "Сохраняем..." : "Сохранить") {
                     Task { await onSave(draft) }
                 }
                 .disabled(isSaving || draft.materialId.isEmpty || draft.quantityValue <= 0)
@@ -426,7 +426,7 @@ private struct WarehouseAddMaterialSheet: View {
                     .disabled(isSaving)
             }
             ToolbarItem(placement: .topBarTrailing) {
-                Button(isSaving ? "Сохр..." : "Сохранить") {
+                Button(isSaving ? "Сохраняем..." : "Сохранить") {
                     Task { await onSave(draft) }
                 }
                 .disabled(isSaving || draft.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
@@ -434,3 +434,4 @@ private struct WarehouseAddMaterialSheet: View {
         }
     }
 }
+
