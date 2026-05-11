@@ -158,7 +158,7 @@ struct SitesView: View {
             if q.isEmpty {
                 return true
             }
-            siteSearchBlob(for: row).lowercased().contains(q)
+            return siteSearchBlob(for: row).lowercased().contains(q)
         }
     }
 
