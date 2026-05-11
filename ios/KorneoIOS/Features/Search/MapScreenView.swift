@@ -64,6 +64,7 @@ struct MapScreenView: View {
     @State private var hasAskedArrivalForCurrentRoute = false
 
     @State private var showInAppNavigationSheet = false
+    @State private var isBound = false
 
     var body: some View {
         Group {
@@ -94,7 +95,7 @@ struct MapScreenView: View {
             }
         }
         .alert("Ошибка", isPresented: $showRouteError) {
-            Button("OK", role: .cancel) { }
+            Button("Ок", role: .cancel) { }
         } message: {
             Text(routeErrorText ?? "Не удалось построить маршрут")
         }
@@ -112,11 +113,16 @@ struct MapScreenView: View {
         } message: {
             Text("Запланировать работы по адресу?\n\(arrivalPromptAddress)")
         }
-        .task {
-            viewModel.bind(client: appState.client, currentUser: appState.currentUser)
-            selectedMode = hasManagerRights ? .users : .navigation
-            locationProvider.requestPermission()
-            await reload()
+        .task { await ensureBoundAndLoad() }
+        .onAppear {
+            Task { await ensureBoundAndLoad() }
+        }
+        .onChange(of: appState.selectedTab) { tab in
+            guard tab == .search else { return }
+            Task { await reload() }
+        }
+        .onChange(of: appState.currentUser?.id) { _ in
+            Task { await ensureBoundAndLoad() }
         }
         .onReceive(locationProvider.$currentCoordinate) { coordinate in
             guard let coordinate else { return }
@@ -344,6 +350,16 @@ struct MapScreenView: View {
         if !viewModel.navigationPoints.isEmpty {
             navigationCameraPosition = .rect(mapRect(for: viewModel.navigationPoints.map(\.coordinate)))
         }
+    }
+
+    private func ensureBoundAndLoad() async {
+        if !isBound {
+            locationProvider.requestPermission()
+            isBound = true
+        }
+        viewModel.bind(client: appState.client, currentUser: appState.currentUser)
+        selectedMode = hasManagerRights ? .users : .navigation
+        await reload()
     }
 
     private func buildRoute() async {
@@ -623,8 +639,7 @@ struct MapScreenView: View {
                 card["description"] = .string(cleanNote)
             }
 
-            let creatorName = userName.isEmpty ? "Пользователь" : userName
-            let text = "Работы: \(workType)\nАдрес: \(address)\nЧасы: \(hours)\nКто завёл: \(creatorName)"
+            let text = "Работы: \(workType)\nАдрес: \(address)\nЧасы: \(hours)\nКто завёл: \(userName.isEmpty ? \"Пользователь\" : userName)"
             card["text"] = .string(text)
 
             _ = try await appState.client.sendMessageContent(

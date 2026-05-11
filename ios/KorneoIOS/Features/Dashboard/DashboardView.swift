@@ -64,6 +64,16 @@ struct DashboardView: View {
             viewModel.bind(client: appState.client)
             await viewModel.load(currentUser: appState.currentUser)
         }
+        .onAppear {
+            Task { await viewModel.load(currentUser: appState.currentUser) }
+        }
+        .onChange(of: appState.selectedTab) { tab in
+            guard tab == .home else { return }
+            Task { await viewModel.load(currentUser: appState.currentUser) }
+        }
+        .onChange(of: appState.currentUser?.id) { _ in
+            Task { await viewModel.load(currentUser: appState.currentUser) }
+        }
     }
 
     private func statRow(_ title: String, _ value: Int) -> some View {

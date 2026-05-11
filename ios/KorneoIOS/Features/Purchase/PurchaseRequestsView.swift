@@ -1,4 +1,4 @@
-import SwiftUI
+﻿import SwiftUI
 
 struct PurchaseRequestsView: View {
     @EnvironmentObject private var appState: AppState
@@ -6,8 +6,7 @@ struct PurchaseRequestsView: View {
     @State private var showCreateSheet = false
     @State private var pendingDeleteItem: PurchaseRequest?
     @State private var isDeleting = false
-    @State private var searchText = ""
-    @State private var selectedStatusRaw = ""
+    @State private var isBound = false
 
     var body: some View {
         NavigationStack {
@@ -17,57 +16,39 @@ struct PurchaseRequestsView: View {
                 } else if let error = viewModel.errorText, viewModel.items.isEmpty {
                     ContentUnavailableView("Ошибка", systemImage: "exclamationmark.triangle", description: Text(error))
                 } else {
-                    List {
-                        Section("Фильтр") {
-                            Picker("Статус", selection: $selectedStatusRaw) {
-                                Text("Все статусы").tag("")
-                                ForEach(PurchaseRequestStatus.allCases) { status in
-                                    Text(status.displayLabel).tag(status.rawValue)
+                    List(viewModel.items) { item in
+                        NavigationLink {
+                            PurchaseRequestDetailView(viewModel: viewModel, item: item)
+                                .environmentObject(appState)
+                        } label: {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(displayTitle(for: item))
+                                    .font(.headline)
+                                Text(statusLabel(for: item.status))
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                if let address = item.receiptAddress, !address.isEmpty {
+                                    Text(address)
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                }
+                                if let materials = viewModel.materialPreviewByRequestId[item.id], !materials.isEmpty {
+                                    Text(materials)
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                } else if let comment = item.comment, !comment.isEmpty {
+                                    Text(comment)
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
                                 }
                             }
                         }
-
-                        if filteredItems.isEmpty {
-                            Section {
-                                Text("Нет подходящих заявок")
-                                    .foregroundStyle(.secondary)
-                            }
-                        } else {
-                            ForEach(filteredItems) { item in
-                                NavigationLink {
-                                    PurchaseRequestDetailView(viewModel: viewModel, item: item)
-                                        .environmentObject(appState)
+                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                            if canDelete(item: item) {
+                                Button(role: .destructive) {
+                                    pendingDeleteItem = item
                                 } label: {
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        Text(displayTitle(for: item))
-                                            .font(.headline)
-                                        Text(statusLabel(for: item.status))
-                                            .font(.caption)
-                                            .foregroundStyle(.secondary)
-                                        if let address = item.receiptAddress, !address.isEmpty {
-                                            Text(address)
-                                                .font(.caption2)
-                                                .foregroundStyle(.secondary)
-                                        }
-                                        if let materials = viewModel.materialPreviewByRequestId[item.id], !materials.isEmpty {
-                                            Text(materials)
-                                                .font(.caption2)
-                                                .foregroundStyle(.secondary)
-                                        } else if let comment = item.comment, !comment.isEmpty {
-                                            Text(comment)
-                                                .font(.caption2)
-                                                .foregroundStyle(.secondary)
-                                        }
-                                    }
-                                }
-                                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                    if canDelete(item: item) {
-                                        Button(role: .destructive) {
-                                            pendingDeleteItem = item
-                                        } label: {
-                                            Label("Удалить", systemImage: "trash")
-                                        }
-                                    }
+                                    Label("Удалить", systemImage: "trash")
                                 }
                             }
                         }
@@ -77,8 +58,7 @@ struct PurchaseRequestsView: View {
                     }
                 }
             }
-            .navigationTitle("Заявки на закупку")
-            .searchable(text: $searchText, prompt: "Поиск заявок")
+            .navigationTitle("Заявки на материалы")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
@@ -90,8 +70,13 @@ struct PurchaseRequestsView: View {
             }
         }
         .task {
-            viewModel.bind(client: appState.client)
-            await viewModel.load()
+            await ensureBoundAndLoad()
+        }
+        .onAppear {
+            Task { await ensureBoundAndLoad() }
+        }
+        .onChange(of: appState.currentUser?.id) { _ in
+            Task { await ensureBoundAndLoad() }
         }
         .sheet(isPresented: $showCreateSheet) {
             CreatePurchaseRequestView(viewModel: viewModel)
@@ -105,7 +90,7 @@ struct PurchaseRequestsView: View {
             ),
             titleVisibility: .visible
         ) {
-            Button(isDeleting ? "Удаление..." : "Удалить", role: .destructive) {
+            Button(isDeleting ? "Удаляем..." : "Удалить", role: .destructive) {
                 guard let item = pendingDeleteItem else { return }
                 Task {
                     isDeleting = true
@@ -123,25 +108,12 @@ struct PurchaseRequestsView: View {
         }
     }
 
-    private var filteredItems: [PurchaseRequest] {
-        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        return viewModel.items.filter { item in
-            if !selectedStatusRaw.isEmpty, (item.status ?? "") != selectedStatusRaw {
-                return false
-            }
-            if query.isEmpty {
-                return true
-            }
-            let haystack = [
-                displayTitle(for: item),
-                item.comment ?? "",
-                item.receiptAddress ?? "",
-                item.status ?? ""
-            ]
-                .joined(separator: " ")
-                .lowercased()
-            return haystack.contains(query)
+    private func ensureBoundAndLoad() async {
+        if !isBound {
+            viewModel.bind(client: appState.client)
+            isBound = true
         }
+        await viewModel.load()
     }
 
     private func canDelete(item: PurchaseRequest) -> Bool {
@@ -164,9 +136,9 @@ struct PurchaseRequestsView: View {
     }
 
     private func statusLabel(for raw: String?) -> String {
-        guard let raw, let status = PurchaseRequestStatus(rawValue: raw) else {
-            let clean = (raw ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-            return clean.isEmpty ? "Черновик" : clean
+        guard let raw = raw?.trimmingCharacters(in: .whitespacesAndNewlines),
+              let status = PurchaseRequestStatus(rawValue: raw) else {
+            return raw?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false ? (raw ?? "") : "Черновик"
         }
         return status.displayLabel
     }

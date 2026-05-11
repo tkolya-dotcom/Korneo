@@ -169,7 +169,7 @@ final class SupabaseClient {
             path: "rest/v1/tasks",
             method: "GET",
             queryItems: [
-                URLQueryItem(name: "select", value: "id,project_id,title,description,assignee_id,status,due_date,is_archived,short_id,created_by,created_at,updated_at"),
+                URLQueryItem(name: "select", value: "id,project_id,title,description,assignee_id,status,priority,due_date,is_archived,short_id,created_by,created_at,updated_at"),
                 URLQueryItem(name: "order", value: "created_at.desc.nullslast")
             ]
         )
@@ -847,6 +847,9 @@ final class SupabaseClient {
 
         let safeTitle = (title ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         let safeBody = (bodyText ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let dedupeSeed = "\(safeTarget)|\(safeTitle)|\(safeBody)|\(chatId?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "")"
+            .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
 
         var payload: [String: JSONValue] = [
             "title": .string(safeTitle.isEmpty ? "Korneo" : safeTitle),
@@ -859,6 +862,8 @@ final class SupabaseClient {
             "targetUserId": .string(safeTarget),
             "user_id": .string(safeTarget),
             "recipient_id": .string(safeTarget),
+            "dedupe_key": .string(String(dedupeSeed.prefix(180))),
+            "dedupeKey": .string(String(dedupeSeed.prefix(180))),
             "ignore_notification_enabled": .bool(true),
             "ignoreNotificationEnabled": .bool(true)
         ]
@@ -1192,9 +1197,9 @@ final class SupabaseClient {
     func fetchJobsForMap() async throws -> [GenericRecord] {
         try await fetchTableRows(
             table: "jobs",
-            select: "id,title,status,address,latitude,longitude,lat,lng,created_at",
+            select: "*",
             order: "created_at.desc.nullslast",
-            limit: 500
+            limit: 1000
         )
     }
 
@@ -1775,7 +1780,7 @@ final class SupabaseClient {
         }
 
         guard (200...299).contains(http.statusCode) else {
-            let message = String(data: data, encoding: .utf8) ?? "Неизвестная ошибка сервера"
+            let message = String(data: data, encoding: .utf8) ?? "Unknown server error"
             throw APIError.requestFailed(status: http.statusCode, message: message)
         }
 
@@ -2621,6 +2626,8 @@ struct InstallationUpsertPayload: Codable {
     var scheduledAt: String?
     var deadline: String?
     var address: String?
+    var idPloshadki: String?
+    var rayon: String?
     var createdBy: String?
 
     enum CodingKeys: String, CodingKey {
@@ -2632,6 +2639,8 @@ struct InstallationUpsertPayload: Codable {
         case scheduledAt = "scheduled_at"
         case deadline
         case address
+        case idPloshadki = "id_ploshadki"
+        case rayon
         case createdBy = "created_by"
     }
 }
@@ -2666,6 +2675,7 @@ struct TaskUpsertPayload: Codable {
     let description: String?
     let assigneeId: String?
     let status: String?
+    let priority: String?
     let dueDate: String?
     let createdBy: String?
 
@@ -2675,6 +2685,7 @@ struct TaskUpsertPayload: Codable {
         case description
         case assigneeId = "assignee_id"
         case status
+        case priority
         case dueDate = "due_date"
         case createdBy = "created_by"
     }

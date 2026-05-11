@@ -1,4 +1,4 @@
-import SwiftUI
+﻿import SwiftUI
 
 struct InstallationsView: View {
     private enum StatusFilter: String, CaseIterable, Identifiable {
@@ -14,7 +14,7 @@ struct InstallationsView: View {
             case .all: return "Все"
             case .new: return "Новые"
             case .inProgress: return "В работе"
-            case .done: return "Выполненные"
+            case .done: return "Выполнены"
             }
         }
     }
@@ -27,6 +27,7 @@ struct InstallationsView: View {
     @State private var isDeleting = false
     @State private var searchText = ""
     @State private var statusFilter: StatusFilter = .all
+    @State private var isBound = false
 
     var body: some View {
         NavigationStack {
@@ -50,7 +51,7 @@ struct InstallationsView: View {
 
                         if filteredInstallations.isEmpty {
                             Section {
-                                Text("Нет подходящих монтажей")
+                                Text("По текущему фильтру монтажей нет")
                                     .foregroundStyle(.secondary)
                             }
                         } else {
@@ -60,12 +61,12 @@ struct InstallationsView: View {
                                         .environmentObject(appState)
                                 } label: {
                                     VStack(alignment: .leading, spacing: 4) {
-                                        Text(item.title ?? "Untitled installation")
+                                        Text(installationTitle(item))
                                             .font(.headline)
-                                        Text(statusTitle(item.status))
+                                        Text(installationStatusTitle(item.status))
                                             .font(.caption)
                                             .foregroundStyle(.secondary)
-                                        if let address = item.address, !address.isEmpty {
+                                        if let address = item.address, !address.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                                             Text(address)
                                                 .font(.caption2)
                                                 .foregroundStyle(.secondary)
@@ -104,8 +105,13 @@ struct InstallationsView: View {
             }
         }
         .task {
-            viewModel.bind(client: appState.client)
-            await viewModel.load()
+            await ensureBoundAndLoad()
+        }
+        .onAppear {
+            Task { await ensureBoundAndLoad() }
+        }
+        .onChange(of: appState.currentUser?.id) { _ in
+            Task { await ensureBoundAndLoad() }
         }
         .sheet(isPresented: $showCreateSheet) {
             InstallationFormView(viewModel: viewModel, mode: .create)
@@ -119,7 +125,7 @@ struct InstallationsView: View {
             ),
             titleVisibility: .visible
         ) {
-            Button(isDeleting ? "Удаление..." : "Удалить", role: .destructive) {
+            Button(isDeleting ? "Удаляем..." : "Удалить", role: .destructive) {
                 guard let item = pendingDeleteItem else { return }
                 Task {
                     isDeleting = true
@@ -135,6 +141,14 @@ struct InstallationsView: View {
         } message: {
             Text("Это действие нельзя отменить.")
         }
+    }
+
+    private func ensureBoundAndLoad() async {
+        if !isBound {
+            viewModel.bind(client: appState.client)
+            isBound = true
+        }
+        await viewModel.load()
     }
 
     private func canDelete(item: Installation) -> Bool {
@@ -160,7 +174,8 @@ struct InstallationsView: View {
         return visibleInstallations.filter { item in
             let matchesStatus: Bool = {
                 if statusFilter == .all { return true }
-                return (item.status ?? "").lowercased() == statusFilter.rawValue
+                let normalized = (InstallationStatus.from(raw: item.status)?.rawValue ?? item.status ?? "").lowercased()
+                return normalized == statusFilter.rawValue
             }()
 
             let matchesSearch: Bool = {
@@ -175,17 +190,12 @@ struct InstallationsView: View {
         }
     }
 
-    private func statusTitle(_ raw: String?) -> String {
-        switch (raw ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
-        case "new": return "Новый"
-        case "planned": return "Запланирован"
-        case "in_progress": return "В работе"
-        case "done", "completed": return "Выполнен"
-        case "received": return "Принят"
-        case "cancelled": return "Отменен"
-        default:
-            let clean = (raw ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-            return clean.isEmpty ? "Новый" : clean
-        }
+    private func installationTitle(_ item: Installation) -> String {
+        let clean = (item.title ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        return clean.isEmpty ? "Без названия" : clean
+    }
+
+    private func installationStatusTitle(_ raw: String?) -> String {
+        InstallationStatus.from(raw: raw)?.titleRu ?? "Неизвестно"
     }
 }

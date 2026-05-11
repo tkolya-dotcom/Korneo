@@ -1,4 +1,4 @@
-import SwiftUI
+﻿import SwiftUI
 
 struct TaskDetailView: View {
     @EnvironmentObject private var appState: AppState
@@ -6,23 +6,28 @@ struct TaskDetailView: View {
     @State var task: TaskItem
     @State private var showEditSheet = false
     @State private var isUpdatingStatus = false
+    @State private var projectsById: [String: String] = [:]
+    @State private var usersById: [String: String] = [:]
 
     var body: some View {
         List {
             Section("Основное") {
                 detailRow("Название", task.title ?? "-")
                 detailRow("Статус", statusTitle(task.status))
+                detailRow("Приоритет", TaskPriority.from(raw: task.priority).titleRu)
                 detailRow("Описание", task.description ?? "-")
             }
             Section("Связи") {
-                detailRow("ID проекта", task.projectId ?? "-")
-                detailRow("ID исполнителя", task.assigneeId ?? "-")
+                detailRow("Проект", projectName(task.projectId))
+                detailRow("Исполнитель", userName(task.assigneeId))
+                detailRow("Проект ID", task.projectId ?? "-")
+                detailRow("Исполнитель ID", task.assigneeId ?? "-")
                 detailRow("Создал", task.createdBy ?? "-")
             }
             Section("Даты") {
                 detailRow("Срок", task.dueDate ?? "-")
-                detailRow("Создана", task.createdAt ?? "-")
-                detailRow("Обновлена", task.updatedAt ?? "-")
+                detailRow("Создано", task.createdAt ?? "-")
+                detailRow("Обновлено", task.updatedAt ?? "-")
             }
 
             Section("Комментарии") {
@@ -34,16 +39,16 @@ struct TaskDetailView: View {
                 )
             }
 
-            Section("Переход статуса") {
+            Section("Статус") {
                 if allowedTransitions.isEmpty {
                     Text("Нет доступных переходов")
                         .foregroundStyle(.secondary)
                 } else if !canChangeStatus {
-                    Text("Изменение статуса недоступно для вашей роли")
+                    Text("У вашей роли нет прав на изменение статуса")
                         .foregroundStyle(.secondary)
                 } else {
                     ForEach(allowedTransitions) { next in
-                        Button(isUpdatingStatus ? "Обновление..." : "Перевести в: \(statusTitle(next.rawValue))") {
+                        Button(isUpdatingStatus ? "Обновляем..." : "Перевести в «\(next.titleRu)»") {
                             Task { await changeStatus(next) }
                         }
                         .disabled(isUpdatingStatus)
@@ -55,7 +60,7 @@ struct TaskDetailView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 if canEdit {
-                    Button("Редактировать") { showEditSheet = true }
+                    Button("Изменить") { showEditSheet = true }
                 }
             }
         }
@@ -70,6 +75,7 @@ struct TaskDetailView: View {
         }
         .task {
             await refreshLocal()
+            await loadLookups()
         }
     }
 
@@ -84,7 +90,9 @@ struct TaskDetailView: View {
     }
 
     private var allowedTransitions: [TaskStatus] {
-        TaskStatus.allowedTransitions(from: task.status)
+        let fixed: [TaskStatus] = [.new, .inProgress, .waitingMaterials, .done, .postponed]
+        let current = TaskStatus.from(raw: task.status)
+        return fixed.filter { $0 != current }
     }
 
     private var canChangeStatus: Bool {
@@ -94,6 +102,14 @@ struct TaskDetailView: View {
     private var canEdit: Bool {
         guard let role = appState.currentUser?.role else { return false }
         return role != .engineer
+    }
+
+    private func statusTitle(_ raw: String?) -> String {
+        if let mapped = TaskStatus.from(raw: raw) {
+            return mapped.titleRu
+        }
+        let clean = (raw ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        return clean.isEmpty ? "-" : clean
     }
 
     private func changeStatus(_ next: TaskStatus) async {
@@ -113,19 +129,37 @@ struct TaskDetailView: View {
         }
     }
 
-    private func statusTitle(_ raw: String?) -> String {
-        let value = (raw ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        switch value {
-        case "new": return "Новая"
-        case "planned": return "Запланирована"
-        case "in_progress": return "В работе"
-        case "waiting_materials": return "Ждёт материалы"
-        case "done", "completed": return "Выполнена"
-        case "postponed": return "Отложена"
-        case "cancelled": return "Отменена"
-        default:
-            let clean = (raw ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-            return clean.isEmpty ? "-" : clean
-        }
+    private func loadLookups() async {
+        async let projectsReq = appState.client.fetchProjects()
+        async let usersReq = appState.client.fetchUsers()
+        let projects = (try? await projectsReq) ?? []
+        let users = (try? await usersReq) ?? []
+
+        projectsById = Dictionary(
+            uniqueKeysWithValues: projects.map { project in
+                let name = (project.name ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+                return (project.id, name.isEmpty ? project.id : name)
+            }
+        )
+        usersById = Dictionary(
+            uniqueKeysWithValues: users.map { user in
+                let name = (user.name ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+                let email = (user.email ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+                let display = !name.isEmpty ? name : (!email.isEmpty ? email : user.id)
+                return (user.id, display)
+            }
+        )
+    }
+
+    private func projectName(_ projectId: String?) -> String {
+        let clean = (projectId ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        if clean.isEmpty { return "Без проекта" }
+        return projectsById[clean] ?? clean
+    }
+
+    private func userName(_ userId: String?) -> String {
+        let clean = (userId ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        if clean.isEmpty { return "Не назначен" }
+        return usersById[clean] ?? clean
     }
 }

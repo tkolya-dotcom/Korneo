@@ -60,6 +60,7 @@ final class AppState: ObservableObject {
             }
             .store(in: &cancellables)
 
+        syncPushUserContext()
         if client.hasActiveSession {
             route = .home
         }
@@ -68,6 +69,7 @@ final class AppState: ObservableObject {
     func signIn(email: String, password: String) async throws {
         let auth = try await client.login(email: email, password: password)
         currentUser = try await client.loadOrCreateUserProfile(from: auth)
+        syncPushUserContext()
         route = .home
         await requestPushPermissionIfNeeded()
         await syncPushTokenIfPossible()
@@ -77,6 +79,7 @@ final class AppState: ObservableObject {
         guard route == .home else { return }
         do {
             currentUser = try await client.fetchCurrentUserProfile()
+            syncPushUserContext()
             await requestPushPermissionIfNeeded()
             await syncPushTokenIfPossible()
         } catch {
@@ -88,6 +91,7 @@ final class AppState: ObservableObject {
     func signOut() {
         client.clearSession()
         currentUser = nil
+        syncPushUserContext()
         route = .auth
         selectedTab = .home
         pendingChatDeepLink = nil
@@ -116,6 +120,7 @@ final class AppState: ObservableObject {
         if supabaseChanged {
             client.updateConnection(url: url, anonKey: anonKey, daichiToken: daichiToken)
             currentUser = nil
+            syncPushUserContext()
             route = .auth
             return
         }
@@ -146,5 +151,22 @@ final class AppState: ObservableObject {
     private func handlePushOpenChat(chatId: String, chatName: String?) {
         pendingChatDeepLink = ChatDeepLink(chatId: chatId, chatName: chatName)
         selectedTab = .chats
+    }
+
+    private func syncPushUserContext() {
+        let defaults = UserDefaults.standard
+        let userId = currentUser?.id.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if userId.isEmpty {
+            defaults.removeObject(forKey: PushUserContextKeys.currentUserId)
+        } else {
+            defaults.set(userId, forKey: PushUserContextKeys.currentUserId)
+        }
+
+        let userName = currentUser?.name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if userName.isEmpty {
+            defaults.removeObject(forKey: PushUserContextKeys.currentUserName)
+        } else {
+            defaults.set(userName, forKey: PushUserContextKeys.currentUserName)
+        }
     }
 }

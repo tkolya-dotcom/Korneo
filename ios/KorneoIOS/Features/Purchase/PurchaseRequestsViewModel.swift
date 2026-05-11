@@ -16,14 +16,15 @@ final class PurchaseRequestsViewModel: ObservableObject {
 
     func load() async {
         guard let client else {
-            errorText = "Клиент Supabase не настроен"
+            errorText = "Клиент не настроен"
             return
         }
         isLoading = true
         errorText = nil
         defer { isLoading = false }
         do {
-            items = try await client.fetchPurchaseRequests()
+            let fetched = try await client.fetchPurchaseRequests()
+            items = fetched.filter { !$0.shouldMoveToArchive() }
             await loadMaterialPreviews(for: items)
         } catch {
             errorText = error.localizedDescription
@@ -58,7 +59,7 @@ final class PurchaseRequestsViewModel: ObservableObject {
                 materialCount: materialLines.count
             )
             if itemInsertFailed {
-                errorText = "Request created, but some material rows were not saved."
+                errorText = "Заявка создана, но часть позиций не сохранилась."
             }
             return true
         } catch {
@@ -146,7 +147,7 @@ final class PurchaseRequestsViewModel: ObservableObject {
             if materialId.isEmpty || quantity <= 0 { continue }
 
             let materialName = item.resolvedMaterialName
-            let incomingNote = "Incoming by purchase request \(requestLabel): \(materialName)"
+            let incomingNote = "Поступление по заявке \(requestLabel): \(materialName)"
             try await client.addWarehouseStock(
                 materialId: materialId,
                 quantity: quantity,
@@ -154,7 +155,7 @@ final class PurchaseRequestsViewModel: ObservableObject {
                 createdBy: currentUserId
             )
 
-            let outgoingNote = "Issue by purchase request \(requestLabel) to \(recipient)"
+            let outgoingNote = "Выдача по заявке \(requestLabel) для \(recipient)"
             try await client.issueWarehouseStock(
                 materialId: materialId,
                 quantity: quantity,
@@ -167,18 +168,18 @@ final class PurchaseRequestsViewModel: ObservableObject {
 
     private func parentTargetLabel(for request: PurchaseRequest) -> String {
         if let taskAvrId = request.taskAvrId, !taskAvrId.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return "avr request \(taskAvrId)"
+            return "АВР \(taskAvrId)"
         }
         if let installationId = request.installationId, !installationId.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return "installation \(installationId)"
+            return "монтаж \(installationId)"
         }
         if let taskId = request.taskId, !taskId.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return "task \(taskId)"
+            return "задача \(taskId)"
         }
         if let projectId = request.projectId, !projectId.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return "project \(projectId)"
+            return "проект \(projectId)"
         }
-        return "parent request"
+        return "родительская заявка"
     }
 
     private func loadMaterialPreviews(for requests: [PurchaseRequest]) async {
@@ -205,7 +206,7 @@ final class PurchaseRequestsViewModel: ObservableObject {
             let unit = row.resolvedUnit?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
             return unit.isEmpty ? "\(row.resolvedMaterialName): \(quantity)" : "\(row.resolvedMaterialName): \(quantity) \(unit)"
         }
-        let suffix = nonEmpty.count > 2 ? " +\(nonEmpty.count - 2) more" : ""
+        let suffix = nonEmpty.count > 2 ? " +\(nonEmpty.count - 2) ещё" : ""
         return head.joined(separator: " | ") + suffix
     }
 
@@ -219,7 +220,7 @@ final class PurchaseRequestsViewModel: ObservableObject {
             let unit = row.unit.trimmingCharacters(in: .whitespacesAndNewlines)
             return unit.isEmpty ? "\(row.materialName): \(quantity)" : "\(row.materialName): \(quantity) \(unit)"
         }
-        let suffix = nonEmpty.count > 2 ? " +\(nonEmpty.count - 2) more" : ""
+        let suffix = nonEmpty.count > 2 ? " +\(nonEmpty.count - 2) ещё" : ""
         return head.joined(separator: " | ") + suffix
     }
 
@@ -254,7 +255,7 @@ final class PurchaseRequestsViewModel: ObservableObject {
         }
 
         if targetIds.isEmpty { return }
-        let title = "Purchase request: \(newStatus.displayLabel)"
+        let title = "Заявка на материалы: \(newStatus.displayLabel)"
         let body = requestPushBody(item: item)
         for targetId in targetIds {
             try? await client.sendWorkAlertPush(
@@ -285,12 +286,12 @@ final class PurchaseRequestsViewModel: ObservableObject {
         let cleanSenderId = senderId?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         guard let users = try? await client.fetchUsers() else { return }
 
-        let title = "New purchase request"
+        let title = "Новая заявка на материалы"
         let statusText = created.status == PurchaseRequestStatus.readyForReceipt.rawValue
-            ? "ready for receipt"
-            : "pending approval"
+            ? "готово к получению"
+            : "ожидает согласования"
         let count = materialCount > 0 ? materialCount : 1
-        let body = "Status: \(statusText). Positions: \(count)"
+        let body = "Статус: \(statusText). Позиций: \(count)"
 
         for user in users {
             let targetId = user.id.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -308,4 +309,3 @@ final class PurchaseRequestsViewModel: ObservableObject {
         }
     }
 }
-

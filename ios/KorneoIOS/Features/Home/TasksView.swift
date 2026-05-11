@@ -1,4 +1,4 @@
-import SwiftUI
+﻿import SwiftUI
 
 struct TasksView: View {
     private enum StatusFilter: String, CaseIterable, Identifiable {
@@ -14,7 +14,7 @@ struct TasksView: View {
             case .all: return "Все"
             case .new: return "Новые"
             case .inProgress: return "В работе"
-            case .done: return "Выполненные"
+            case .done: return "Выполнены"
             }
         }
     }
@@ -26,6 +26,7 @@ struct TasksView: View {
     @State private var isDeleting = false
     @State private var searchText = ""
     @State private var statusFilter: StatusFilter = .all
+    @State private var isBound = false
 
     var body: some View {
         NavigationStack {
@@ -49,7 +50,7 @@ struct TasksView: View {
 
                         if filteredTasks.isEmpty {
                             Section {
-                                Text("Нет подходящих задач")
+                                Text("По текущему фильтру задач нет")
                                     .foregroundStyle(.secondary)
                             }
                         } else {
@@ -59,11 +60,24 @@ struct TasksView: View {
                                         .environmentObject(appState)
                                 } label: {
                                     VStack(alignment: .leading, spacing: 4) {
-                                        Text(task.title ?? "Задача без названия")
+                                        Text(taskTitle(task))
                                             .font(.headline)
-                                        Text(statusTitle(task.status))
-                                            .font(.caption)
-                                            .foregroundStyle(.secondary)
+                                        HStack(spacing: 8) {
+                                            Text(statusLabel(task.status))
+                                                .font(.caption)
+                                                .foregroundStyle(.secondary)
+                                            Text(TaskPriority.from(raw: task.priority).titleRu)
+                                                .font(.caption2)
+                                                .padding(.horizontal, 8)
+                                                .padding(.vertical, 2)
+                                                .background(.thinMaterial)
+                                                .clipShape(Capsule())
+                                        }
+                                        if let dueDate = formattedDueDate(task.dueDate) {
+                                            Text("Срок: \(dueDate)")
+                                                .font(.caption2)
+                                                .foregroundStyle(.secondary)
+                                        }
                                     }
                                 }
                                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
@@ -98,8 +112,17 @@ struct TasksView: View {
             }
         }
         .task {
-            viewModel.bind(client: appState.client)
-            await viewModel.load()
+            await ensureBoundAndLoad()
+        }
+        .onAppear {
+            Task { await ensureBoundAndLoad() }
+        }
+        .onChange(of: appState.selectedTab) { tab in
+            guard tab == .tasks else { return }
+            Task { await viewModel.load() }
+        }
+        .onChange(of: appState.currentUser?.id) { _ in
+            Task { await ensureBoundAndLoad() }
         }
         .sheet(isPresented: $showCreateSheet) {
             TaskFormView(viewModel: viewModel, mode: .create)
@@ -113,7 +136,7 @@ struct TasksView: View {
             ),
             titleVisibility: .visible
         ) {
-            Button(isDeleting ? "Удаление..." : "Удалить", role: .destructive) {
+            Button(isDeleting ? "Удаляем..." : "Удалить", role: .destructive) {
                 guard let task = pendingDeleteTask else { return }
                 Task {
                     isDeleting = true
@@ -129,6 +152,14 @@ struct TasksView: View {
         } message: {
             Text("Это действие нельзя отменить.")
         }
+    }
+
+    private func ensureBoundAndLoad() async {
+        if !isBound {
+            viewModel.bind(client: appState.client)
+            isBound = true
+        }
+        await viewModel.load()
     }
 
     private func canDelete(task: TaskItem) -> Bool {
@@ -154,7 +185,8 @@ struct TasksView: View {
         return visibleTasks.filter { task in
             let matchesStatus: Bool = {
                 if statusFilter == .all { return true }
-                return (task.status ?? "").lowercased() == statusFilter.rawValue
+                let raw = (TaskStatus.from(raw: task.status)?.rawValue ?? task.status ?? "").lowercased()
+                return raw == statusFilter.rawValue
             }()
 
             let matchesSearch: Bool = {
@@ -169,19 +201,28 @@ struct TasksView: View {
         }
     }
 
-    private func statusTitle(_ raw: String?) -> String {
-        let value = (raw ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        switch value {
-        case "new": return "Новая"
-        case "planned": return "Запланирована"
-        case "in_progress": return "В работе"
-        case "waiting_materials": return "Ждёт материалы"
-        case "done", "completed": return "Выполнена"
-        case "postponed": return "Отложена"
-        case "cancelled": return "Отменена"
-        default:
-            let clean = (raw ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-            return clean.isEmpty ? "-" : clean
+    private func statusLabel(_ raw: String?) -> String {
+        TaskStatus.from(raw: raw)?.titleRu ?? "Неизвестно"
+    }
+
+    private func taskTitle(_ task: TaskItem) -> String {
+        let clean = (task.title ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        return clean.isEmpty ? "Без названия" : clean
+    }
+
+    private func formattedDueDate(_ raw: String?) -> String? {
+        let clean = (raw ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !clean.isEmpty else { return nil }
+        if clean.count >= 10, clean[clean.index(clean.startIndex, offsetBy: 4)] == "-" {
+            let year = clean.prefix(4)
+            let monthStart = clean.index(clean.startIndex, offsetBy: 5)
+            let monthEnd = clean.index(clean.startIndex, offsetBy: 7)
+            let dayStart = clean.index(clean.startIndex, offsetBy: 8)
+            let dayEnd = clean.index(clean.startIndex, offsetBy: 10)
+            let month = clean[monthStart..<monthEnd]
+            let day = clean[dayStart..<dayEnd]
+            return "\(day).\(month).\(year)"
         }
+        return clean
     }
 }

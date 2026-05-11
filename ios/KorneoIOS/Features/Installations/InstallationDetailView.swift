@@ -6,6 +6,8 @@ struct InstallationDetailView: View {
     @State var item: Installation
     @State private var showEditSheet = false
     @State private var isUpdatingStatus = false
+    @State private var projectNameById: [String: String] = [:]
+    @State private var userNameById: [String: String] = [:]
 
     var body: some View {
         List {
@@ -17,15 +19,20 @@ struct InstallationDetailView: View {
             }
 
             Section("Связи") {
-                detailRow("ID проекта", item.projectId ?? "-")
-                detailRow("ID исполнителя", item.assigneeId ?? "-")
-                detailRow("Создал", item.createdBy ?? "-")
+                detailRow("Проект", relationLabel(id: item.projectId, namesById: projectNameById, fallbackPrefix: "Проект"))
+                detailRow("Исполнитель", relationLabel(id: item.assigneeId, namesById: userNameById, fallbackPrefix: "Пользователь"))
+                detailRow("Создал", relationLabel(id: item.createdBy, namesById: userNameById, fallbackPrefix: "Пользователь"))
+            }
+
+            Section("Площадка") {
+                detailRow("ID площадки", valueOrDash(item.idPloshadki))
+                detailRow("Район", valueOrDash(item.rayon))
             }
 
             Section("График") {
-                detailRow("План", item.scheduledAt ?? "-")
-                detailRow("Дедлайн", item.deadline ?? "-")
-                detailRow("Факт завершения", item.actualCompletionDate ?? "-")
+                detailRow("Запланировано", item.scheduledAt ?? "-")
+                detailRow("Срок", item.deadline ?? "-")
+                detailRow("Завершено", item.actualCompletionDate ?? "-")
             }
 
             Section("Комментарии") {
@@ -37,16 +44,16 @@ struct InstallationDetailView: View {
                 )
             }
 
-            Section("Переход статуса") {
+            Section("Статус") {
                 if allowedTransitions.isEmpty {
                     Text("Нет доступных переходов")
                         .foregroundStyle(.secondary)
                 } else if !canChangeStatus {
-                    Text("Изменение статуса недоступно для вашей роли")
+                    Text("У вашей роли нет прав на изменение статуса")
                         .foregroundStyle(.secondary)
                 } else {
                     ForEach(allowedTransitions) { next in
-                        Button(isUpdatingStatus ? "Обновление..." : "Перевести в: \(statusTitle(next.rawValue))") {
+                        Button(isUpdatingStatus ? "Обновляем..." : "Перевести в «\(next.titleRu)»") {
                             Task { await changeStatus(next) }
                         }
                         .disabled(isUpdatingStatus)
@@ -58,7 +65,7 @@ struct InstallationDetailView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 if canEdit {
-                    Button("Редактировать") {
+                    Button("Изменить") {
                         showEditSheet = true
                     }
                 }
@@ -75,11 +82,14 @@ struct InstallationDetailView: View {
         }
         .task {
             await refreshLocalItem()
+            await loadLookups()
         }
     }
 
     private var allowedTransitions: [InstallationStatus] {
-        InstallationStatus.allowedTransitions(from: item.status)
+        let fixed: [InstallationStatus] = [.new, .planned, .inProgress, .waitingMaterials, .done, .postponed]
+        let current = InstallationStatus.from(raw: item.status)
+        return fixed.filter { $0 != current }
     }
 
     private var canEdit: Bool {
@@ -101,6 +111,14 @@ struct InstallationDetailView: View {
         }
     }
 
+    private func statusTitle(_ raw: String?) -> String {
+        if let mapped = InstallationStatus.from(raw: raw) {
+            return mapped.titleRu
+        }
+        let clean = (raw ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        return clean.isEmpty ? "-" : clean
+    }
+
     private func changeStatus(_ next: InstallationStatus) async {
         guard canChangeStatus else { return }
         isUpdatingStatus = true
@@ -118,17 +136,50 @@ struct InstallationDetailView: View {
         }
     }
 
-    private func statusTitle(_ raw: String?) -> String {
-        switch (raw ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
-        case "new": return "Новый"
-        case "planned": return "Запланирован"
-        case "in_progress": return "В работе"
-        case "done", "completed": return "Выполнен"
-        case "received": return "Принят"
-        case "cancelled": return "Отменен"
-        default:
-            let clean = (raw ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-            return clean.isEmpty ? "-" : clean
+    private func loadLookups() async {
+        async let projectsReq = appState.client.fetchProjects()
+        async let usersReq = appState.client.fetchUsers()
+
+        do {
+            let (projects, users) = try await (projectsReq, usersReq)
+
+            var newProjectMap: [String: String] = [:]
+            for project in projects {
+                let name = (project.name ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+                if !name.isEmpty {
+                    newProjectMap[project.id] = name
+                }
+            }
+            projectNameById = newProjectMap
+
+            var newUserMap: [String: String] = [:]
+            for user in users {
+                let name = (user.name ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+                let email = (user.email ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+                let display = !name.isEmpty ? name : email
+                if !display.isEmpty {
+                    newUserMap[user.id] = display
+                }
+            }
+            userNameById = newUserMap
+        } catch {
+            projectNameById = [:]
+            userNameById = [:]
         }
+    }
+
+    private func relationLabel(id: String?, namesById: [String: String], fallbackPrefix: String) -> String {
+        let cleanId = (id ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !cleanId.isEmpty else { return "-" }
+
+        if let title = namesById[cleanId], !title.isEmpty {
+            return "\(title) (\(cleanId))"
+        }
+        return "\(fallbackPrefix) \(cleanId)"
+    }
+
+    private func valueOrDash(_ raw: String?) -> String {
+        let clean = (raw ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        return clean.isEmpty ? "-" : clean
     }
 }

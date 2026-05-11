@@ -42,6 +42,7 @@ struct MileageView: View {
     @State private var editingRecord: MileageRecord?
     @State private var editDistance = ""
     @State private var editRoute = ""
+    @State private var isBound = false
 
     var body: some View {
         NavigationStack {
@@ -110,9 +111,16 @@ struct MileageView: View {
                 editRecordSheet(record: record)
             }
         }
-        .task {
-            viewModel.bind(client: appState.client, currentUser: appState.currentUser)
-            await reload()
+        .task { await ensureBoundAndLoad() }
+        .onAppear {
+            Task { await ensureBoundAndLoad() }
+        }
+        .onChange(of: appState.selectedTab) { tab in
+            guard tab == .mileage else { return }
+            Task { await reload() }
+        }
+        .onChange(of: appState.currentUser?.id) { _ in
+            Task { await ensureBoundAndLoad() }
         }
         .onChange(of: filterMode) { _, _ in moveCameraToFiltered() }
         .onChange(of: selectedDate) { _, _ in moveCameraToFiltered() }
@@ -144,7 +152,7 @@ struct MileageView: View {
     }
 
     private var tabPicker: some View {
-        Picker("View", selection: $selectedTab) {
+        Picker("Вкладка", selection: $selectedTab) {
             ForEach(Tab.allCases) { tab in
                 Text(tab.title).tag(tab)
             }
@@ -479,6 +487,16 @@ struct MileageView: View {
     private func reload() async {
         await viewModel.load()
         moveCameraToFiltered()
+    }
+
+    private func ensureBoundAndLoad() async {
+        if !isBound {
+            viewModel.bind(client: appState.client, currentUser: appState.currentUser)
+            isBound = true
+        } else {
+            viewModel.bind(client: appState.client, currentUser: appState.currentUser)
+        }
+        await reload()
     }
 
     private func moveCameraToFiltered() {

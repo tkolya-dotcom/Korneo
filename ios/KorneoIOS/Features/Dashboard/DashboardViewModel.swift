@@ -38,7 +38,7 @@ final class DashboardViewModel: ObservableObject {
             projectsCount = projectsItems.count
             tasksCount = visibleTasksCount(taskItems, currentUser: currentUser)
             installationsCount = visibleInstallationsCount(installationItems, currentUser: currentUser)
-            purchaseRequestsCount = requestItems.count
+            purchaseRequestsCount = requestItems.filter { !$0.shouldMoveToArchive() }.count
         } catch {
             errorText = error.localizedDescription
         }

@@ -1,4 +1,4 @@
-import SwiftUI
+﻿import SwiftUI
 
 struct PurchaseRequestDetailView: View {
     @EnvironmentObject private var appState: AppState
@@ -16,20 +16,20 @@ struct PurchaseRequestDetailView: View {
         List {
             Section("Основное") {
                 detailRow("Статус", statusLabel(for: item.status))
-                detailRow("Название", displayTitle)
+                detailRow("Заголовок", displayTitle)
                 detailRow("Комментарий", item.comment ?? "-")
             }
             Section("Связи") {
-                detailRow("ID проекта", item.projectId ?? "-")
-                detailRow("ID монтажа", item.installationId ?? "-")
-                detailRow("ID задачи", item.taskId ?? "-")
-                detailRow("ID AVR-задачи", item.taskAvrId ?? "-")
+                detailRow("Проект ID", item.projectId ?? "-")
+                detailRow("Монтаж ID", item.installationId ?? "-")
+                detailRow("Задача ID", item.taskId ?? "-")
+                detailRow("АВР задача ID", item.taskAvrId ?? "-")
             }
             Section("Доставка") {
                 detailRow("Адрес получения", item.receiptAddress ?? "-")
                 detailRow("Получено", shortDate(item.receivedAt) ?? "-")
             }
-            Section("Метаданные") {
+            Section("Служебное") {
                 detailRow("Создал", item.createdBy ?? "-")
                 detailRow("Согласовал", item.approvedBy ?? "-")
                 detailRow("Создано", shortDate(item.createdAt) ?? "-")
@@ -66,16 +66,16 @@ struct PurchaseRequestDetailView: View {
                 )
             }
 
-            Section("Переход статуса") {
+            Section("Статусы") {
                 if allowedTransitions.isEmpty {
                     Text("Нет доступных переходов")
                         .foregroundStyle(.secondary)
                 } else if !canEdit {
-                    Text("Изменение статуса недоступно для вашей роли")
+                    Text("Для вашей роли изменение статуса недоступно")
                         .foregroundStyle(.secondary)
                 } else {
                     ForEach(allowedTransitions) { next in
-                        Button(isUpdatingStatus ? "Обновление..." : "Перевести в: \(next.displayLabel)") {
+                        Button(isUpdatingStatus ? "Обновляем..." : "Перевести в «\(next.displayLabel)»") {
                             Task { await changeStatus(next) }
                         }
                         .disabled(isUpdatingStatus)
@@ -87,7 +87,7 @@ struct PurchaseRequestDetailView: View {
         .toolbar {
             if canEdit {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Редактировать") {
+                    Button("Изменить") {
                         openEditor()
                     }
                     .disabled(isUpdatingStatus)
@@ -110,14 +110,14 @@ struct PurchaseRequestDetailView: View {
                         TextField("Адрес получения", text: $draftReceiptAddress)
                     }
                 }
-                .navigationTitle("Редактирование заявки")
+                .navigationTitle("Редактирование")
                 .toolbar {
                     ToolbarItem(placement: .topBarLeading) {
                         Button("Отмена") { showEditSheet = false }
                             .disabled(isUpdatingStatus)
                     }
                     ToolbarItem(placement: .topBarTrailing) {
-                        Button(isUpdatingStatus ? "Сохранение..." : "Сохранить") {
+                        Button(isUpdatingStatus ? "Сохраняем..." : "Сохранить") {
                             Task { await saveEditedFields() }
                         }
                         .disabled(isUpdatingStatus)
@@ -135,7 +135,7 @@ struct PurchaseRequestDetailView: View {
             return title
         }
         if let comment = item.comment?.trimmingCharacters(in: .whitespacesAndNewlines), !comment.isEmpty {
-            return String(comment.split(separator: "\n").first ?? "Request")
+            return String(comment.split(separator: "\n").first ?? "Заявка")
         }
         if let shortId = item.shortId {
             return "Заявка #\(shortId)"
@@ -149,7 +149,8 @@ struct PurchaseRequestDetailView: View {
             .split(separator: "\n")
             .map { String($0).trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { line in
-                line.hasPrefix("-") || line.lowercased().hasPrefix("materials:") || line.lowercased().hasPrefix("материалы:")
+                let lower = line.lowercased()
+                return line.hasPrefix("-") || lower.hasPrefix("materials:") || lower.hasPrefix("материалы:")
             }
         return lines.joined(separator: "\n")
     }
@@ -169,10 +170,7 @@ struct PurchaseRequestDetailView: View {
     }
 
     private var canEdit: Bool {
-        guard let user = appState.currentUser else { return false }
-        let manager = user.role?.hasManagerRights == true || user.role == .support
-        let creator = user.id == item.createdBy
-        return manager || creator
+        item.canEdit(using: appState.currentUser)
     }
 
     private func openEditor() {
