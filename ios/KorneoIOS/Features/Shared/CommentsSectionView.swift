@@ -15,9 +15,9 @@ struct CommentsSectionView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             if isLoading && comments.isEmpty {
-                ProgressView("Loading comments...")
+                ProgressView("Загрузка комментариев...")
             } else if comments.isEmpty {
-                Text("No comments yet")
+                Text("Пока нет комментариев")
                     .foregroundStyle(.secondary)
             } else {
                 ForEach(comments) { row in
@@ -43,11 +43,11 @@ struct CommentsSectionView: View {
                     .foregroundStyle(.red)
             }
 
-            TextField("Add a comment...", text: $draftText, axis: .vertical)
+            TextField("Добавить комментарий...", text: $draftText, axis: .vertical)
                 .textFieldStyle(.roundedBorder)
                 .lineLimit(2...5)
 
-            Button(isSaving ? "Sending..." : "Send Comment") {
+            Button(isSaving ? "Отправка..." : "Отправить комментарий") {
                 Task { await sendComment() }
             }
             .buttonStyle(.borderedProminent)
@@ -72,7 +72,7 @@ struct CommentsSectionView: View {
             comments = try await client.fetchComments(entityType: entityType, entityId: entityId)
             errorText = nil
         } catch {
-            errorText = "Failed to load comments"
+            errorText = "Не удалось загрузить комментарии"
         }
     }
 
@@ -92,7 +92,7 @@ struct CommentsSectionView: View {
             await loadComments()
             errorText = nil
         } catch {
-            errorText = "Failed to send comment"
+            errorText = "Не удалось отправить комментарий"
         }
     }
 

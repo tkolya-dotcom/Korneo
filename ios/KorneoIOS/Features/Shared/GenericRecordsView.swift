@@ -14,9 +14,9 @@ struct GenericRecordsView: View {
     var body: some View {
         Group {
             if isLoading && rows.isEmpty {
-                ProgressView("Loading...")
+                ProgressView("Загрузка...")
             } else if let errorText, rows.isEmpty {
-                ContentUnavailableView("Error", systemImage: "exclamationmark.triangle", description: Text(errorText))
+                ContentUnavailableView("Ошибка", systemImage: "exclamationmark.triangle", description: Text(errorText))
             } else {
                 List(rows) { row in
                     VStack(alignment: .leading, spacing: 4) {
@@ -64,9 +64,20 @@ struct GenericRecordsView: View {
         let keys = ["status", "address", "description", "created_at", "updated_at"]
         let parts = keys.compactMap { key -> String? in
             guard let value = row.fields[key]?.textValue, !value.isEmpty else { return nil }
-            return "\(key): \(value)"
+            return "\(displayKeyLabel(key)): \(value)"
         }
         return parts.joined(separator: " • ")
+    }
+
+    private func displayKeyLabel(_ key: String) -> String {
+        switch key {
+        case "status": return "Статус"
+        case "address": return "Адрес"
+        case "description": return "Описание"
+        case "created_at": return "Создано"
+        case "updated_at": return "Обновлено"
+        default: return key
+        }
     }
 }
 
