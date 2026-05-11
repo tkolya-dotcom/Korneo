@@ -135,7 +135,11 @@ struct InstallationFormView: View {
         case .inProgress: return "В работе"
         case .done: return "Выполнен"
         case .received: return "Принят"
-        case .cancelled: return "Отменен"
+        case .archived: return "В архиве"
+        case .waitingMaterials: return "Ожидает материалы"
+        case .inOrder: return "В заказе"
+        case .readyForReceipt: return "Готов к приёмке"
+        case .postponed: return "Отложен"
         }
     }
 }
