@@ -77,12 +77,12 @@ struct ProfileView: View {
                     profileRow("Роль", appState.currentUser?.role?.rawValue ?? "-")
                     profileRow("Создан", formatDate(appState.currentUser?.createdAt))
                     profileRow("Последняя активность", formatDate(appState.currentUser?.lastSeenAt))
-                    profileRow("User ID", appState.currentUser?.id ?? "-")
+                    profileRow("ID пользователя", appState.currentUser?.id ?? "-")
                 }
 
-                Section("Backend") {
+                Section("Бэкенд") {
                     profileRow("URL", appState.connectionConfig.baseURL)
-                    profileRow("Daichi token", appState.connectionConfig.daichiToken.isEmpty ? "-" : "Configured")
+                    profileRow("Токен Daichi", appState.connectionConfig.daichiToken.isEmpty ? "-" : "Настроен")
                     Button("Настройки подключения") {
                         showConnectionSettings = true
                     }

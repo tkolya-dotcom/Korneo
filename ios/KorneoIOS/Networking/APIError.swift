@@ -11,17 +11,17 @@ enum APIError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .invalidURL:
-            return "Invalid URL"
+            return "Некорректный URL"
         case .missingSupabaseKey:
-            return "Supabase key is missing. Check SUPABASE_ANON_KEY."
+            return "Отсутствует ключ Supabase. Проверьте SUPABASE_ANON_KEY."
         case .missingDaichiToken:
-            return "Daichi token is missing. Configure DAICHI_TOKEN in Profile > Connection."
+            return "Отсутствует токен Daichi. Укажите DAICHI_TOKEN в Профиль -> Подключение."
         case let .requestFailed(status, message):
-            return "Request failed (\(status)): \(message)"
+            return "Ошибка запроса (\(status)): \(message)"
         case .decodingFailed:
-            return "Failed to decode server response"
+            return "Не удалось разобрать ответ сервера"
         case .missingSession:
-            return "No active session"
+            return "Нет активной сессии"
         }
     }
 }
