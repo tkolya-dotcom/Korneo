@@ -7,8 +7,8 @@ struct InstallationFormView: View {
 
         var title: String {
             switch self {
-            case .create: return "New Installation"
-            case .edit: return "Edit Installation"
+            case .create: return "Новый монтаж"
+            case .edit: return "Редактирование монтажа"
             }
         }
     }
@@ -31,29 +31,29 @@ struct InstallationFormView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Main") {
-                    TextField("Title", text: $title)
-                    TextField("Description", text: $details, axis: .vertical)
+                Section("Основное") {
+                    TextField("Название", text: $title)
+                    TextField("Описание", text: $details, axis: .vertical)
                         .lineLimit(2...5)
-                    TextField("Address", text: $address)
+                    TextField("Адрес", text: $address)
                 }
 
-                Section("Relations") {
-                    TextField("Project ID", text: $projectId)
+                Section("Связи") {
+                    TextField("ID проекта", text: $projectId)
                         .textInputAutocapitalization(.never)
-                    TextField("Assignee ID", text: $assigneeId)
+                    TextField("ID исполнителя", text: $assigneeId)
                         .textInputAutocapitalization(.never)
                 }
 
-                Section("Dates") {
-                    TextField("Scheduled at (ISO)", text: $scheduledAt)
-                    TextField("Deadline (ISO)", text: $deadline)
+                Section("Даты") {
+                    TextField("Плановая дата (ISO)", text: $scheduledAt)
+                    TextField("Дедлайн (ISO)", text: $deadline)
                 }
 
-                Section("Status") {
-                    Picker("Status", selection: $status) {
+                Section("Статус") {
+                    Picker("Статус", selection: $status) {
                         ForEach(InstallationStatus.allCases) { item in
-                            Text(item.rawValue).tag(item)
+                            Text(statusTitle(item)).tag(item)
                         }
                     }
                 }
@@ -67,10 +67,10 @@ struct InstallationFormView: View {
             .navigationTitle(mode.title)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Cancel") { dismiss() }
+                    Button("Отмена") { dismiss() }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button(isSaving ? "Saving..." : "Save") {
+                    Button(isSaving ? "Сохранение..." : "Сохранить") {
                         Task { await save() }
                     }
                     .disabled(isSaving || title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
@@ -126,5 +126,16 @@ struct InstallationFormView: View {
     private func nilIfBlank(_ value: String) -> String? {
         let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? nil : trimmed
+    }
+
+    private func statusTitle(_ status: InstallationStatus) -> String {
+        switch status {
+        case .new: return "Новый"
+        case .planned: return "Запланирован"
+        case .inProgress: return "В работе"
+        case .done: return "Выполнен"
+        case .received: return "Принят"
+        case .cancelled: return "Отменен"
+        }
     }
 }

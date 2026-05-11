@@ -9,26 +9,26 @@ struct InstallationDetailView: View {
 
     var body: some View {
         List {
-            Section("Main") {
-                detailRow("Title", item.title ?? "-")
-                detailRow("Status", item.status ?? "-")
-                detailRow("Address", item.address ?? "-")
-                detailRow("Description", item.description ?? "-")
+            Section("Основное") {
+                detailRow("Название", item.title ?? "-")
+                detailRow("Статус", statusTitle(item.status))
+                detailRow("Адрес", item.address ?? "-")
+                detailRow("Описание", item.description ?? "-")
             }
 
-            Section("Relations") {
-                detailRow("Project ID", item.projectId ?? "-")
-                detailRow("Assignee ID", item.assigneeId ?? "-")
-                detailRow("Created By", item.createdBy ?? "-")
+            Section("Связи") {
+                detailRow("ID проекта", item.projectId ?? "-")
+                detailRow("ID исполнителя", item.assigneeId ?? "-")
+                detailRow("Создал", item.createdBy ?? "-")
             }
 
-            Section("Schedule") {
-                detailRow("Scheduled", item.scheduledAt ?? "-")
-                detailRow("Deadline", item.deadline ?? "-")
-                detailRow("Completed", item.actualCompletionDate ?? "-")
+            Section("График") {
+                detailRow("План", item.scheduledAt ?? "-")
+                detailRow("Дедлайн", item.deadline ?? "-")
+                detailRow("Факт завершения", item.actualCompletionDate ?? "-")
             }
 
-            Section("Comments") {
+            Section("Комментарии") {
                 CommentsSectionView(
                     entityType: "installation",
                     entityId: item.id,
@@ -37,16 +37,16 @@ struct InstallationDetailView: View {
                 )
             }
 
-            Section("Status Flow") {
+            Section("Переход статуса") {
                 if allowedTransitions.isEmpty {
-                    Text("No further transitions")
+                    Text("Нет доступных переходов")
                         .foregroundStyle(.secondary)
                 } else if !canChangeStatus {
-                    Text("Status updates are not allowed for your role")
+                    Text("Изменение статуса недоступно для вашей роли")
                         .foregroundStyle(.secondary)
                 } else {
                     ForEach(allowedTransitions) { next in
-                        Button(isUpdatingStatus ? "Updating..." : "Move to \(next.rawValue)") {
+                        Button(isUpdatingStatus ? "Обновление..." : "Перевести в: \(statusTitle(next.rawValue))") {
                             Task { await changeStatus(next) }
                         }
                         .disabled(isUpdatingStatus)
@@ -54,11 +54,11 @@ struct InstallationDetailView: View {
                 }
             }
         }
-        .navigationTitle(item.title ?? "Installation")
+        .navigationTitle(item.title ?? "Монтаж")
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 if canEdit {
-                    Button("Edit") {
+                    Button("Редактировать") {
                         showEditSheet = true
                     }
                 }
@@ -115,6 +115,20 @@ struct InstallationDetailView: View {
         await viewModel.load()
         if let updated = viewModel.items.first(where: { $0.id == item.id }) {
             item = updated
+        }
+    }
+
+    private func statusTitle(_ raw: String?) -> String {
+        switch (raw ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
+        case "new": return "Новый"
+        case "planned": return "Запланирован"
+        case "in_progress": return "В работе"
+        case "done", "completed": return "Выполнен"
+        case "received": return "Принят"
+        case "cancelled": return "Отменен"
+        default:
+            let clean = (raw ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+            return clean.isEmpty ? "-" : clean
         }
     }
 }

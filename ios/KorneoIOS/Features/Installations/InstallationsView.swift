@@ -11,10 +11,10 @@ struct InstallationsView: View {
 
         var title: String {
             switch self {
-            case .all: return "All"
-            case .new: return "New"
-            case .inProgress: return "In Progress"
-            case .done: return "Done"
+            case .all: return "Все"
+            case .new: return "Новые"
+            case .inProgress: return "В работе"
+            case .done: return "Выполненные"
             }
         }
     }
@@ -32,15 +32,15 @@ struct InstallationsView: View {
         NavigationStack {
             Group {
                 if viewModel.isLoading && viewModel.items.isEmpty {
-                    ProgressView("Loading installations...")
+                    ProgressView("Загрузка монтажей...")
                 } else if let error = viewModel.errorText, viewModel.items.isEmpty {
-                    ContentUnavailableView("Error", systemImage: "exclamationmark.triangle", description: Text(error))
+                    ContentUnavailableView("Ошибка", systemImage: "exclamationmark.triangle", description: Text(error))
                 } else if visibleInstallations.isEmpty {
-                    ContentUnavailableView("No installations", systemImage: "shippingbox")
+                    ContentUnavailableView("Нет монтажей", systemImage: "shippingbox")
                 } else {
                     List {
                         Section {
-                            Picker("Status", selection: $statusFilter) {
+                            Picker("Статус", selection: $statusFilter) {
                                 ForEach(StatusFilter.allCases) { filter in
                                     Text(filter.title).tag(filter)
                                 }
@@ -50,7 +50,7 @@ struct InstallationsView: View {
 
                         if filteredInstallations.isEmpty {
                             Section {
-                                Text("No matching installations")
+                                Text("Нет подходящих монтажей")
                                     .foregroundStyle(.secondary)
                             }
                         } else {
@@ -62,7 +62,7 @@ struct InstallationsView: View {
                                     VStack(alignment: .leading, spacing: 4) {
                                         Text(item.title ?? "Untitled installation")
                                             .font(.headline)
-                                        Text(item.status ?? "new")
+                                        Text(statusTitle(item.status))
                                             .font(.caption)
                                             .foregroundStyle(.secondary)
                                         if let address = item.address, !address.isEmpty {
@@ -77,7 +77,7 @@ struct InstallationsView: View {
                                         Button(role: .destructive) {
                                             pendingDeleteItem = item
                                         } label: {
-                                            Label("Delete", systemImage: "trash")
+                                            Label("Удалить", systemImage: "trash")
                                         }
                                     }
                                 }
@@ -89,8 +89,8 @@ struct InstallationsView: View {
                     }
                 }
             }
-            .navigationTitle("Installations")
-            .searchable(text: $searchText, prompt: "Search installations")
+            .navigationTitle("Монтажи")
+            .searchable(text: $searchText, prompt: "Поиск монтажей")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     if canCreateInstallations {
@@ -112,14 +112,14 @@ struct InstallationsView: View {
                 .environmentObject(appState)
         }
         .confirmationDialog(
-            "Delete installation?",
+            "Удалить монтаж?",
             isPresented: Binding(
                 get: { pendingDeleteItem != nil },
                 set: { if !$0 { pendingDeleteItem = nil } }
             ),
             titleVisibility: .visible
         ) {
-            Button(isDeleting ? "Deleting..." : "Delete", role: .destructive) {
+            Button(isDeleting ? "Удаление..." : "Удалить", role: .destructive) {
                 guard let item = pendingDeleteItem else { return }
                 Task {
                     isDeleting = true
@@ -131,9 +131,9 @@ struct InstallationsView: View {
                 }
             }
             .disabled(isDeleting)
-            Button("Cancel", role: .cancel) {}
+            Button("Отмена", role: .cancel) {}
         } message: {
-            Text("This action cannot be undone.")
+            Text("Это действие нельзя отменить.")
         }
     }
 
@@ -172,6 +172,20 @@ struct InstallationsView: View {
             }()
 
             return matchesStatus && matchesSearch
+        }
+    }
+
+    private func statusTitle(_ raw: String?) -> String {
+        switch (raw ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
+        case "new": return "Новый"
+        case "planned": return "Запланирован"
+        case "in_progress": return "В работе"
+        case "done", "completed": return "Выполнен"
+        case "received": return "Принят"
+        case "cancelled": return "Отменен"
+        default:
+            let clean = (raw ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+            return clean.isEmpty ? "Новый" : clean
         }
     }
 }
