@@ -35,28 +35,29 @@ jobs:
       - name: Validate required secrets
         run: |
           set -euo pipefail
+          missing=()
           if [ -z "${TEAM_ID:-}" ]; then
-            echo "Missing required secret: APPLE_TEAM_ID"
-            exit 1
+            missing+=("APPLE_TEAM_ID")
           fi
           if [ -z "${APPLE_API_KEY_ID:-}" ]; then
-            echo "Missing required secret: APPLE_API_KEY_ID"
-            exit 1
+            missing+=("APPLE_API_KEY_ID")
           fi
           if [ -z "${APPLE_API_ISSUER_ID:-}" ]; then
-            echo "Missing required secret: APPLE_API_ISSUER_ID"
-            exit 1
+            missing+=("APPLE_API_ISSUER_ID")
           fi
           if [ -z "${APPLE_API_PRIVATE_KEY:-}" ]; then
-            echo "Missing required secret: APPLE_API_PRIVATE_KEY"
-            exit 1
+            missing+=("APPLE_API_PRIVATE_KEY")
           fi
           if [ -z "${SUPABASE_URL:-}" ]; then
-            echo "Missing Supabase URL secret. Set SUPABASE_URL or VITE_SUPABASE_URL."
-            exit 1
+            missing+=("SUPABASE_URL or VITE_SUPABASE_URL")
           fi
           if [ -z "${SUPABASE_ANON_KEY:-}" ]; then
-            echo "Missing Supabase anon key secret. Set SUPABASE_ANON_KEY or VITE_SUPABASE_ANON_KEY."
+            missing+=("SUPABASE_ANON_KEY or VITE_SUPABASE_ANON_KEY")
+          fi
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "Missing required secrets: ${missing[*]}"
+            echo "Apple Developer Program membership is required for installing IPA on a physical iPhone."
+            echo "After joining the program, set Apple and Supabase repository secrets and re-run this workflow."
             exit 1
           fi
           if [ -z "${BUNDLE_ID:-}" ]; then
