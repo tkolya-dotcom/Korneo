@@ -11,10 +11,10 @@ struct TasksView: View {
 
         var title: String {
             switch self {
-            case .all: return "All"
-            case .new: return "New"
-            case .inProgress: return "In Progress"
-            case .done: return "Done"
+            case .all: return "Все"
+            case .new: return "Новые"
+            case .inProgress: return "В работе"
+            case .done: return "Выполненные"
             }
         }
     }
@@ -31,15 +31,15 @@ struct TasksView: View {
         NavigationStack {
             Group {
                 if viewModel.isLoading && viewModel.tasks.isEmpty {
-                    ProgressView("Loading tasks...")
+                    ProgressView("Загрузка задач...")
                 } else if let error = viewModel.errorText, viewModel.tasks.isEmpty {
-                    ContentUnavailableView("Error", systemImage: "exclamationmark.triangle", description: Text(error))
+                    ContentUnavailableView("Ошибка", systemImage: "exclamationmark.triangle", description: Text(error))
                 } else if visibleTasks.isEmpty {
-                    ContentUnavailableView("No tasks", systemImage: "checkmark.circle")
+                    ContentUnavailableView("Нет задач", systemImage: "checkmark.circle")
                 } else {
                     List {
                         Section {
-                            Picker("Status", selection: $statusFilter) {
+                            Picker("Статус", selection: $statusFilter) {
                                 ForEach(StatusFilter.allCases) { filter in
                                     Text(filter.title).tag(filter)
                                 }
@@ -49,7 +49,7 @@ struct TasksView: View {
 
                         if filteredTasks.isEmpty {
                             Section {
-                                Text("No matching tasks")
+                                Text("Нет подходящих задач")
                                     .foregroundStyle(.secondary)
                             }
                         } else {
@@ -59,9 +59,9 @@ struct TasksView: View {
                                         .environmentObject(appState)
                                 } label: {
                                     VStack(alignment: .leading, spacing: 4) {
-                                        Text(task.title ?? "Untitled task")
+                                        Text(task.title ?? "Задача без названия")
                                             .font(.headline)
-                                        Text(task.status ?? "unknown")
+                                        Text(statusTitle(task.status))
                                             .font(.caption)
                                             .foregroundStyle(.secondary)
                                     }
@@ -71,7 +71,7 @@ struct TasksView: View {
                                         Button(role: .destructive) {
                                             pendingDeleteTask = task
                                         } label: {
-                                            Label("Delete", systemImage: "trash")
+                                            Label("Удалить", systemImage: "trash")
                                         }
                                     }
                                 }
@@ -83,8 +83,8 @@ struct TasksView: View {
                     }
                 }
             }
-            .navigationTitle("Tasks")
-            .searchable(text: $searchText, prompt: "Search tasks")
+            .navigationTitle("Задачи")
+            .searchable(text: $searchText, prompt: "Поиск задач")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     if canCreateTasks {
@@ -106,14 +106,14 @@ struct TasksView: View {
                 .environmentObject(appState)
         }
         .confirmationDialog(
-            "Delete task?",
+            "Удалить задачу?",
             isPresented: Binding(
                 get: { pendingDeleteTask != nil },
                 set: { if !$0 { pendingDeleteTask = nil } }
             ),
             titleVisibility: .visible
         ) {
-            Button(isDeleting ? "Deleting..." : "Delete", role: .destructive) {
+            Button(isDeleting ? "Удаление..." : "Удалить", role: .destructive) {
                 guard let task = pendingDeleteTask else { return }
                 Task {
                     isDeleting = true
@@ -125,9 +125,9 @@ struct TasksView: View {
                 }
             }
             .disabled(isDeleting)
-            Button("Cancel", role: .cancel) {}
+            Button("Отмена", role: .cancel) {}
         } message: {
-            Text("This action cannot be undone.")
+            Text("Это действие нельзя отменить.")
         }
     }
 
@@ -166,6 +166,22 @@ struct TasksView: View {
             }()
 
             return matchesStatus && matchesSearch
+        }
+    }
+
+    private func statusTitle(_ raw: String?) -> String {
+        let value = (raw ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        switch value {
+        case "new": return "Новая"
+        case "planned": return "Запланирована"
+        case "in_progress": return "В работе"
+        case "waiting_materials": return "Ждёт материалы"
+        case "done", "completed": return "Выполнена"
+        case "postponed": return "Отложена"
+        case "cancelled": return "Отменена"
+        default:
+            let clean = (raw ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+            return clean.isEmpty ? "-" : clean
         }
     }
 }

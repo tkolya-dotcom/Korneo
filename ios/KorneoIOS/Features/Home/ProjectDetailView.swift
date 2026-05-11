@@ -8,31 +8,31 @@ struct ProjectDetailView: View {
 
     var body: some View {
         List {
-            Section("Main") {
-                detailRow("Name", project.name ?? "-")
-                detailRow("Status", project.status ?? "-")
-                detailRow("Description", project.description ?? "-")
+            Section("Основное") {
+                detailRow("Название", project.name ?? "-")
+                detailRow("Статус", statusTitle(project.status))
+                detailRow("Описание", project.description ?? "-")
             }
-            Section("Business") {
-                detailRow("Client", project.clientName ?? "-")
-                detailRow("Address", project.address ?? "-")
-                detailRow("Budget", project.budget ?? "-")
+            Section("Бизнес") {
+                detailRow("Клиент", project.clientName ?? "-")
+                detailRow("Адрес", project.address ?? "-")
+                detailRow("Бюджет", project.budget ?? "-")
             }
-            Section("Dates") {
-                detailRow("Start", project.startDate ?? "-")
-                detailRow("End", project.endDate ?? "-")
+            Section("Даты") {
+                detailRow("Начало", project.startDate ?? "-")
+                detailRow("Окончание", project.endDate ?? "-")
             }
-            Section("Meta") {
-                detailRow("Created By", project.createdBy ?? "-")
-                detailRow("Created", project.createdAt ?? "-")
-                detailRow("Updated", project.updatedAt ?? "-")
+            Section("Метаданные") {
+                detailRow("Создал", project.createdBy ?? "-")
+                detailRow("Создан", project.createdAt ?? "-")
+                detailRow("Обновлён", project.updatedAt ?? "-")
             }
         }
-        .navigationTitle(project.name ?? "Project")
+        .navigationTitle(project.name ?? "Проект")
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 if canEdit {
-                    Button("Edit") { showEditSheet = true }
+                    Button("Редактировать") { showEditSheet = true }
                 }
             }
         }
@@ -70,5 +70,20 @@ struct ProjectDetailView: View {
     private var canEdit: Bool {
         guard let role = appState.currentUser?.role else { return false }
         return role != .engineer
+    }
+
+    private func statusTitle(_ raw: String?) -> String {
+        let value = (raw ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        switch value {
+        case "new": return "Новый"
+        case "active": return "Активный"
+        case "in_progress": return "В работе"
+        case "pending": return "Ожидает"
+        case "done", "completed": return "Завершён"
+        case "cancelled": return "Отменён"
+        default:
+            let clean = (raw ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+            return clean.isEmpty ? "-" : clean
+        }
     }
 }

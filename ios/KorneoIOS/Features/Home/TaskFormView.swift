@@ -22,25 +22,25 @@ struct TaskFormView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Main") {
-                    TextField("Title", text: $title)
-                    TextField("Description", text: $description, axis: .vertical)
+                Section("Основное") {
+                    TextField("Название", text: $title)
+                    TextField("Описание", text: $description, axis: .vertical)
                         .lineLimit(2...5)
-                    TextField("Status", text: $status)
+                    TextField("Статус", text: $status)
                 }
-                Section("Relations") {
-                    TextField("Project ID", text: $projectId)
-                    TextField("Assignee ID", text: $assigneeId)
-                    TextField("Due date (ISO)", text: $dueDate)
+                Section("Связи") {
+                    TextField("ID проекта", text: $projectId)
+                    TextField("ID исполнителя", text: $assigneeId)
+                    TextField("Срок (ISO)", text: $dueDate)
                 }
             }
             .navigationTitle(modeTitle)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Cancel") { dismiss() }
+                    Button("Отмена") { dismiss() }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button(isSaving ? "Saving..." : "Save") {
+                    Button(isSaving ? "Сохранение..." : "Сохранить") {
                         Task { await save() }
                     }
                     .disabled(isSaving || title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
@@ -52,8 +52,8 @@ struct TaskFormView: View {
 
     private var modeTitle: String {
         switch mode {
-        case .create: return "New Task"
-        case .edit: return "Edit Task"
+        case .create: return "Новая задача"
+        case .edit: return "Редактирование задачи"
         }
     }
 

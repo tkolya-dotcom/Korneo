@@ -9,23 +9,23 @@ struct TaskDetailView: View {
 
     var body: some View {
         List {
-            Section("Main") {
-                detailRow("Title", task.title ?? "-")
-                detailRow("Status", task.status ?? "-")
-                detailRow("Description", task.description ?? "-")
+            Section("Основное") {
+                detailRow("Название", task.title ?? "-")
+                detailRow("Статус", statusTitle(task.status))
+                detailRow("Описание", task.description ?? "-")
             }
-            Section("Relations") {
-                detailRow("Project ID", task.projectId ?? "-")
-                detailRow("Assignee ID", task.assigneeId ?? "-")
-                detailRow("Created By", task.createdBy ?? "-")
+            Section("Связи") {
+                detailRow("ID проекта", task.projectId ?? "-")
+                detailRow("ID исполнителя", task.assigneeId ?? "-")
+                detailRow("Создал", task.createdBy ?? "-")
             }
-            Section("Dates") {
-                detailRow("Due date", task.dueDate ?? "-")
-                detailRow("Created", task.createdAt ?? "-")
-                detailRow("Updated", task.updatedAt ?? "-")
+            Section("Даты") {
+                detailRow("Срок", task.dueDate ?? "-")
+                detailRow("Создана", task.createdAt ?? "-")
+                detailRow("Обновлена", task.updatedAt ?? "-")
             }
 
-            Section("Comments") {
+            Section("Комментарии") {
                 CommentsSectionView(
                     entityType: "task",
                     entityId: task.id,
@@ -34,16 +34,16 @@ struct TaskDetailView: View {
                 )
             }
 
-            Section("Status Flow") {
+            Section("Переход статуса") {
                 if allowedTransitions.isEmpty {
-                    Text("No further transitions")
+                    Text("Нет доступных переходов")
                         .foregroundStyle(.secondary)
                 } else if !canChangeStatus {
-                    Text("Status updates are not allowed for your role")
+                    Text("Изменение статуса недоступно для вашей роли")
                         .foregroundStyle(.secondary)
                 } else {
                     ForEach(allowedTransitions) { next in
-                        Button(isUpdatingStatus ? "Updating..." : "Move to \(next.rawValue)") {
+                        Button(isUpdatingStatus ? "Обновление..." : "Перевести в: \(statusTitle(next.rawValue))") {
                             Task { await changeStatus(next) }
                         }
                         .disabled(isUpdatingStatus)
@@ -51,11 +51,11 @@ struct TaskDetailView: View {
                 }
             }
         }
-        .navigationTitle(task.title ?? "Task")
+        .navigationTitle(task.title ?? "Задача")
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 if canEdit {
-                    Button("Edit") { showEditSheet = true }
+                    Button("Редактировать") { showEditSheet = true }
                 }
             }
         }
@@ -110,6 +110,22 @@ struct TaskDetailView: View {
         await viewModel.load()
         if let updated = viewModel.tasks.first(where: { $0.id == task.id }) {
             task = updated
+        }
+    }
+
+    private func statusTitle(_ raw: String?) -> String {
+        let value = (raw ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        switch value {
+        case "new": return "Новая"
+        case "planned": return "Запланирована"
+        case "in_progress": return "В работе"
+        case "waiting_materials": return "Ждёт материалы"
+        case "done", "completed": return "Выполнена"
+        case "postponed": return "Отложена"
+        case "cancelled": return "Отменена"
+        default:
+            let clean = (raw ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+            return clean.isEmpty ? "-" : clean
         }
     }
 }

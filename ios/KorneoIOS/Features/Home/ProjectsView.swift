@@ -11,10 +11,10 @@ struct ProjectsView: View {
 
         var title: String {
             switch self {
-            case .all: return "All"
-            case .active: return "Active"
-            case .completed: return "Completed"
-            case .pending: return "Pending"
+            case .all: return "Все"
+            case .active: return "Активные"
+            case .completed: return "Завершённые"
+            case .pending: return "Ожидают"
             }
         }
     }
@@ -31,13 +31,13 @@ struct ProjectsView: View {
         NavigationStack {
             Group {
                 if viewModel.isLoading && viewModel.projects.isEmpty {
-                    ProgressView("Loading projects...")
+                    ProgressView("Загрузка проектов...")
                 } else if let error = viewModel.errorText, viewModel.projects.isEmpty {
-                    ContentUnavailableView("Error", systemImage: "exclamationmark.triangle", description: Text(error))
+                    ContentUnavailableView("Ошибка", systemImage: "exclamationmark.triangle", description: Text(error))
                 } else {
                     List {
                         Section {
-                            Picker("Status", selection: $statusFilter) {
+                            Picker("Статус", selection: $statusFilter) {
                                 ForEach(StatusFilter.allCases) { filter in
                                     Text(filter.title).tag(filter)
                                 }
@@ -47,7 +47,7 @@ struct ProjectsView: View {
 
                         if filteredProjects.isEmpty {
                             Section {
-                                Text("No matching projects")
+                                Text("Нет подходящих проектов")
                                     .foregroundStyle(.secondary)
                             }
                         } else {
@@ -57,9 +57,9 @@ struct ProjectsView: View {
                                         .environmentObject(appState)
                                 } label: {
                                     VStack(alignment: .leading, spacing: 4) {
-                                        Text(project.name ?? "Untitled project")
+                                        Text(project.name ?? "Проект без названия")
                                             .font(.headline)
-                                        Text(project.status ?? "unknown")
+                                        Text(statusTitle(project.status))
                                             .font(.caption)
                                             .foregroundStyle(.secondary)
                                     }
@@ -69,7 +69,7 @@ struct ProjectsView: View {
                                         Button(role: .destructive) {
                                             pendingDeleteProject = project
                                         } label: {
-                                            Label("Delete", systemImage: "trash")
+                                            Label("Удалить", systemImage: "trash")
                                         }
                                     }
                                 }
@@ -81,8 +81,8 @@ struct ProjectsView: View {
                     }
                 }
             }
-            .navigationTitle("Projects")
-            .searchable(text: $searchText, prompt: "Search projects")
+            .navigationTitle("Проекты")
+            .searchable(text: $searchText, prompt: "Поиск проектов")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
@@ -102,14 +102,14 @@ struct ProjectsView: View {
                 .environmentObject(appState)
         }
         .confirmationDialog(
-            "Delete project?",
+            "Удалить проект?",
             isPresented: Binding(
                 get: { pendingDeleteProject != nil },
                 set: { if !$0 { pendingDeleteProject = nil } }
             ),
             titleVisibility: .visible
         ) {
-            Button(isDeleting ? "Deleting..." : "Delete", role: .destructive) {
+            Button(isDeleting ? "Удаление..." : "Удалить", role: .destructive) {
                 guard let project = pendingDeleteProject else { return }
                 Task {
                     isDeleting = true
@@ -121,9 +121,9 @@ struct ProjectsView: View {
                 }
             }
             .disabled(isDeleting)
-            Button("Cancel", role: .cancel) {}
+            Button("Отмена", role: .cancel) {}
         } message: {
-            Text("This action cannot be undone.")
+            Text("Это действие нельзя отменить.")
         }
     }
 
@@ -156,6 +156,21 @@ struct ProjectsView: View {
             }()
 
             return matchesStatus && matchesSearch
+        }
+    }
+
+    private func statusTitle(_ raw: String?) -> String {
+        let value = (raw ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        switch value {
+        case "new": return "Новый"
+        case "active": return "Активный"
+        case "in_progress": return "В работе"
+        case "pending": return "Ожидает"
+        case "done", "completed": return "Завершён"
+        case "cancelled": return "Отменён"
+        default:
+            let clean = (raw ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+            return clean.isEmpty ? "-" : clean
         }
     }
 }

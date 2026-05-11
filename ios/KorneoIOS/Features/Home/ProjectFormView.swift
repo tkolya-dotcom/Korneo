@@ -24,23 +24,23 @@ struct ProjectFormView: View {
     var body: some View {
         NavigationStack {
             Form {
-                TextField("Name", text: $name)
-                TextField("Description", text: $description, axis: .vertical)
+                TextField("Название", text: $name)
+                TextField("Описание", text: $description, axis: .vertical)
                     .lineLimit(2...5)
-                TextField("Status", text: $status)
-                TextField("Client", text: $clientName)
-                TextField("Address", text: $address)
-                TextField("Budget", text: $budget)
-                TextField("Start Date", text: $startDate)
-                TextField("End Date", text: $endDate)
+                TextField("Статус", text: $status)
+                TextField("Клиент", text: $clientName)
+                TextField("Адрес", text: $address)
+                TextField("Бюджет", text: $budget)
+                TextField("Дата начала", text: $startDate)
+                TextField("Дата окончания", text: $endDate)
             }
             .navigationTitle(modeTitle)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Cancel") { dismiss() }
+                    Button("Отмена") { dismiss() }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button(isSaving ? "Saving..." : "Save") {
+                    Button(isSaving ? "Сохранение..." : "Сохранить") {
                         Task { await save() }
                     }
                     .disabled(isSaving || name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
@@ -52,8 +52,8 @@ struct ProjectFormView: View {
 
     private var modeTitle: String {
         switch mode {
-        case .create: return "New Project"
-        case .edit: return "Edit Project"
+        case .create: return "Новый проект"
+        case .edit: return "Редактирование проекта"
         }
     }
 
