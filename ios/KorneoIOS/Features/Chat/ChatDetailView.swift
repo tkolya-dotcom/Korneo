@@ -29,7 +29,7 @@ struct ChatDetailView: View {
 
             if viewModel.isLoading && viewModel.messages.isEmpty {
                 Spacer()
-                ProgressView("Loading messages...")
+                ProgressView("Загрузка сообщений...")
                 Spacer()
             } else {
                 List(viewModel.messages) { message in
@@ -50,9 +50,9 @@ struct ChatDetailView: View {
                 } label: {
                     Image(systemName: "paperclip")
                 }
-                TextField("Message", text: $viewModel.draftMessage, axis: .vertical)
+                TextField("Сообщение", text: $viewModel.draftMessage, axis: .vertical)
                     .textFieldStyle(.roundedBorder)
-                Button("Send") {
+                Button("Отправить") {
                     Task { await viewModel.send() }
                 }
                 .disabled(viewModel.draftMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
@@ -80,7 +80,7 @@ struct ChatDetailView: View {
             viewModel.draftDidChange()
         }
         .confirmationDialog(
-            "Reaction",
+            "Реакция",
             isPresented: Binding(
                 get: { reactionTarget != nil },
                 set: { if !$0 { reactionTarget = nil } }
@@ -96,26 +96,26 @@ struct ChatDetailView: View {
                     }
                 }
             }
-            Button("Cancel", role: .cancel) { reactionTarget = nil }
+            Button("Отмена", role: .cancel) { reactionTarget = nil }
         }
         .confirmationDialog(
-            "Delete message?",
+            "Удалить сообщение?",
             isPresented: Binding(
                 get: { pendingDeleteMessage != nil },
                 set: { if !$0 { pendingDeleteMessage = nil } }
             ),
             titleVisibility: .visible
         ) {
-            Button("Delete", role: .destructive) {
+            Button("Удалить", role: .destructive) {
                 guard let target = pendingDeleteMessage else { return }
                 Task {
                     await viewModel.deleteMessage(message: target)
                     pendingDeleteMessage = nil
                 }
             }
-            Button("Cancel", role: .cancel) { pendingDeleteMessage = nil }
+            Button("Отмена", role: .cancel) { pendingDeleteMessage = nil }
         } message: {
-            Text("This action cannot be undone.")
+            Text("Это действие нельзя отменить.")
         }
         .sheet(
             isPresented: Binding(
@@ -126,9 +126,9 @@ struct ChatDetailView: View {
             NavigationStack {
                 Group {
                     if viewModel.isLoadingForwardTargets {
-                        ProgressView("Loading chats...")
+                        ProgressView("Загрузка чатов...")
                     } else if viewModel.forwardTargets.isEmpty {
-                        ContentUnavailableView("No target chats", systemImage: "paperplane")
+                        ContentUnavailableView("Нет доступных чатов", systemImage: "paperplane")
                     } else {
                         List(viewModel.forwardTargets) { chat in
                             Button {
@@ -141,7 +141,7 @@ struct ChatDetailView: View {
                                 }
                             } label: {
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text(chat.name ?? "Chat")
+                                    Text(chat.name ?? "Чат")
                                     Text(chat.type ?? "group")
                                         .font(.caption2)
                                         .foregroundStyle(.secondary)
@@ -151,10 +151,10 @@ struct ChatDetailView: View {
                         }
                     }
                 }
-                .navigationTitle("Forward To")
+                .navigationTitle("Переслать в")
                 .toolbar {
                     ToolbarItem(placement: .topBarLeading) {
-                        Button("Cancel") {
+                        Button("Отмена") {
                             forwardMessageTarget = nil
                         }
                     }
@@ -183,18 +183,18 @@ struct ChatDetailView: View {
     private func messageCell(_ message: Message) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             if let replyText = message.replyPreviewText {
-                Text("-> \(replyText)")
+                Text("Ответ на: \(replyText)")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }
             if let forwardedFrom = message.forwardedFromName {
-                Text("Fwd: \(forwardedFrom)")
+                Text("Переслано от: \(forwardedFrom)")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }
-            Text(message.contentText.isEmpty ? "(empty)" : message.contentText)
+            Text(message.contentText.isEmpty ? "(пусто)" : message.contentText)
             if let fileName = message.attachmentFileName {
-                Text("File: \(fileName)")
+                Text("Файл: \(fileName)")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }
@@ -214,23 +214,23 @@ struct ChatDetailView: View {
         }
         .contentShape(Rectangle())
         .contextMenu {
-            Button("Reply") {
+            Button("Ответить") {
                 viewModel.setReplyTarget(message)
             }
-            Button("Reaction") {
+            Button("Реакция") {
                 reactionTarget = message
             }
-            Button("Forward") {
+            Button("Переслать") {
                 forwardMessageTarget = message
             }
-            Button("Copy") {
+            Button("Копировать") {
                 UIPasteboard.general.string = message.contentText
             }
             if let url = message.attachmentURL, let link = URL(string: url) {
-                Link("Open File", destination: link)
+                Link("Открыть файл", destination: link)
             }
             if viewModel.canDeleteMessage(message, role: appState.currentUser?.role) {
-                Button("Delete", role: .destructive) {
+                Button("Удалить", role: .destructive) {
                     pendingDeleteMessage = message
                 }
             }
@@ -240,7 +240,7 @@ struct ChatDetailView: View {
     private func replyBar(_ message: Message) -> some View {
         HStack(spacing: 8) {
             VStack(alignment: .leading, spacing: 2) {
-                Text("Reply")
+                Text("Ответ")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                 Text(previewText(for: message))
