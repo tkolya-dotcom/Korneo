@@ -639,7 +639,8 @@ struct MapScreenView: View {
                 card["description"] = .string(cleanNote)
             }
 
-            let text = "Работы: \(workType)\nАдрес: \(address)\nЧасы: \(hours)\nКто завёл: \(userName.isEmpty ? \"Пользователь\" : userName)"
+            let creatorDisplayName = userName.isEmpty ? "Пользователь" : userName
+            let text = "Работы: \(workType)\nАдрес: \(address)\nЧасы: \(hours)\nКто завёл: \(creatorDisplayName)"
             card["text"] = .string(text)
 
             _ = try await appState.client.sendMessageContent(

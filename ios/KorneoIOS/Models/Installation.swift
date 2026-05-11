@@ -56,6 +56,27 @@ enum InstallationStatus: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
+    var titleRu: String {
+        switch self {
+        case .new: return "Новая"
+        case .planned: return "Запланирована"
+        case .inProgress: return "В работе"
+        case .done: return "Выполнена"
+        case .received: return "Принята"
+        case .archived: return "В архиве"
+        case .waitingMaterials: return "Ждёт материалы"
+        case .inOrder: return "В заказе"
+        case .readyForReceipt: return "Готова к приёмке"
+        case .postponed: return "Отложена"
+        }
+    }
+
+    static func from(raw value: String?) -> InstallationStatus? {
+        let clean = (value ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !clean.isEmpty else { return nil }
+        return InstallationStatus(rawValue: clean)
+    }
+
     static func allowedTransitions(from value: String?) -> [InstallationStatus] {
         guard let from = value.flatMap({ InstallationStatus(rawValue: $0) }) else {
             return [.new, .planned, .inProgress]

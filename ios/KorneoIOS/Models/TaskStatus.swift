@@ -11,6 +11,24 @@ enum TaskStatus: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
+    var titleRu: String {
+        switch self {
+        case .new: return "Новая"
+        case .planned: return "Запланирована"
+        case .inProgress: return "В работе"
+        case .waitingMaterials: return "Ждёт материалы"
+        case .done: return "Выполнена"
+        case .postponed: return "Отложена"
+        case .cancelled: return "Отменена"
+        }
+    }
+
+    static func from(raw value: String?) -> TaskStatus? {
+        let clean = (value ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !clean.isEmpty else { return nil }
+        return TaskStatus(rawValue: clean)
+    }
+
     static func allowedTransitions(from value: String?) -> [TaskStatus] {
         guard let from = value.flatMap({ TaskStatus(rawValue: $0) }) else {
             return [.new, .planned, .inProgress]
