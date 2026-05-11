@@ -4,19 +4,31 @@ struct UsersView: View {
     @EnvironmentObject private var appState: AppState
     @StateObject private var viewModel = UsersViewModel()
     @State private var searchText = ""
+    @State private var selectedRoleFilter = ""
 
     var body: some View {
         Group {
             if viewModel.isLoading && viewModel.users.isEmpty {
-                ProgressView("Loading users...")
+                ProgressView("Загрузка пользователей...")
             } else if let error = viewModel.errorText, viewModel.users.isEmpty {
-                ContentUnavailableView("Error", systemImage: "exclamationmark.triangle", description: Text(error))
+                ContentUnavailableView("Ошибка", systemImage: "exclamationmark.triangle", description: Text(error))
             } else {
-                List(filteredUsers) { user in
-                    NavigationLink {
-                        UserDetailView(user: user)
-                    } label: {
-                        UserRowView(user: user)
+                List {
+                    Section("Фильтр") {
+                        Picker("Роль", selection: $selectedRoleFilter) {
+                            Text("Все роли").tag("")
+                            ForEach(roleFilterOptions, id: \.rawValue) { role in
+                                Text(roleTitle(role)).tag(role.rawValue)
+                            }
+                        }
+                    }
+
+                    ForEach(filteredUsers) { user in
+                        NavigationLink {
+                            UserDetailView(user: user)
+                        } label: {
+                            UserRowView(user: user)
+                        }
                     }
                 }
                 .refreshable {
@@ -24,23 +36,44 @@ struct UsersView: View {
                 }
             }
         }
-        .searchable(text: $searchText, prompt: "Search user")
-        .navigationTitle("Users")
+        .searchable(text: $searchText, prompt: "Поиск пользователя")
+        .navigationTitle("Пользователи")
         .task {
             viewModel.bind(client: appState.client)
             await viewModel.load()
         }
     }
 
+    private var roleFilterOptions: [Role] {
+        [.manager, .worker, .engineer, .support, .deputyHead, .admin]
+    }
+
     private var filteredUsers: [User] {
         let search = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        guard !search.isEmpty else { return viewModel.users }
         return viewModel.users.filter { user in
+            if !selectedRoleFilter.isEmpty, user.role?.rawValue != selectedRoleFilter {
+                return false
+            }
+            if search.isEmpty {
+                return true
+            }
             let name = (user.name ?? "").lowercased()
             let email = (user.email ?? "").lowercased()
             let role = (user.role?.rawValue ?? "").lowercased()
             let phone = (user.phone ?? "").lowercased()
             return name.contains(search) || email.contains(search) || role.contains(search) || phone.contains(search)
+        }
+    }
+
+    private func roleTitle(_ role: Role?) -> String {
+        switch role {
+        case .manager: return "Менеджер"
+        case .worker: return "Рабочий"
+        case .engineer: return "Инженер"
+        case .support: return "Поддержка"
+        case .deputyHead: return "Зам. руководителя"
+        case .admin: return "Администратор"
+        case nil: return "Не указана"
         }
     }
 }
@@ -64,19 +97,19 @@ private struct UserRowView: View {
 
     private func roleTitle(_ role: Role?) -> String {
         switch role {
-        case .manager: return "Manager"
-        case .worker: return "Worker"
-        case .engineer: return "Engineer"
-        case .support: return "Support"
-        case .deputyHead: return "Deputy Head"
-        case .admin: return "Admin"
-        case nil: return "Unknown"
+        case .manager: return "Менеджер"
+        case .worker: return "Рабочий"
+        case .engineer: return "Инженер"
+        case .support: return "Поддержка"
+        case .deputyHead: return "Зам. руководителя"
+        case .admin: return "Администратор"
+        case nil: return "Не указана"
         }
     }
 
     private var displayName: String {
         let clean = (user.name ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-        return clean.isEmpty ? (user.email ?? "User") : clean
+        return clean.isEmpty ? (user.email ?? "Пользователь") : clean
     }
 }
 
@@ -99,15 +132,15 @@ private struct UserDetailView: View {
                 .padding(.vertical, 6)
             }
 
-            Section("Profile") {
+            Section("Профиль") {
                 userRow("Email", user.email)
-                userRow("Phone", user.phone)
-                userRow("Role", roleTitle(user.role))
-                userRow("Created", formatDateTime(user.createdAt))
-                userRow("User ID", user.id)
+                userRow("Телефон", user.phone)
+                userRow("Роль", roleTitle(user.role))
+                userRow("Создан", formatDateTime(user.createdAt))
+                userRow("ID пользователя", user.id)
             }
         }
-        .navigationTitle("User")
+        .navigationTitle("Пользователь")
     }
 
     private var displayName: String {
@@ -132,12 +165,12 @@ private struct UserDetailView: View {
 
     private func roleTitle(_ role: Role?) -> String {
         switch role {
-        case .manager: return "Manager"
-        case .worker: return "Worker"
-        case .engineer: return "Engineer"
-        case .support: return "Support"
-        case .deputyHead: return "Deputy Head"
-        case .admin: return "Admin"
+        case .manager: return "Менеджер"
+        case .worker: return "Рабочий"
+        case .engineer: return "Инженер"
+        case .support: return "Поддержка"
+        case .deputyHead: return "Зам. руководителя"
+        case .admin: return "Администратор"
         case nil: return "-"
         }
     }
