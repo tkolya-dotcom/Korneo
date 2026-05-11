@@ -32,6 +32,14 @@
 3. Нажмите **Run workflow** на ветке `main`.
 4. После завершения скачайте артефакт `korneo-ios-ipa`.
 
+### Быстрая настройка secrets через CLI
+
+На Windows можно заполнить Apple secrets интерактивно:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\set-ios-gh-secrets.ps1
+```
+
 ## Важно
 
 - Этот workflow собирает `development` IPA с automatic signing.
