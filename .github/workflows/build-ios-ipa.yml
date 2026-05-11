@@ -1,0 +1,133 @@
+﻿name: Build iOS IPA
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'ios/**'
+      - '.github/workflows/build-ios-ipa.yml'
+
+jobs:
+  build-ipa:
+    runs-on: macos-15
+    timeout-minutes: 60
+
+    env:
+      SCHEME: KorneoIOS
+      PROJECT_DIR: ios
+      PROJECT_FILE: KorneoIOS.xcodeproj
+      BUNDLE_ID: ${{ secrets.APPLE_BUNDLE_ID }}
+      TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+      DAICHI_TOKEN: ${{ secrets.DAICHI_TOKEN }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate required secrets
+        run: |
+          set -euo pipefail
+          required=(APPLE_TEAM_ID APPLE_API_KEY_ID APPLE_API_ISSUER_ID APPLE_API_PRIVATE_KEY SUPABASE_URL SUPABASE_ANON_KEY)
+          for key in "${required[@]}"; do
+            if [ -z "${!key:-}" ]; then
+              echo "Missing required secret: $key"
+              exit 1
+            fi
+          done
+          if [ -z "${BUNDLE_ID:-}" ]; then
+            echo "APPLE_BUNDLE_ID is not set, using com.korneo.ios"
+            echo "BUNDLE_ID=com.korneo.ios" >> "$GITHUB_ENV"
+          fi
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Prepare xcconfig
+        run: |
+          set -euo pipefail
+          mkdir -p "$PROJECT_DIR/Configs"
+          cat > "$PROJECT_DIR/Configs/Release.xcconfig" <<EOF
+          SUPABASE_URL=$(printf '%s' "$SUPABASE_URL")
+          SUPABASE_ANON_KEY=$(printf '%s' "$SUPABASE_ANON_KEY")
+          DAICHI_TOKEN=$(printf '%s' "${DAICHI_TOKEN:-}")
+          EOF
+
+      - name: Prepare App Store Connect API key
+        run: |
+          set -euo pipefail
+          KEY_PATH="$RUNNER_TEMP/AuthKey_${APPLE_API_KEY_ID}.p8"
+          printf '%s' "$APPLE_API_PRIVATE_KEY" > "$KEY_PATH"
+          echo "ASC_KEY_PATH=$KEY_PATH" >> "$GITHUB_ENV"
+
+      - name: Generate Xcode project
+        run: |
+          set -euo pipefail
+          cd "$PROJECT_DIR"
+          xcodegen generate
+
+      - name: Archive app
+        run: |
+          set -euo pipefail
+          ARCHIVE_PATH="$RUNNER_TEMP/KorneoIOS.xcarchive"
+          xcodebuild \
+            -project "$PROJECT_DIR/$PROJECT_FILE" \
+            -scheme "$SCHEME" \
+            -configuration Release \
+            -destination "generic/platform=iOS" \
+            -archivePath "$ARCHIVE_PATH" \
+            PRODUCT_BUNDLE_IDENTIFIER="$BUNDLE_ID" \
+            DEVELOPMENT_TEAM="$TEAM_ID" \
+            CODE_SIGN_STYLE=Automatic \
+            clean archive \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$ASC_KEY_PATH" \
+            -authenticationKeyID "$APPLE_API_KEY_ID" \
+            -authenticationKeyIssuerID "$APPLE_API_ISSUER_ID"
+          echo "ARCHIVE_PATH=$ARCHIVE_PATH" >> "$GITHUB_ENV"
+
+      - name: Export IPA
+        run: |
+          set -euo pipefail
+          EXPORT_DIR="$RUNNER_TEMP/ipa"
+          EXPORT_PLIST="$RUNNER_TEMP/ExportOptions.plist"
+          cat > "$EXPORT_PLIST" <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>development</string>
+            <key>signingStyle</key>
+            <string>automatic</string>
+            <key>teamID</key>
+            <string>$TEAM_ID</string>
+            <key>compileBitcode</key>
+            <false/>
+            <key>destination</key>
+            <string>export</string>
+          </dict>
+          </plist>
+          EOF
+
+          xcodebuild \
+            -exportArchive \
+            -archivePath "$ARCHIVE_PATH" \
+            -exportPath "$EXPORT_DIR" \
+            -exportOptionsPlist "$EXPORT_PLIST" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$ASC_KEY_PATH" \
+            -authenticationKeyID "$APPLE_API_KEY_ID" \
+            -authenticationKeyIssuerID "$APPLE_API_ISSUER_ID"
+
+          ls -la "$EXPORT_DIR"
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: korneo-ios-ipa
+          path: ${{ runner.temp }}/ipa/*.ipa
+          if-no-files-found: error

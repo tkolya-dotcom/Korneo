@@ -1,0 +1,5 @@
+#include? "Config.xcconfig"
+
+SUPABASE_URL = https://jmxjbdnqnzkzxgsfywha.supabase.co
+SUPABASE_ANON_KEY =
+DAICHI_TOKEN =
