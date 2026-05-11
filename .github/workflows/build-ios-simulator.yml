@@ -1,0 +1,57 @@
+name: Build iOS Simulator
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "ios/**"
+      - ".github/workflows/build-ios-simulator.yml"
+
+jobs:
+  build-simulator:
+    runs-on: macos-15
+    timeout-minutes: 45
+
+    env:
+      SCHEME: KorneoIOS
+      PROJECT_DIR: ios
+      PROJECT_FILE: KorneoIOS.xcodeproj
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL || secrets.VITE_SUPABASE_URL || 'https://example.supabase.co' }}
+      SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY || secrets.VITE_SUPABASE_ANON_KEY || 'public-anon-key' }}
+      DAICHI_TOKEN: ${{ secrets.DAICHI_TOKEN || '' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Prepare xcconfig
+        run: |
+          set -euo pipefail
+          mkdir -p "$PROJECT_DIR/Configs"
+          cat > "$PROJECT_DIR/Configs/Release.xcconfig" <<EOF
+          SUPABASE_URL=$(printf '%s' "$SUPABASE_URL")
+          SUPABASE_ANON_KEY=$(printf '%s' "$SUPABASE_ANON_KEY")
+          DAICHI_TOKEN=$(printf '%s' "${DAICHI_TOKEN:-}")
+          EOF
+
+      - name: Generate Xcode project
+        run: |
+          set -euo pipefail
+          cd "$PROJECT_DIR"
+          xcodegen generate
+
+      - name: Build for Simulator (no signing)
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -project "$PROJECT_DIR/$PROJECT_FILE" \
+            -scheme "$SCHEME" \
+            -configuration Release \
+            -destination "generic/platform=iOS Simulator" \
+            CODE_SIGNING_ALLOWED=NO \
+            clean build

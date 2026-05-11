@@ -1,6 +1,6 @@
 # Korneo iOS (iOS 26)
 
-This folder contains the first iOS scaffold that mirrors the Android app and uses the same Supabase backend/data.
+This folder contains the iOS app that mirrors the Android app and uses the same Supabase backend/data.
 
 ## What is already implemented
 
@@ -89,8 +89,7 @@ This folder contains the first iOS scaffold that mirrors the Android app and use
 - See [SIGNING_SETUP.md](./SIGNING_SETUP.md) for Apple Developer subscription requirements and GitHub secrets.
 - GitHub Actions workflow for IPA: `.github/workflows/build-ios-ipa.yml`.
 
-## Next iteration
+## CI workflows
 
-- Add feature parity screens: installations, purchase, warehouse, AVR/ATSS, mileage, map, profile.
-- Add create/update/delete flows for projects/tasks/chats.
-- Add push notifications (APNs + Supabase Edge Function flow).
+- Simulator build (no Apple signing required): `.github/workflows/build-ios-simulator.yml`
+- IPA build for physical iPhone install (Apple signing required): `.github/workflows/build-ios-ipa.yml`
