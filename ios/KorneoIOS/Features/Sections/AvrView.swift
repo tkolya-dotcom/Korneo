@@ -1,4 +1,4 @@
-﻿import SwiftUI
+import SwiftUI
 
 struct AvrView: View {
     private struct StatusOption: Identifiable {
@@ -43,7 +43,7 @@ struct AvrView: View {
     var body: some View {
         Group {
             if isLoading && visibleRows.isEmpty {
-                ProgressView("Loading AVR...")
+                ProgressView("Загрузка АВР...")
             } else if let errorText, visibleRows.isEmpty {
                 ContentUnavailableView("Error", systemImage: "exclamationmark.triangle", description: Text(errorText))
             } else if visibleRows.isEmpty {
@@ -1575,7 +1575,7 @@ private struct EquipmentHistorySheet: View {
     var body: some View {
         Group {
             if isLoading && rows.isEmpty {
-                ProgressView("Loading history...")
+                ProgressView("Загрузка истории...")
             } else if let errorText, rows.isEmpty {
                 ContentUnavailableView("Error", systemImage: "exclamationmark.triangle", description: Text(errorText))
             } else if rows.isEmpty {

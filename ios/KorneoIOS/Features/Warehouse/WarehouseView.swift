@@ -35,7 +35,7 @@ struct WarehouseView: View {
     var body: some View {
         Group {
             if viewModel.isLoading && viewModel.materials.isEmpty && viewModel.stockRows.isEmpty {
-                ProgressView("Loading warehouse...")
+                ProgressView("Загрузка склада...")
             } else if let error = viewModel.errorText, viewModel.materials.isEmpty && viewModel.stockRows.isEmpty {
                 ContentUnavailableView("Error", systemImage: "exclamationmark.triangle", description: Text(error))
             } else {

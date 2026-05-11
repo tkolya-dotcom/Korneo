@@ -1775,7 +1775,7 @@ final class SupabaseClient {
         }
 
         guard (200...299).contains(http.statusCode) else {
-            let message = String(data: data, encoding: .utf8) ?? "Unknown server error"
+            let message = String(data: data, encoding: .utf8) ?? "Неизвестная ошибка сервера"
             throw APIError.requestFailed(status: http.statusCode, message: message)
         }
 

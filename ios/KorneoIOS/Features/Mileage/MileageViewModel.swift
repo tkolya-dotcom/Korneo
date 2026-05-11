@@ -1,4 +1,4 @@
-﻿import Foundation
+import Foundation
 import Combine
 import CoreLocation
 
@@ -75,7 +75,7 @@ final class MileageViewModel: ObservableObject {
 
     func load() async {
         guard let client else {
-            errorText = "Client is not configured"
+            errorText = "Клиент Supabase не настроен"
             return
         }
         isLoading = true
@@ -489,3 +489,4 @@ private extension String {
         return clean.isEmpty ? fallback : clean
     }
 }
+

@@ -25,12 +25,12 @@ final class ChatsViewModel: ObservableObject {
 
     func load(currentUser: User?) async {
         guard let client else {
-            errorText = "Client is not configured"
+            errorText = "Клиент Supabase не настроен"
             return
         }
         guard let currentUser else {
             chats = []
-            errorText = "User is not authenticated"
+            errorText = "Пользователь не авторизован"
             return
         }
         if currentUser.role?.hasManagerRights != true {
@@ -60,11 +60,11 @@ final class ChatsViewModel: ObservableObject {
         memberIds: [String]
     ) async -> Bool {
         guard let client else {
-            errorText = "Client is not configured"
+            errorText = "Клиент Supabase не настроен"
             return false
         }
         guard let currentUser else {
-            errorText = "User is not authenticated"
+            errorText = "Пользователь не авторизован"
             return false
         }
 
@@ -73,12 +73,12 @@ final class ChatsViewModel: ObservableObject {
 
         if type == .private {
             if selectedMembers.count != 1 {
-                errorText = "Select one user for private chat"
+                errorText = "Выберите одного пользователя для личного чата"
                 return false
             }
         } else {
             if selectedMembers.count < 2 {
-                errorText = "Select at least two users for group chat"
+                errorText = "Выберите минимум двух пользователей для группового чата"
                 return false
             }
         }
@@ -86,8 +86,8 @@ final class ChatsViewModel: ObservableObject {
         do {
             let chatType = type == .private ? "private" : "group"
             let chatName = type == .private
-                ? (trimmedName.isEmpty ? "Private chat" : trimmedName)
-                : (trimmedName.isEmpty ? "Group chat" : trimmedName)
+                ? (trimmedName.isEmpty ? "Личный чат" : trimmedName)
+                : (trimmedName.isEmpty ? "Групповой чат" : trimmedName)
             _ = try await client.createChatWithMembers(
                 name: chatName,
                 type: chatType,
@@ -104,11 +104,11 @@ final class ChatsViewModel: ObservableObject {
 
     func togglePin(chat: Chat, currentUser: User?) async -> Bool {
         guard let client else {
-            errorText = "Client is not configured"
+            errorText = "Клиент Supabase не настроен"
             return false
         }
         guard let currentUser else {
-            errorText = "User is not authenticated"
+            errorText = "Пользователь не авторизован"
             return false
         }
         do {
@@ -124,11 +124,11 @@ final class ChatsViewModel: ObservableObject {
 
     func removeForCurrentUser(chat: Chat, currentUser: User?) async -> Bool {
         guard let client else {
-            errorText = "Client is not configured"
+            errorText = "Клиент Supabase не настроен"
             return false
         }
         guard let currentUser else {
-            errorText = "User is not authenticated"
+            errorText = "Пользователь не авторизован"
             return false
         }
         do {
@@ -143,11 +143,11 @@ final class ChatsViewModel: ObservableObject {
 
     func deletePermanently(chat: Chat, currentUser: User?) async -> Bool {
         guard let client else {
-            errorText = "Client is not configured"
+            errorText = "Клиент Supabase не настроен"
             return false
         }
         guard let currentUser else {
-            errorText = "User is not authenticated"
+            errorText = "Пользователь не авторизован"
             return false
         }
         do {
@@ -162,11 +162,11 @@ final class ChatsViewModel: ObservableObject {
 
     func addMembers(chatId: String, userIds: [String], currentUser: User?) async -> Bool {
         guard let client else {
-            errorText = "Client is not configured"
+            errorText = "Клиент Supabase не настроен"
             return false
         }
         guard let currentUser else {
-            errorText = "User is not authenticated"
+            errorText = "Пользователь не авторизован"
             return false
         }
         do {
@@ -191,13 +191,13 @@ final class ChatsViewModel: ObservableObject {
             do {
                 if let latest = try await client.fetchLatestMessage(chatId: chatId) {
                     let text = latest.contentText.trimmingCharacters(in: .whitespacesAndNewlines)
-                    previewById[chatId] = isPrivate ? "" : (text.isEmpty ? "No messages" : text)
+                    previewById[chatId] = isPrivate ? "" : (text.isEmpty ? "Нет сообщений" : text)
                     timestampById[chatId] = latest.createdAt ?? ""
                     let isOwn = latest.userId?.trimmingCharacters(in: .whitespacesAndNewlines) == currentUserId.trimmingCharacters(in: .whitespacesAndNewlines)
                     let unread = (!isOwn && (latest.isRead == false)) ? 1 : 0
                     unreadById[chatId] = unread
                 } else {
-                    previewById[chatId] = isPrivate ? "" : "No messages"
+                    previewById[chatId] = isPrivate ? "" : "Нет сообщений"
                     timestampById[chatId] = ""
                     unreadById[chatId] = 0
                 }

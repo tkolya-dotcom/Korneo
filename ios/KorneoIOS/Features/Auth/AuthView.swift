@@ -12,12 +12,12 @@ struct AuthView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Sign in") {
+                Section("Вход") {
                     TextField("Email", text: $viewModel.email)
                         .textInputAutocapitalization(.never)
                         .keyboardType(.emailAddress)
 
-                    SecureField("Password", text: $viewModel.password)
+                    SecureField("Пароль", text: $viewModel.password)
 
                     Button {
                         Task { await viewModel.signIn() }
@@ -25,13 +25,13 @@ struct AuthView: View {
                         if viewModel.isLoading {
                             ProgressView()
                         } else {
-                            Text("Continue")
+                            Text("Войти")
                         }
                     }
                     .disabled(viewModel.isLoading)
                 }
 
-                Section("Connection") {
+                Section("Подключение") {
                     HStack {
                         Text("URL")
                         Spacer()
@@ -40,7 +40,7 @@ struct AuthView: View {
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
                     }
-                    Button("Edit Supabase Settings") {
+                    Button("Изменить настройки Supabase") {
                         showConnectionSettings = true
                     }
                 }

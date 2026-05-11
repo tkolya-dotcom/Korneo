@@ -15,7 +15,7 @@ final class TasksViewModel: ObservableObject {
 
     func load() async {
         guard let client else {
-            errorText = "Client is not configured"
+            errorText = "Клиент Supabase не настроен"
             return
         }
         isLoading = true
@@ -77,3 +77,4 @@ final class TasksViewModel: ObservableObject {
         }
     }
 }
+

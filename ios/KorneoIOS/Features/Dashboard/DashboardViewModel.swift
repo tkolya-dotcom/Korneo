@@ -18,7 +18,7 @@ final class DashboardViewModel: ObservableObject {
 
     func load(currentUser: User?) async {
         guard let client else {
-            errorText = "Client is not configured"
+            errorText = "Клиент Supabase не настроен"
             return
         }
         isLoading = true
@@ -64,3 +64,4 @@ final class DashboardViewModel: ObservableObject {
         return installations.filter { ($0.assigneeId ?? "").trimmingCharacters(in: .whitespacesAndNewlines) == myId }.count
     }
 }
+

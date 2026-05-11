@@ -2,10 +2,17 @@ import SwiftUI
 
 struct CreateChatSheetView: View {
     private enum ChatType: String, CaseIterable, Identifiable {
-        case `private` = "Private"
-        case group = "Group"
+        case `private`
+        case group
 
         var id: String { rawValue }
+
+        var title: String {
+            switch self {
+            case .private: return "Личный"
+            case .group: return "Групповой"
+            }
+        }
     }
 
     @EnvironmentObject private var appState: AppState
@@ -24,25 +31,25 @@ struct CreateChatSheetView: View {
         NavigationStack {
             Form {
                 if isLoadingUsers {
-                    ProgressView("Loading users...")
+                    ProgressView("Загрузка пользователей...")
                 }
 
-                Section("Type") {
-                    Picker("Chat Type", selection: $chatType) {
+                Section("Тип") {
+                    Picker("Тип чата", selection: $chatType) {
                         ForEach(ChatType.allCases) { type in
-                            Text(type.rawValue).tag(type)
+                            Text(type.title).tag(type)
                         }
                     }
                     .pickerStyle(.segmented)
                 }
 
                 if chatType == .private {
-                    Section("User") {
+                    Section("Пользователь") {
                         if users.isEmpty {
-                            Text("No available users")
+                            Text("Нет доступных пользователей")
                                 .foregroundStyle(.secondary)
                         } else {
-                            Picker("Select User", selection: $privateUserId) {
+                            Picker("Выберите пользователя", selection: $privateUserId) {
                                 ForEach(users) { user in
                                     Text(displayName(user)).tag(user.id)
                                 }
@@ -50,10 +57,10 @@ struct CreateChatSheetView: View {
                         }
                     }
                 } else {
-                    Section("Group") {
-                        TextField("Group Name", text: $groupName)
+                    Section("Группа") {
+                        TextField("Название группы", text: $groupName)
                         if users.isEmpty {
-                            Text("No available users")
+                            Text("Нет доступных пользователей")
                                 .foregroundStyle(.secondary)
                         } else {
                             ForEach(users) { user in
@@ -63,13 +70,13 @@ struct CreateChatSheetView: View {
                     }
                 }
             }
-            .navigationTitle("New Chat")
+            .navigationTitle("Новый чат")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Cancel") { dismiss() }
+                    Button("Отмена") { dismiss() }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button(isSaving ? "Creating..." : "Create") {
+                    Button(isSaving ? "Создание..." : "Создать") {
                         Task { await create() }
                     }
                     .disabled(isSaving || !canCreate)
@@ -137,7 +144,7 @@ struct CreateChatSheetView: View {
         let name = user.name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         if !name.isEmpty { return name }
         let email = user.email?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        return email.isEmpty ? "User" : email
+        return email.isEmpty ? "Пользователь" : email
     }
 
     private func binding(for userId: String) -> Binding<Bool> {

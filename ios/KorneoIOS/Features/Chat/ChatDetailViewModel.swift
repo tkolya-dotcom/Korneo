@@ -31,7 +31,7 @@ final class ChatDetailViewModel: ObservableObject {
 
     func load() async {
         guard let client else {
-            errorText = "Client is not configured"
+            errorText = "Клиент Supabase не настроен"
             return
         }
         isLoading = true
@@ -53,7 +53,7 @@ final class ChatDetailViewModel: ObservableObject {
         guard !text.isEmpty else { return }
         guard let client else { return }
         guard !userId.isEmpty else {
-            errorText = "Current user id is empty"
+            errorText = "ID текущего пользователя пуст"
             return
         }
 
@@ -140,15 +140,15 @@ final class ChatDetailViewModel: ObservableObject {
     func sendAttachment(fileName: String, mimeType: String, data: Data) async -> Bool {
         guard let client else { return false }
         guard !userId.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            errorText = "Current user id is empty"
+            errorText = "ID текущего пользователя пуст"
             return false
         }
         if data.count <= 0 {
-            errorText = "Attachment is empty"
+            errorText = "Вложение пустое"
             return false
         }
         if data.count > maxAttachmentBytes {
-            errorText = "Attachment is larger than 250 MB"
+            errorText = "Вложение больше 250 МБ"
             return false
         }
 
@@ -160,7 +160,7 @@ final class ChatDetailViewModel: ObservableObject {
             let url = try await client.uploadChatAttachment(path: path, contentType: cleanMime, data: data)
             let content: [String: JSONValue] = [
                 "type": .string("attachment"),
-                "text": .string("Attachment: \(cleanName)"),
+                "text": .string("Файл: \(cleanName)"),
                 "file_name": .string(cleanName),
                 "mime_type": .string(cleanMime),
                 "size_bytes": .number(Double(data.count)),
@@ -286,7 +286,7 @@ final class ChatDetailViewModel: ObservableObject {
                     let email = row.user?.email?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
                     return email.isEmpty ? row.userId : email
                 }
-            typingUsersText = names.isEmpty ? "" : "\(names.joined(separator: ", ")) typing..."
+            typingUsersText = names.isEmpty ? "" : "\(names.joined(separator: ", ")) печатает..."
         } catch {
             typingUsersText = ""
         }
@@ -318,7 +318,7 @@ final class ChatDetailViewModel: ObservableObject {
         let cleanForwarded = message.forwardedFromName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         if !cleanForwarded.isEmpty { return cleanForwarded }
         let cleanUserId = message.userId?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        return cleanUserId.isEmpty ? "Unknown" : cleanUserId
+        return cleanUserId.isEmpty ? "Неизвестно" : cleanUserId
     }
 
     private func sanitizedFileName(_ input: String) -> String {

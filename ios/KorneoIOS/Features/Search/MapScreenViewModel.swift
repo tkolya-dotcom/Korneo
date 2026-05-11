@@ -1,4 +1,4 @@
-﻿import Foundation
+import Foundation
 import CoreLocation
 
 @MainActor
@@ -42,7 +42,7 @@ final class MapScreenViewModel: ObservableObject {
 
     func load() async {
         guard let client else {
-            errorText = "Client is not configured"
+            errorText = "Клиент Supabase не настроен"
             return
         }
 
@@ -299,3 +299,4 @@ final class MapScreenViewModel: ObservableObject {
         return fallback
     }
 }
+

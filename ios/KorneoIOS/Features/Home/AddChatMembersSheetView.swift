@@ -17,26 +17,26 @@ struct AddChatMembersSheetView: View {
         NavigationStack {
             Form {
                 if isLoading {
-                    ProgressView("Loading users...")
+                    ProgressView("Загрузка пользователей...")
                 }
                 if availableUsers.isEmpty && !isLoading {
-                    Text("No users to add")
+                    Text("Нет пользователей для добавления")
                         .foregroundStyle(.secondary)
                 } else {
-                    Section("Available Users") {
+                    Section("Доступные пользователи") {
                         ForEach(availableUsers) { user in
                             Toggle(displayName(user), isOn: binding(for: user.id))
                         }
                     }
                 }
             }
-            .navigationTitle("Add Members")
+            .navigationTitle("Добавить участников")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Cancel") { dismiss() }
+                    Button("Отмена") { dismiss() }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button(isSaving ? "Adding..." : "Add") {
+                    Button(isSaving ? "Добавление..." : "Добавить") {
                         Task { await addMembers() }
                     }
                     .disabled(isSaving || selectedUserIds.isEmpty)
@@ -90,7 +90,7 @@ struct AddChatMembersSheetView: View {
         let name = user.name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         if !name.isEmpty { return name }
         let email = user.email?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        return email.isEmpty ? "User" : email
+        return email.isEmpty ? "Пользователь" : email
     }
 
     private func binding(for userId: String) -> Binding<Bool> {

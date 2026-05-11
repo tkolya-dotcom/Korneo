@@ -19,14 +19,14 @@ struct ChatsView: View {
         NavigationStack(path: $path) {
             Group {
                 if viewModel.isLoading && viewModel.chats.isEmpty {
-                    ProgressView("Loading chats...")
+                    ProgressView("Загрузка чатов...")
                 } else if let error = viewModel.errorText, viewModel.chats.isEmpty {
-                    ContentUnavailableView("Error", systemImage: "exclamationmark.triangle", description: Text(error))
+                    ContentUnavailableView("Ошибка", systemImage: "exclamationmark.triangle", description: Text(error))
                 } else if viewModel.chats.isEmpty {
-                    ContentUnavailableView("No chats", systemImage: "message")
+                    ContentUnavailableView("Нет чатов", systemImage: "message")
                 } else {
                     List(viewModel.chats) { chat in
-                        NavigationLink(value: ChatRoute(chatId: chat.id, chatName: chat.name ?? "Chat")) {
+                        NavigationLink(value: ChatRoute(chatId: chat.id, chatName: chat.name ?? "Чат")) {
                             VStack(alignment: .leading, spacing: 4) {
                                 HStack {
                                     Text(chatDisplayName(chat))
@@ -60,7 +60,7 @@ struct ChatsView: View {
                                         .foregroundStyle(.secondary)
                                         .lineLimit(1)
                                 } else {
-                                    Text(chat.type ?? "group")
+                                    Text(chat.type ?? "группа")
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
                                 }
@@ -71,7 +71,7 @@ struct ChatsView: View {
                                 Button {
                                     Task { _ = await viewModel.togglePin(chat: chat, currentUser: appState.currentUser) }
                                 } label: {
-                                    Label((chat.pinned ?? false) ? "Unpin" : "Pin", systemImage: (chat.pinned ?? false) ? "pin.slash" : "pin")
+                                    Label((chat.pinned ?? false) ? "Открепить" : "Закрепить", systemImage: (chat.pinned ?? false) ? "pin.slash" : "pin")
                                 }
                                 .tint(.orange)
                             }
@@ -81,34 +81,34 @@ struct ChatsView: View {
                                 Button(role: .destructive) {
                                     pendingDeleteChat = chat
                                 } label: {
-                                    Label("Delete DB", systemImage: "trash")
+                                    Label("Удалить из БД", systemImage: "trash")
                                 }
                             }
                             if canPinOrRemoveFromMyList {
                                 Button(role: .destructive) {
                                     pendingRemoveChat = chat
                                 } label: {
-                                    Label("Remove", systemImage: "minus.circle")
+                                    Label("Убрать", systemImage: "minus.circle")
                                 }
                             }
                         }
                         .contextMenu {
                             if canPinOrRemoveFromMyList {
-                                Button((chat.pinned ?? false) ? "Unpin" : "Pin") {
+                                Button((chat.pinned ?? false) ? "Открепить" : "Закрепить") {
                                     Task { _ = await viewModel.togglePin(chat: chat, currentUser: appState.currentUser) }
                                 }
                             }
                             if canManageGroupMembers(chat: chat) {
-                                Button("Add Members") {
+                                Button("Добавить участников") {
                                     selectedChatForAddMembers = chat
                                 }
                             }
                             if canDeletePermanently(chat: chat) {
-                                Button("Delete Permanently", role: .destructive) {
+                                Button("Удалить навсегда", role: .destructive) {
                                     pendingDeleteChat = chat
                                 }
                             } else if canPinOrRemoveFromMyList {
-                                Button("Remove from My Chats", role: .destructive) {
+                                Button("Убрать из моих чатов", role: .destructive) {
                                     pendingRemoveChat = chat
                                 }
                             }
@@ -123,7 +123,7 @@ struct ChatsView: View {
             .toolbar {
                 if canToggleAllGroups {
                     ToolbarItem(placement: .topBarLeading) {
-                        Button(viewModel.showingAllGroups ? "My Chats" : "All Groups") {
+                        Button(viewModel.showingAllGroups ? "Мои чаты" : "Все группы") {
                             Task {
                                 viewModel.showingAllGroups.toggle()
                                 await viewModel.load(currentUser: appState.currentUser)
@@ -175,14 +175,14 @@ struct ChatsView: View {
                 .environmentObject(appState)
         }
         .confirmationDialog(
-            "Remove chat from your list?",
+            "Убрать чат из вашего списка?",
             isPresented: Binding(
                 get: { pendingRemoveChat != nil },
                 set: { if !$0 { pendingRemoveChat = nil } }
             ),
             titleVisibility: .visible
         ) {
-            Button(isActionInProgress ? "Removing..." : "Remove", role: .destructive) {
+            Button(isActionInProgress ? "Удаление..." : "Убрать", role: .destructive) {
                 guard let chat = pendingRemoveChat else { return }
                 Task {
                     isActionInProgress = true
@@ -194,19 +194,19 @@ struct ChatsView: View {
                 }
             }
             .disabled(isActionInProgress)
-            Button("Cancel", role: .cancel) {}
+            Button("Отмена", role: .cancel) {}
         } message: {
-            Text("This removes chat only for you.")
+            Text("Чат будет скрыт только у вас.")
         }
         .confirmationDialog(
-            "Delete chat permanently?",
+            "Удалить чат навсегда?",
             isPresented: Binding(
                 get: { pendingDeleteChat != nil },
                 set: { if !$0 { pendingDeleteChat = nil } }
             ),
             titleVisibility: .visible
         ) {
-            Button(isActionInProgress ? "Deleting..." : "Delete", role: .destructive) {
+            Button(isActionInProgress ? "Удаление..." : "Удалить", role: .destructive) {
                 guard let chat = pendingDeleteChat else { return }
                 Task {
                     isActionInProgress = true
@@ -218,15 +218,15 @@ struct ChatsView: View {
                 }
             }
             .disabled(isActionInProgress)
-            Button("Cancel", role: .cancel) {}
+            Button("Отмена", role: .cancel) {}
         } message: {
-            Text("Chat, members and messages will be deleted from database.")
+            Text("Чат, участники и сообщения будут удалены из базы данных.")
         }
     }
 
     private func openPendingDeepLinkIfNeeded() {
         guard let link = appState.pendingChatDeepLink else { return }
-        let fallbackName = viewModel.chats.first(where: { $0.id == link.chatId })?.name ?? link.chatName ?? "Chat"
+        let fallbackName = viewModel.chats.first(where: { $0.id == link.chatId })?.name ?? link.chatName ?? "Чат"
         let resolvedName = viewModel.privateChatNameById[link.chatId] ?? fallbackName
         path = [ChatRoute(chatId: link.chatId, chatName: resolvedName)]
         appState.consumePendingChatDeepLink()
@@ -258,7 +258,7 @@ struct ChatsView: View {
             return privateName
         }
         let base = chat.name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        return base.isEmpty ? "Chat" : base
+        return base.isEmpty ? "Чат" : base
     }
 
     private func isPrivateChat(_ chat: Chat) -> Bool {

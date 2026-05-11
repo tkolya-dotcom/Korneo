@@ -12,26 +12,26 @@ struct ConnectionSettingsView: View {
         NavigationStack {
             Form {
                 Section("Supabase") {
-                    TextField("Supabase URL", text: $url)
+                    TextField("URL Supabase", text: $url)
                         .textInputAutocapitalization(.never)
                         .keyboardType(.URL)
-                    SecureField("Anon / publishable key", text: $anonKey)
+                    SecureField("Anon / publishable ключ", text: $anonKey)
                         .textInputAutocapitalization(.never)
                 }
 
                 Section("Daichi") {
-                    SecureField("Daichi token", text: $daichiToken)
+                    SecureField("Токен Daichi", text: $daichiToken)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                 }
             }
-            .navigationTitle("Connection")
+            .navigationTitle("Подключение")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Cancel") { dismiss() }
+                    Button("Отмена") { dismiss() }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Save") {
+                    Button("Сохранить") {
                         appState.updateConnection(url: url, anonKey: anonKey, daichiToken: daichiToken)
                         dismiss()
                     }

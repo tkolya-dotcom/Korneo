@@ -16,7 +16,7 @@ final class AuthViewModel: ObservableObject {
 
     func signIn() async {
         guard !email.isEmpty, !password.isEmpty else {
-            errorText = "Enter email and password"
+            errorText = "Введите email и пароль"
             return
         }
 
