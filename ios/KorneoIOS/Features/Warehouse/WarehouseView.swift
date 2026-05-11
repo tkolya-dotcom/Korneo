@@ -37,7 +37,7 @@ struct WarehouseView: View {
             if viewModel.isLoading && viewModel.materials.isEmpty && viewModel.stockRows.isEmpty {
                 ProgressView("Загрузка склада...")
             } else if let error = viewModel.errorText, viewModel.materials.isEmpty && viewModel.stockRows.isEmpty {
-                ContentUnavailableView("Error", systemImage: "exclamationmark.triangle", description: Text(error))
+                ContentUnavailableView("Ошибка", systemImage: "exclamationmark.triangle", description: Text(error))
             } else {
                 List {
                     if let info = viewModel.infoText, !info.isEmpty {
@@ -112,7 +112,7 @@ struct WarehouseView: View {
                 }
             }
         }
-        .navigationTitle("Warehouse")
+        .navigationTitle("Склад")
         .alert("Остаток уйдет в минус", isPresented: $showShortageConfirm, presenting: pendingIssueDraft) { draft in
             Button("Продолжить", role: .destructive) {
                 Task { await performIssue(draft: draft) }

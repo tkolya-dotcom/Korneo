@@ -91,20 +91,20 @@ final class ArchiveViewModel: ObservableObject {
                 dateCandidates: [item.updatedAt, item.dueDate, item.createdAt]
             ) else { return nil }
 
-            let title = nonEmpty(item.title, fallback: "Task \(item.shortId.map(String.init) ?? item.id)")
+            let title = nonEmpty(item.title, fallback: "Задача \(item.shortId.map(String.init) ?? item.id)")
             let status = taskStatusLabel(item.status)
             let subtitle = nonEmpty(item.description, fallback: item.projectId ?? "-")
             let date = displayDate(item.dueDate ?? item.updatedAt ?? item.createdAt)
             let detail = """
-            Title: \(title)
-            Status: \(status)
-            Project: \(item.projectId ?? "-")
-            Assignee: \(item.assigneeId ?? "-")
-            Due: \(displayDate(item.dueDate))
-            Created: \(displayDate(item.createdAt))
-            Description: \(item.description ?? "-")
+            Название: \(title)
+            Статус: \(status)
+            Проект: \(item.projectId ?? "-")
+            Исполнитель: \(item.assigneeId ?? "-")
+            Срок: \(displayDate(item.dueDate))
+            Создано: \(displayDate(item.createdAt))
+            Описание: \(item.description ?? "-")
             """
-            return Row(id: item.id, title: title, statusLabel: status, subtitle: subtitle, dateLabel: "Due: \(date)", detailText: detail)
+            return Row(id: item.id, title: title, statusLabel: status, subtitle: subtitle, dateLabel: "Срок: \(date)", detailText: detail)
         }
     }
 
@@ -116,20 +116,20 @@ final class ArchiveViewModel: ObservableObject {
                 dateCandidates: [item.actualCompletionDate, item.updatedAt, item.scheduledAt, item.createdAt]
             ) else { return nil }
 
-            let title = nonEmpty(item.title, fallback: "Installation \(item.shortId.map(String.init) ?? item.id)")
+            let title = nonEmpty(item.title, fallback: "Монтаж \(item.shortId.map(String.init) ?? item.id)")
             let status = installationStatusLabel(item.status)
             let subtitle = nonEmpty(item.address, fallback: item.projectId ?? "-")
             let date = displayDate(item.scheduledAt ?? item.updatedAt ?? item.createdAt)
             let detail = """
-            Title: \(title)
-            Status: \(status)
-            Project: \(item.projectId ?? "-")
-            Assignee: \(item.assigneeId ?? "-")
-            Date: \(displayDate(item.scheduledAt))
-            Address: \(item.address ?? "-")
-            Description: \(item.description ?? "-")
+            Название: \(title)
+            Статус: \(status)
+            Проект: \(item.projectId ?? "-")
+            Исполнитель: \(item.assigneeId ?? "-")
+            Дата: \(displayDate(item.scheduledAt))
+            Адрес: \(item.address ?? "-")
+            Описание: \(item.description ?? "-")
             """
-            return Row(id: item.id, title: title, statusLabel: status, subtitle: subtitle, dateLabel: "Date: \(date)", detailText: detail)
+            return Row(id: item.id, title: title, statusLabel: status, subtitle: subtitle, dateLabel: "Дата: \(date)", detailText: detail)
         }
     }
 
@@ -152,7 +152,7 @@ final class ArchiveViewModel: ObservableObject {
                 row.fields["title"]?.textValue,
                 row.fields["type"]?.textValue,
                 row.fields["equipment_type"]?.textValue,
-                "AVR \(row.id)"
+                "АВР \(row.id)"
             ])
             let address = firstNonEmpty([
                 row.fields["address_text"]?.textValue,
@@ -175,14 +175,14 @@ final class ArchiveViewModel: ObservableObject {
             ]))
             let label = installationStatusLabel(status)
             let detail = """
-            Title: \(title)
-            Status: \(label)
-            Address: \(address)
-            Responsible: \(responsible)
-            Created: \(displayDate(firstNonEmpty([row.fields["created_at"]?.textValue, row.fields["updated_at"]?.textValue])))
-            Description: \(firstNonEmpty([row.fields["description"]?.textValue, row.fields["comment"]?.textValue, "-"]))
+            Название: \(title)
+            Статус: \(label)
+            Адрес: \(address)
+            Ответственный: \(responsible)
+            Создано: \(displayDate(firstNonEmpty([row.fields["created_at"]?.textValue, row.fields["updated_at"]?.textValue])))
+            Описание: \(firstNonEmpty([row.fields["description"]?.textValue, row.fields["comment"]?.textValue, "-"]))
             """
-            return Row(id: row.id, title: title, statusLabel: label, subtitle: "Address: \(address)", dateLabel: "Date: \(date)", detailText: detail)
+            return Row(id: row.id, title: title, statusLabel: label, subtitle: "Адрес: \(address)", dateLabel: "Дата: \(date)", detailText: detail)
         }
     }
 
@@ -228,29 +228,29 @@ final class ArchiveViewModel: ObservableObject {
 
     private func taskStatusLabel(_ status: String?) -> String {
         switch status?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
-        case "new": return "New"
-        case "planned": return "Planned"
-        case "in_progress": return "In Progress"
-        case "waiting_materials": return "Waiting Materials"
-        case "done", "completed": return "Done"
-        case "postponed": return "Postponed"
-        case "cancelled": return "Cancelled"
+        case "new": return "Новая"
+        case "planned": return "Запланировано"
+        case "in_progress": return "В работе"
+        case "waiting_materials": return "Ожидание материалов"
+        case "done", "completed": return "Завершено"
+        case "postponed": return "Отложено"
+        case "cancelled": return "Отменено"
         default: return nonEmpty(status, fallback: "-")
         }
     }
 
     private func installationStatusLabel(_ status: String?) -> String {
         switch status?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
-        case "new": return "New"
-        case "planned": return "Planned"
-        case "in_progress": return "In Progress"
-        case "waiting_materials": return "Waiting Materials"
-        case "in_order": return "In Order"
-        case "ready_for_receipt": return "Ready for Receipt"
-        case "received": return "Received"
-        case "done", "completed": return "Done"
-        case "postponed": return "Postponed"
-        case "cancelled": return "Cancelled"
+        case "new": return "Новая"
+        case "planned": return "Запланировано"
+        case "in_progress": return "В работе"
+        case "waiting_materials": return "Ожидание материалов"
+        case "in_order": return "В заказе"
+        case "ready_for_receipt": return "Готово к выдаче"
+        case "received": return "Получено"
+        case "done", "completed": return "Завершено"
+        case "postponed": return "Отложено"
+        case "cancelled": return "Отменено"
         default: return nonEmpty(status, fallback: "-")
         }
     }

@@ -139,7 +139,7 @@ struct AvrView: View {
                 }
             }
         }
-        .navigationTitle("AVR")
+        .navigationTitle("АВР")
         .searchable(text: $searchText, prompt: "Поиск по названию, адресу, оборудованию")
         .toolbar {
             if canEdit {
