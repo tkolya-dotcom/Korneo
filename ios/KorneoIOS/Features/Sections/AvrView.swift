@@ -682,7 +682,7 @@ struct AvrView: View {
     }
 
     private func notifyAvrChanged(row: GenericRecord, changeText: String) async {
-        let currentUserId = appState.currentUser?.id?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let currentUserId = appState.currentUser?.id.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         let assignedIds = Set(assignedEngineerIds(for: row))
         let title = "АВР изменена"
         let rowTitle = first(row, keys: ["title"])
