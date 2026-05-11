@@ -14,32 +14,32 @@ struct PurchaseRequestDetailView: View {
 
     var body: some View {
         List {
-            Section("Main") {
-                detailRow("Status", statusLabel(for: item.status))
-                detailRow("Title", displayTitle)
-                detailRow("Comment", item.comment ?? "-")
+            Section("Основное") {
+                detailRow("Статус", statusLabel(for: item.status))
+                detailRow("Название", displayTitle)
+                detailRow("Комментарий", item.comment ?? "-")
             }
-            Section("Relations") {
-                detailRow("Project ID", item.projectId ?? "-")
-                detailRow("Installation ID", item.installationId ?? "-")
-                detailRow("Task ID", item.taskId ?? "-")
-                detailRow("Task AVR ID", item.taskAvrId ?? "-")
+            Section("Связи") {
+                detailRow("ID проекта", item.projectId ?? "-")
+                detailRow("ID монтажа", item.installationId ?? "-")
+                detailRow("ID задачи", item.taskId ?? "-")
+                detailRow("ID AVR-задачи", item.taskAvrId ?? "-")
             }
-            Section("Delivery") {
-                detailRow("Receipt address", item.receiptAddress ?? "-")
-                detailRow("Received at", shortDate(item.receivedAt) ?? "-")
+            Section("Доставка") {
+                detailRow("Адрес получения", item.receiptAddress ?? "-")
+                detailRow("Получено", shortDate(item.receivedAt) ?? "-")
             }
-            Section("Meta") {
-                detailRow("Created by", item.createdBy ?? "-")
-                detailRow("Approved by", item.approvedBy ?? "-")
-                detailRow("Created", shortDate(item.createdAt) ?? "-")
-                detailRow("Updated", shortDate(item.updatedAt) ?? "-")
+            Section("Метаданные") {
+                detailRow("Создал", item.createdBy ?? "-")
+                detailRow("Согласовал", item.approvedBy ?? "-")
+                detailRow("Создано", shortDate(item.createdAt) ?? "-")
+                detailRow("Обновлено", shortDate(item.updatedAt) ?? "-")
             }
 
-            Section("Materials") {
+            Section("Материалы") {
                 if requestItems.isEmpty {
                     if fallbackMaterialsFromComment.isEmpty {
-                        Text("No materials")
+                        Text("Материалы не добавлены")
                             .foregroundStyle(.secondary)
                     } else {
                         Text(fallbackMaterialsFromComment)
@@ -57,7 +57,7 @@ struct PurchaseRequestDetailView: View {
                 }
             }
 
-            Section("Comments") {
+            Section("Комментарии") {
                 CommentsSectionView(
                     entityType: "purchase_request",
                     entityId: item.id,
@@ -66,16 +66,16 @@ struct PurchaseRequestDetailView: View {
                 )
             }
 
-            Section("Status Flow") {
+            Section("Переход статуса") {
                 if allowedTransitions.isEmpty {
-                    Text("No further transitions")
+                    Text("Нет доступных переходов")
                         .foregroundStyle(.secondary)
                 } else if !canEdit {
-                    Text("Status updates are not allowed for your role")
+                    Text("Изменение статуса недоступно для вашей роли")
                         .foregroundStyle(.secondary)
                 } else {
                     ForEach(allowedTransitions) { next in
-                        Button(isUpdatingStatus ? "Updating..." : "Move to \(next.displayLabel)") {
+                        Button(isUpdatingStatus ? "Обновление..." : "Перевести в: \(next.displayLabel)") {
                             Task { await changeStatus(next) }
                         }
                         .disabled(isUpdatingStatus)
@@ -87,7 +87,7 @@ struct PurchaseRequestDetailView: View {
         .toolbar {
             if canEdit {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Edit") {
+                    Button("Редактировать") {
                         openEditor()
                     }
                     .disabled(isUpdatingStatus)
@@ -97,27 +97,27 @@ struct PurchaseRequestDetailView: View {
         .sheet(isPresented: $showEditSheet) {
             NavigationStack {
                 Form {
-                    Section("Status") {
-                        Picker("Status", selection: $draftStatus) {
+                    Section("Статус") {
+                        Picker("Статус", selection: $draftStatus) {
                             ForEach(PurchaseRequestStatus.allCases) { status in
                                 Text(status.displayLabel).tag(status)
                             }
                         }
                     }
-                    Section("Details") {
-                        TextField("Comment", text: $draftComment, axis: .vertical)
+                    Section("Детали") {
+                        TextField("Комментарий", text: $draftComment, axis: .vertical)
                             .lineLimit(2...6)
-                        TextField("Receipt address", text: $draftReceiptAddress)
+                        TextField("Адрес получения", text: $draftReceiptAddress)
                     }
                 }
-                .navigationTitle("Edit Request")
+                .navigationTitle("Редактирование заявки")
                 .toolbar {
                     ToolbarItem(placement: .topBarLeading) {
-                        Button("Cancel") { showEditSheet = false }
+                        Button("Отмена") { showEditSheet = false }
                             .disabled(isUpdatingStatus)
                     }
                     ToolbarItem(placement: .topBarTrailing) {
-                        Button(isUpdatingStatus ? "Saving..." : "Save") {
+                        Button(isUpdatingStatus ? "Сохранение..." : "Сохранить") {
                             Task { await saveEditedFields() }
                         }
                         .disabled(isUpdatingStatus)
@@ -138,9 +138,9 @@ struct PurchaseRequestDetailView: View {
             return String(comment.split(separator: "\n").first ?? "Request")
         }
         if let shortId = item.shortId {
-            return "Request #\(shortId)"
+            return "Заявка #\(shortId)"
         }
-        return "Request"
+        return "Заявка"
     }
 
     private var fallbackMaterialsFromComment: String {
@@ -149,7 +149,7 @@ struct PurchaseRequestDetailView: View {
             .split(separator: "\n")
             .map { String($0).trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { line in
-                line.hasPrefix("-") || line.lowercased().hasPrefix("materials:")
+                line.hasPrefix("-") || line.lowercased().hasPrefix("materials:") || line.lowercased().hasPrefix("материалы:")
             }
         return lines.joined(separator: "\n")
     }

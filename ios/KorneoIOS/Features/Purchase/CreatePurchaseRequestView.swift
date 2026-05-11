@@ -9,7 +9,7 @@ struct CreatePurchaseRequestView: View {
     private let initialReceiptAddress: String?
 
     @State private var parentType: ParentType = .none
-    @State private var parentOptions: [ParentOption] = [ParentOption(type: .none, id: "", label: "No link", address: "")]
+    @State private var parentOptions: [ParentOption] = [ParentOption(type: .none, id: "", label: "Без привязки", address: "")]
     @State private var selectedParentId = ""
 
     @State private var urgency: UrgencyLevel = .normal
@@ -50,14 +50,14 @@ struct CreatePurchaseRequestView: View {
         NavigationStack {
             Form {
                 if let localErrorText {
-                    Section("Error") {
+                    Section("Ошибка") {
                         Text(localErrorText)
                             .foregroundStyle(.red)
                     }
                 }
 
-                Section("Parent") {
-                    Picker("Type", selection: $parentType) {
+                Section("Привязка") {
+                    Picker("Тип", selection: $parentType) {
                         ForEach(ParentType.allCases) { type in
                             Text(type.title).tag(type)
                         }
@@ -66,26 +66,26 @@ struct CreatePurchaseRequestView: View {
                         rebuildParentOptions()
                     }
 
-                    Picker("Linked with", selection: $selectedParentId) {
+                    Picker("Связано с", selection: $selectedParentId) {
                         ForEach(parentOptions) { option in
                             Text(option.label).tag(option.id)
                         }
                     }
                 }
 
-                Section("Details") {
-                    Picker("Urgency", selection: $urgency) {
+                Section("Детали") {
+                    Picker("Срочность", selection: $urgency) {
                         ForEach(UrgencyLevel.allCases) { level in
                             Text(level.title).tag(level)
                         }
                     }
-                    TextField("Receipt address", text: $receiptAddress)
-                    TextField("Comment", text: $comment, axis: .vertical)
+                    TextField("Адрес получения", text: $receiptAddress)
+                    TextField("Комментарий", text: $comment, axis: .vertical)
                         .lineLimit(2...6)
                 }
 
-                Section("Materials") {
-                    TextField("Search material", text: $materialQuery)
+                Section("Материалы") {
+                    TextField("Поиск материала", text: $materialQuery)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled(true)
                         .onChange(of: materialQuery) { value in
@@ -109,20 +109,20 @@ struct CreatePurchaseRequestView: View {
                     }
 
                     if let selectedMaterial {
-                        Text("Selected: \(selectedMaterial.resolvedName) [\(selectedMaterial.id)]")
+                        Text("Выбрано: \(selectedMaterial.resolvedName) [\(selectedMaterial.id)]")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
 
-                    TextField("Quantity", text: $quantityText)
+                    TextField("Количество", text: $quantityText)
                         .keyboardType(.decimalPad)
 
-                    Button("Add material") {
+                    Button("Добавить материал") {
                         _ = appendCurrentMaterialLine(showError: true)
                     }
 
                     if materialLines.isEmpty {
-                        Text("No material lines added")
+                        Text("Материалы не добавлены")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     } else {
@@ -143,17 +143,17 @@ struct CreatePurchaseRequestView: View {
             .disabled(isSaving || isLoadingContext)
             .overlay {
                 if isSaving || isLoadingContext {
-                    ProgressView(isSaving ? "Saving..." : "Loading...")
+                    ProgressView(isSaving ? "Сохранение..." : "Загрузка...")
                 }
             }
-            .navigationTitle("New Request")
+            .navigationTitle("Новая заявка")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Cancel") { dismiss() }
+                    Button("Отмена") { dismiss() }
                         .disabled(isSaving)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button(isSaving ? "Saving..." : "Save") {
+                    Button(isSaving ? "Сохранение..." : "Сохранить") {
                         Task { await save() }
                     }
                     .disabled(isSaving)
@@ -196,7 +196,7 @@ struct CreatePurchaseRequestView: View {
     }
 
     private func rebuildParentOptions() {
-        var next: [ParentOption] = [ParentOption(type: parentType, id: "", label: "No link", address: "")]
+        var next: [ParentOption] = [ParentOption(type: parentType, id: "", label: "Без привязки", address: "")]
 
         switch parentType {
         case .none:
@@ -205,21 +205,21 @@ struct CreatePurchaseRequestView: View {
             for project in projects {
                 let id = clean(project.id)
                 if id.isEmpty { continue }
-                let label = labelWithAddress(title: clean(project.name), address: clean(project.address), fallback: "Project \(id)")
+                let label = labelWithAddress(title: clean(project.name), address: clean(project.address), fallback: "Проект \(id)")
                 next.append(ParentOption(type: .project, id: id, label: label, address: clean(project.address)))
             }
         case .task:
             for task in tasks {
                 let id = clean(task.id)
                 if id.isEmpty { continue }
-                let label = labelWithAddress(title: clean(task.title), address: clean(task.description), fallback: "Task \(id)")
+                let label = labelWithAddress(title: clean(task.title), address: clean(task.description), fallback: "Задача \(id)")
                 next.append(ParentOption(type: .task, id: id, label: label, address: ""))
             }
         case .installation:
             for installation in installations {
                 let id = clean(installation.id)
                 if id.isEmpty { continue }
-                let label = labelWithAddress(title: clean(installation.title), address: clean(installation.address), fallback: "Installation \(id)")
+                let label = labelWithAddress(title: clean(installation.title), address: clean(installation.address), fallback: "Монтаж \(id)")
                 next.append(ParentOption(type: .installation, id: id, label: label, address: clean(installation.address)))
             }
         case .avr:
@@ -310,7 +310,7 @@ struct CreatePurchaseRequestView: View {
     private func appendCurrentMaterialLine(showError: Bool) -> Bool {
         let quantity = parseQuantity(quantityText)
         guard quantity > 0 else {
-            if showError { localErrorText = "Quantity must be greater than zero" }
+            if showError { localErrorText = "Количество должно быть больше нуля" }
             return false
         }
 
@@ -331,7 +331,7 @@ struct CreatePurchaseRequestView: View {
         }
 
         if clean(resolvedMaterialId).isEmpty || clean(resolvedName).isEmpty {
-            if showError { localErrorText = "Select material first" }
+            if showError { localErrorText = "Сначала выберите материал" }
             return false
         }
 
@@ -363,7 +363,7 @@ struct CreatePurchaseRequestView: View {
         }
 
         if materialLines.isEmpty {
-            localErrorText = "Add at least one material"
+            localErrorText = "Добавьте хотя бы один материал"
             return
         }
 
@@ -434,9 +434,9 @@ struct CreatePurchaseRequestView: View {
     }
 
     private func buildTitle(from lines: [PurchaseRequestDraftMaterialLine]) -> String {
-        guard let first = lines.first else { return "Materials" }
+        guard let first = lines.first else { return "Материалы" }
         let suffix = lines.count > 1 ? " +\(lines.count - 1)" : ""
-        return "Materials: \(first.materialName)\(suffix)"
+        return "Материалы: \(first.materialName)\(suffix)"
     }
 
     private func buildComment(
@@ -446,14 +446,14 @@ struct CreatePurchaseRequestView: View {
         lines: [PurchaseRequestDraftMaterialLine]
     ) -> String {
         var parts: [String] = []
-        parts.append("Urgency: \(urgency.title)")
+        parts.append("Срочность: \(urgency.title)")
         if let parent, !clean(parent.id).isEmpty {
-            parts.append("Linked with: \(parent.label)")
+            parts.append("Связано с: \(parent.label)")
         }
         if !userComment.isEmpty {
-            parts.append("Comment: \(userComment)")
+            parts.append("Комментарий: \(userComment)")
         }
-        parts.append("Materials:")
+        parts.append("Материалы:")
         for line in lines {
             let qty = formatQuantity(line.quantity)
             let unit = line.unit.isEmpty ? "" : " \(line.unit)"
@@ -542,10 +542,10 @@ private enum ParentType: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .none: return "No link"
-        case .project: return "Project"
-        case .task: return "Task"
-        case .installation: return "Installation"
+        case .none: return "Без привязки"
+        case .project: return "Проект"
+        case .task: return "Задача"
+        case .installation: return "Монтаж"
         case .avr: return "AVR"
         }
     }
@@ -560,9 +560,9 @@ private enum UrgencyLevel: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .normal: return "Normal"
-        case .urgent: return "Urgent"
-        case .critical: return "Critical"
+        case .normal: return "Обычная"
+        case .urgent: return "Срочная"
+        case .critical: return "Критичная"
         }
     }
 }
