@@ -33,7 +33,7 @@ enum AtssXlsxImportParser {
         return toRecords(parsedRows)
     }
 
-    private static func chooseSheetPath(from sheets: [(String, WorksheetPath)]) -> WorksheetPath {
+    private static func chooseSheetPath<Path>(from sheets: [(String, Path)]) -> Path {
         let normalized = sheets.map { (name: normalizeSheetName($0.0), path: $0.1) }
         for wanted in preferredSheetNames {
             if let found = normalized.first(where: { $0.name == normalizeSheetName(wanted) }) {
@@ -46,15 +46,15 @@ enum AtssXlsxImportParser {
         return normalized[0].path
     }
 
-    private static func chooseSheetPath(from sheets: [String: WorksheetPath]) -> WorksheetPath {
+    private static func chooseSheetPath<Path>(from sheets: [String: Path]) -> Path {
         chooseSheetPath(from: sheets.map { ($0.key, $0.value) })
     }
 
-    private static func chooseSheetPath(from sheets: [WorksheetPath: String]) -> WorksheetPath {
+    private static func chooseSheetPath<Path: Hashable>(from sheets: [Path: String]) -> Path {
         chooseSheetPath(from: sheets.map { ($0.value, $0.key) })
     }
 
-    private static func chooseSheetPath(from sheets: [(String?, WorksheetPath)]) -> WorksheetPath {
+    private static func chooseSheetPath<Path>(from sheets: [(String?, Path)]) -> Path {
         chooseSheetPath(from: sheets.map { (($0.0 ?? ""), $0.1) })
     }
 

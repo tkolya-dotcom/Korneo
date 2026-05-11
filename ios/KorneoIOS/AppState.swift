@@ -30,9 +30,9 @@ final class AppState: ObservableObject {
     private let pushManager: PushNotificationManager
     private var cancellables = Set<AnyCancellable>()
 
-    init(client: SupabaseClient = SupabaseClient(), pushManager: PushNotificationManager = PushNotificationManager()) {
+    init(client: SupabaseClient = SupabaseClient(), pushManager: PushNotificationManager? = nil) {
         self.client = client
-        self.pushManager = pushManager
+        self.pushManager = pushManager ?? PushNotificationManager()
 
         NotificationCenter.default.publisher(for: .pushDeviceTokenDidUpdate)
             .receive(on: DispatchQueue.main)

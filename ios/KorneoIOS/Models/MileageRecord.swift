@@ -1,6 +1,6 @@
 import Foundation
 
-struct MileageRecord: Codable, Identifiable {
+struct MileageRecord: Decodable, Identifiable {
     let id: String
     let userId: String?
     let date: String?
