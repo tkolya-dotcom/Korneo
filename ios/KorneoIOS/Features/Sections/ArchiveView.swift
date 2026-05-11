@@ -9,20 +9,21 @@ struct ArchiveView: View {
     @EnvironmentObject private var appState: AppState
     @StateObject private var viewModel = ArchiveViewModel()
     @State private var selectedTab: ArchiveViewModel.Tab = .tasks
+    @State private var searchText = ""
     @State private var detailRow: ArchiveViewModel.Row?
     @State private var pendingUnarchive: PendingUnarchive?
     @State private var isUnarchiving = false
 
     var body: some View {
         Group {
-            if viewModel.isLoading && currentRows.isEmpty {
-                ProgressView("Loading archive...")
-            } else if let error = viewModel.errorText, currentRows.isEmpty {
-                ContentUnavailableView("Error", systemImage: "exclamationmark.triangle", description: Text(error))
+            if viewModel.isLoading && filteredRows.isEmpty {
+                ProgressView("Загрузка архива...")
+            } else if let error = viewModel.errorText, filteredRows.isEmpty {
+                ContentUnavailableView("Ошибка", systemImage: "exclamationmark.triangle", description: Text(error))
             } else {
                 List {
                     Section {
-                        Picker("Archive", selection: $selectedTab) {
+                        Picker("Архив", selection: $selectedTab) {
                             Text(tasksTabTitle).tag(ArchiveViewModel.Tab.tasks)
                             Text(installationsTabTitle).tag(ArchiveViewModel.Tab.installations)
                             Text(avrTabTitle).tag(ArchiveViewModel.Tab.avr)
@@ -30,13 +31,13 @@ struct ArchiveView: View {
                         .pickerStyle(.segmented)
                     }
 
-                    if currentRows.isEmpty {
+                    if filteredRows.isEmpty {
                         Section {
                             Text(emptyStateText)
                                 .foregroundStyle(.secondary)
                         }
                     } else {
-                        ForEach(currentRows) { row in
+                        ForEach(filteredRows) { row in
                             Button {
                                 detailRow = row
                             } label: {
@@ -58,10 +59,10 @@ struct ArchiveView: View {
                             }
                             .buttonStyle(.plain)
                             .contextMenu {
-                                Button("Details", systemImage: "doc.text.magnifyingglass") {
+                                Button("Детали", systemImage: "doc.text.magnifyingglass") {
                                     detailRow = row
                                 }
-                                Button("Unarchive", systemImage: "tray.and.arrow.up") {
+                                Button("Разархивировать", systemImage: "tray.and.arrow.up") {
                                     pendingUnarchive = PendingUnarchive(id: row.id, tab: selectedTab)
                                 }
                             }
@@ -69,7 +70,7 @@ struct ArchiveView: View {
                                 Button {
                                     pendingUnarchive = PendingUnarchive(id: row.id, tab: selectedTab)
                                 } label: {
-                                    Label("Unarchive", systemImage: "tray.and.arrow.up")
+                                    Label("Разархивировать", systemImage: "tray.and.arrow.up")
                                 }
                                 .tint(.blue)
                             }
@@ -81,7 +82,8 @@ struct ArchiveView: View {
                 }
             }
         }
-        .navigationTitle("Archive")
+        .navigationTitle("Архив")
+        .searchable(text: $searchText, prompt: "Поиск по названию, статусу, описанию")
         .task {
             viewModel.bind(client: appState.client)
             await viewModel.load()
@@ -97,7 +99,7 @@ struct ArchiveView: View {
                 .navigationTitle(row.title)
                 .toolbar {
                     ToolbarItem(placement: .topBarTrailing) {
-                        Button("Close") {
+                        Button("Закрыть") {
                             detailRow = nil
                         }
                     }
@@ -105,14 +107,14 @@ struct ArchiveView: View {
             }
         }
         .confirmationDialog(
-            "Restore from archive?",
+            "Восстановить из архива?",
             isPresented: Binding(
                 get: { pendingUnarchive != nil },
                 set: { if !$0 { pendingUnarchive = nil } }
             ),
             titleVisibility: .visible
         ) {
-            Button(isUnarchiving ? "Restoring..." : "Unarchive") {
+            Button(isUnarchiving ? "Восстановление..." : "Разархивировать") {
                 guard let pending = pendingUnarchive else { return }
                 Task {
                     isUnarchiving = true
@@ -124,9 +126,9 @@ struct ArchiveView: View {
                 }
             }
             .disabled(isUnarchiving)
-            Button("Cancel", role: .cancel) {}
+            Button("Отмена", role: .cancel) {}
         } message: {
-            Text("The record will return to the active list.")
+            Text("Запись вернётся в активный список.")
         }
     }
 
@@ -141,12 +143,26 @@ struct ArchiveView: View {
         }
     }
 
+    private var filteredRows: [ArchiveViewModel.Row] {
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if query.isEmpty {
+            return currentRows
+        }
+        return currentRows.filter { row in
+            archiveSearchBlob(for: row).lowercased().contains(query)
+        }
+    }
+
+    private func archiveSearchBlob(for row: ArchiveViewModel.Row) -> String {
+        [row.title, row.subtitle, row.statusLabel, row.dateLabel, row.detailText].joined(separator: " ")
+    }
+
     private var tasksTabTitle: String {
-        "Tasks (\(viewModel.tasks.count))"
+        "Задачи (\(viewModel.tasks.count))"
     }
 
     private var installationsTabTitle: String {
-        "Installations (\(viewModel.installations.count))"
+        "Монтажи (\(viewModel.installations.count))"
     }
 
     private var avrTabTitle: String {
@@ -156,11 +172,11 @@ struct ArchiveView: View {
     private var emptyStateText: String {
         switch selectedTab {
         case .tasks:
-            return "No archived tasks"
+            return "Нет архивных задач"
         case .installations:
-            return "No archived installations"
+            return "Нет архивных монтажей"
         case .avr:
-            return "No archived AVR records"
+            return "Нет архивных записей AVR"
         }
     }
 }
