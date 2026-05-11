@@ -15,7 +15,7 @@ struct ConnectionSettingsView: View {
                     TextField("URL Supabase", text: $url)
                         .textInputAutocapitalization(.never)
                         .keyboardType(.URL)
-                    SecureField("Anon / publishable ключ", text: $anonKey)
+                    SecureField("Anon / publishable key", text: $anonKey)
                         .textInputAutocapitalization(.never)
                 }
 

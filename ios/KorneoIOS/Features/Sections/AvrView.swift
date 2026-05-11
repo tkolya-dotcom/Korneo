@@ -1,4 +1,4 @@
-import SwiftUI
+﻿import SwiftUI
 
 struct AvrView: View {
     private struct StatusOption: Identifiable {
@@ -33,11 +33,11 @@ struct AvrView: View {
 
     private let statusOptions: [StatusOption] = [
         .init(value: "new", title: "Новая"),
-        .init(value: "planned", title: "Запланировано"),
+        .init(value: "planned", title: "Запланирована"),
         .init(value: "in_progress", title: "В работе"),
-        .init(value: "waiting_materials", title: "Ожидание материалов"),
-        .init(value: "done", title: "Завершено"),
-        .init(value: "postponed", title: "Отложено")
+        .init(value: "waiting_materials", title: "Ожидает материалы"),
+        .init(value: "done", title: "Выполнена"),
+        .init(value: "postponed", title: "Отложена")
     ]
 
     var body: some View {
@@ -83,7 +83,7 @@ struct AvrView: View {
                                 commentsRow = row
                             }
                             if canEdit {
-                                Button("Редактировать", systemImage: "square.and.pencil") {
+                                Button("Изменить", systemImage: "square.and.pencil") {
                                     editRow = row
                                 }
                                 Button("Заявка на материалы", systemImage: "cart.badge.plus") {
@@ -92,7 +92,7 @@ struct AvrView: View {
                                 Button("Изменить статус", systemImage: "arrow.trianglehead.2.clockwise.rotate.90") {
                                     statusTargetRow = row
                                 }
-                                Button("Изменение оборудования", systemImage: "wrench.and.screwdriver") {
+                                Button("Замена оборудования", systemImage: "wrench.and.screwdriver") {
                                     equipmentChangeRow = row
                                 }
                                 Button("История оборудования", systemImage: "clock.arrow.trianglehead.counterclockwise.rotate.90") {
@@ -199,7 +199,7 @@ struct AvrView: View {
                 AvrEditorSheet(mode: .create, users: users, addressCandidates: addressCandidates) { form in
                     await createAvr(from: form)
                 }
-                .navigationTitle("Создать АВР")
+                .navigationTitle("Новая АВР")
             }
         }
         .sheet(item: $editRow) { row in
@@ -207,7 +207,7 @@ struct AvrView: View {
                 AvrEditorSheet(mode: .edit(prefillForm(from: row)), users: users, addressCandidates: addressCandidates) { form in
                     await updateAvr(id: row.id, from: form)
                 }
-                .navigationTitle("Редактировать АВР")
+                .navigationTitle("Редактирование АВР")
             }
         }
         .sheet(item: $materialRequestRow) { row in
@@ -241,18 +241,18 @@ struct AvrView: View {
                 ) { draft in
                     await createEquipmentChange(taskId: row.id, sourceRow: row, draft: draft)
                 }
-                .navigationTitle("Изменение оборудования")
+                .navigationTitle("Замена оборудования")
             }
         }
         .confirmationDialog(
-            "Переместить эту запись АВР в архив?",
+            "Переместить АВР в архив?",
             isPresented: Binding(
                 get: { pendingArchiveRow != nil },
                 set: { if !$0 { pendingArchiveRow = nil } }
             ),
             titleVisibility: .visible
         ) {
-            Button(isMutating ? "Архивация..." : "В архив") {
+            Button(isMutating ? "Архивируем..." : "В архив") {
                 guard let row = pendingArchiveRow else { return }
                 Task {
                     isMutating = true
@@ -266,14 +266,14 @@ struct AvrView: View {
             Text("Запись будет перемещена в архив.")
         }
         .confirmationDialog(
-            "Удалить эту запись АВР?",
+            "Удалить запись АВР?",
             isPresented: Binding(
                 get: { pendingDeleteRow != nil },
                 set: { if !$0 { pendingDeleteRow = nil } }
             ),
             titleVisibility: .visible
         ) {
-            Button(isMutating ? "Удаление..." : "Удалить", role: .destructive) {
+            Button(isMutating ? "Удаляем..." : "Удалить", role: .destructive) {
                 guard let row = pendingDeleteRow else { return }
                 Task {
                     isMutating = true
@@ -309,7 +309,7 @@ struct AvrView: View {
             Text("Выберите новый статус.")
         }
         .confirmationDialog(
-            "Статус «Завершено» установлен",
+            "Статус «Выполнена» установлен",
             isPresented: Binding(
                 get: { equipmentPromptRow != nil },
                 set: { if !$0 { equipmentPromptRow = nil } }
@@ -454,11 +454,11 @@ struct AvrView: View {
                     "field_name": .string("status"),
                     "before_status": .string(beforeStatus),
                     "after_status": .string(status),
-                    "comment": .string("Статус изменён из экрана АВР")
+                    "comment": .string("Статус изменен с экрана АВР")
                 ]
                 _ = try? await appState.client.createEquipmentChange(payload: changePayload)
             }
-            await notifyAvrChanged(row: row, changeText: "Статус изменён: \(statusLabel(status))")
+            await notifyAvrChanged(row: row, changeText: "Статус изменен: \(statusLabel(status))")
             if status.lowercased() == "done" {
                 equipmentPromptRow = row
             }
@@ -471,7 +471,7 @@ struct AvrView: View {
 
     private func createAvr(from form: AvrFormData) async -> String? {
         guard let userId = appState.currentUser?.id else {
-            return "User is not loaded"
+            return "Пользователь не загружен"
         }
         let cleanEngineerIds = Array(Set(form.engineerIds.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }))
         let fallbackResponsibleId = cleanEngineerIds.first ?? ""
@@ -682,7 +682,7 @@ struct AvrView: View {
     }
 
     private func notifyAvrChanged(row: GenericRecord, changeText: String) async {
-        let currentUserId = appState.currentUser?.id.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let currentUserId = appState.currentUser?.id?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         let assignedIds = Set(assignedEngineerIds(for: row))
         let title = "АВР изменена"
         let rowTitle = first(row, keys: ["title"])
@@ -722,7 +722,7 @@ struct AvrView: View {
 
     private func createEquipmentChange(taskId: String, sourceRow: GenericRecord, draft: EquipmentChangeDraft) async -> String? {
         guard let userId = appState.currentUser?.id else {
-            return "User is not loaded"
+            return "Пользователь не загружен"
         }
 
         var payload: [String: JSONValue] = [
@@ -913,7 +913,7 @@ struct AvrView: View {
 
     private func prefillForm(from row: GenericRecord) -> AvrFormData {
         let equipmentType = first(row, keys: ["equipment_type", "naimenovanie_sk"])
-        return AvrFormData(
+        AvrFormData(
             type: first(row, keys: ["type"]).isEmpty ? "AVR" : first(row, keys: ["type"]),
             title: first(row, keys: ["title"]),
             address: first(row, keys: ["address_text", "address"]),
@@ -981,11 +981,11 @@ struct AvrView: View {
         appendLine(&lines, label: "Адрес", value: first(row, keys: ["address_text", "address"]))
         appendLine(&lines, label: "Дата начала", value: displayDate(first(row, keys: ["date_from", "due_date"])))
         appendLine(&lines, label: "Дата окончания", value: displayDate(first(row, keys: ["date_to", "due_date"])))
-        appendLine(&lines, label: "Плановая установка", value: displayDate(first(row, keys: ["planned_installation_date"])))
+        appendLine(&lines, label: "План монтажа", value: displayDate(first(row, keys: ["planned_installation_date"])))
         appendLine(&lines, label: "Оборудование", value: first(row, keys: ["equipment_type", "naimenovanie_sk"]))
         appendLine(&lines, label: "Серийный номер", value: first(row, keys: ["equipment_serial_number", "serial_number"]))
         appendLine(&lines, label: "Инвентарный номер", value: first(row, keys: ["equipment_inventory_number", "inventory_number"]))
-        appendLine(&lines, label: "Состояние оборудования", value: first(row, keys: ["equipment_status", "status_sk", "status_oborudovaniya"]))
+        appendLine(&lines, label: "Статус оборудования", value: first(row, keys: ["equipment_status", "status_sk", "status_oborudovaniya"]))
         appendLine(&lines, label: "Комментарий по оборудованию", value: first(row, keys: ["equipment_comment", "kommentariy", "comment"]))
         appendLine(&lines, label: "Количество оборудования", value: first(row, keys: ["total_equipment_count", "equipment_count", "sk_count"]))
         appendLine(&lines, label: "Описание", value: first(row, keys: ["description", "comment"]))
@@ -1012,19 +1012,19 @@ struct AvrView: View {
         case "tech_task":
             return "Техзадание"
         default:
-            return raw.isEmpty ? "AVR" : raw.uppercased()
+            return raw.isEmpty ? "АВР" : raw.uppercased()
         }
     }
 
     private func statusLabel(_ raw: String) -> String {
         switch raw.lowercased() {
         case "new": return "Новая"
-        case "planned": return "Запланировано"
+        case "planned": return "Запланирована"
         case "in_progress": return "В работе"
-        case "waiting_materials": return "Ожидание материалов"
-        case "done", "completed": return "Завершено"
-        case "postponed": return "Отложено"
-        case "cancelled": return "Отменено"
+        case "waiting_materials": return "Ожидает материалы"
+        case "done", "completed": return "Выполнена"
+        case "postponed": return "Отложена"
+        case "cancelled": return "Отменена"
         default: return raw.isEmpty ? "-" : raw
         }
     }
@@ -1244,8 +1244,8 @@ private struct AvrEditorSheet: View {
                 }
             }
             Section("Даты (ГГГГ-ММ-ДД)") {
-                TextField("Дата с", text: $form.dateFrom)
-                TextField("Дата по", text: $form.dateTo)
+                TextField("Дата начала", text: $form.dateFrom)
+                TextField("Дата окончания", text: $form.dateTo)
                 TextField("Плановая дата", text: $form.plannedDate)
             }
             Section("Связи") {
@@ -1272,7 +1272,7 @@ private struct AvrEditorSheet: View {
                 TextField("Тип оборудования", text: $form.equipmentType)
                 TextField("Серийный номер", text: $form.serial)
                 TextField("Инвентарный номер", text: $form.inventory)
-                TextField("Состояние", text: $form.equipmentStatus)
+                TextField("Статус", text: $form.equipmentStatus)
                 TextField("Комментарий", text: $form.equipmentComment, axis: .vertical)
                     .lineLimit(2...4)
                 TextField("Количество", text: $form.equipmentCount)
@@ -1295,7 +1295,7 @@ private struct AvrEditorSheet: View {
                 .disabled(isSaving)
             }
             ToolbarItem(placement: .topBarTrailing) {
-                Button(isSaving ? "Сохранение..." : "Сохранить") {
+                Button(isSaving ? "Сохраняем..." : "Сохранить") {
                     Task { await save() }
                 }
                 .disabled(isSaving || !isValid)
@@ -1500,7 +1500,7 @@ private struct EquipmentChangeSheet: View {
         ("diagnostics", "Диагностика"),
         ("repair", "Ремонт"),
         ("replacement", "Замена"),
-        ("installation", "Установка"),
+        ("installation", "Монтаж"),
         ("dismantling", "Демонтаж"),
         ("comment", "Комментарий")
     ]
@@ -1525,8 +1525,8 @@ private struct EquipmentChangeSheet: View {
                 TextField("Серийный номер", text: $draft.serial)
             }
             Section("Значения") {
-                TextField("Было", text: $draft.beforeValue)
-                TextField("Стало", text: $draft.afterValue)
+                TextField("До", text: $draft.beforeValue)
+                TextField("После", text: $draft.afterValue)
                 TextField("Комментарий", text: $draft.comment, axis: .vertical)
                     .lineLimit(2...5)
             }
@@ -1539,7 +1539,7 @@ private struct EquipmentChangeSheet: View {
                 .disabled(isSaving)
             }
             ToolbarItem(placement: .topBarTrailing) {
-                Button(isSaving ? "Сохранение..." : "Сохранить") {
+                Button(isSaving ? "Сохраняем..." : "Сохранить") {
                     Task { await save() }
                 }
                 .disabled(isSaving)
@@ -1624,8 +1624,8 @@ private struct EquipmentHistorySheet: View {
 
         var parts: [String] = []
         if !field.isEmpty { parts.append("Поле: \(field)") }
-        if !before.isEmpty { parts.append("Было: \(before)") }
-        if !after.isEmpty { parts.append("Стало: \(after)") }
+        if !before.isEmpty { parts.append("До: \(before)") }
+        if !after.isEmpty { parts.append("После: \(after)") }
         if !comment.isEmpty { parts.append("Комментарий: \(comment)") }
         if !oldVal.isEmpty && before.isEmpty { parts.append("Старое: \(oldVal)") }
         if !newVal.isEmpty && after.isEmpty { parts.append("Новое: \(newVal)") }
@@ -1634,12 +1634,12 @@ private struct EquipmentHistorySheet: View {
 
     private func historyTypeLabel(_ raw: String) -> String {
         switch raw.lowercased() {
-        case "status": return "Статус изменён"
+        case "status": return "Статус изменен"
         case "equipment", "equipment_change": return "Оборудование изменено"
         case "diagnostics": return "Диагностика"
         case "repair": return "Ремонт"
         case "replacement": return "Замена"
-        case "installation": return "Установка"
+        case "installation": return "Монтаж"
         case "dismantling": return "Демонтаж"
         case "comment": return "Комментарий"
         case "created", "create": return "Создано"

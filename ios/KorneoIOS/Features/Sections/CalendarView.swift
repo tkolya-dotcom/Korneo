@@ -1,4 +1,4 @@
-import SwiftUI
+﻿import SwiftUI
 
 struct CalendarView: View {
     private struct EmployeeFilter: Identifiable, Hashable {
@@ -11,24 +11,6 @@ struct CalendarView: View {
         let dateKey: String
         let title: String
         let subtitle: String
-    }
-
-    private enum EventFilter: String, CaseIterable, Identifiable {
-        case all
-        case tasks
-        case installations
-        case avr
-
-        var id: String { rawValue }
-
-        var title: String {
-            switch self {
-            case .all: return "Все"
-            case .tasks: return "Задачи"
-            case .installations: return "Монтажи"
-            case .avr: return "AVR"
-            }
-        }
     }
 
     @EnvironmentObject private var appState: AppState
@@ -47,7 +29,6 @@ struct CalendarView: View {
     }()
     @State private var selectedDate = Date()
     @State private var selectedEmployeeId = ""
-    @State private var eventFilter: EventFilter = .all
 
     private var canSeeAll: Bool {
         appState.currentUser?.role?.hasCoordinatorRights == true
@@ -71,73 +52,67 @@ struct CalendarView: View {
         let currentUserId = appState.currentUser?.id ?? ""
         let selectedUserId = selectedEmployeeId.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        if eventFilter == .all || eventFilter == .tasks {
-            for task in tasks {
-                if task.isArchived == true { continue }
-                guard let dateKey = normalizedDateKey(task.dueDate) else { continue }
-                let assigneeId = clean(task.assigneeId)
+        for task in tasks {
+            if task.isArchived == true { continue }
+            guard let dateKey = normalizedDateKey(task.dueDate) else { continue }
+            let assigneeId = clean(task.assigneeId)
 
-                if !selectedUserId.isEmpty {
-                    if assigneeId != selectedUserId { continue }
-                } else if !canSeeAll && assigneeId != currentUserId {
-                    continue
-                }
-
-                let row = CalendarWorkRow(
-                    id: "task:\(task.id)",
-                    dateKey: dateKey,
-                    title: "Задача: \(safe(task.title))",
-                    subtitle: "Статус: \(taskStatus(task.status)) | Срок: \(displayDate(dateKey))"
-                )
-                map[dateKey, default: []].append(row)
+            if !selectedUserId.isEmpty {
+                if assigneeId != selectedUserId { continue }
+            } else if !canSeeAll && assigneeId != currentUserId {
+                continue
             }
+
+            let row = CalendarWorkRow(
+                id: "task:\(task.id)",
+                dateKey: dateKey,
+                title: "Задача: \(safe(task.title))",
+                subtitle: "Статус: \(taskStatus(task.status)) | Срок: \(displayDate(dateKey))"
+            )
+            map[dateKey, default: []].append(row)
         }
 
-        if eventFilter == .all || eventFilter == .installations {
-            for installation in installations {
-                if installation.isArchived == true { continue }
-                guard let dateKey = normalizedDateKey(installation.scheduledAt) else { continue }
-                let assigneeId = clean(installation.assigneeId)
+        for installation in installations {
+            if installation.isArchived == true { continue }
+            guard let dateKey = normalizedDateKey(installation.scheduledAt) else { continue }
+            let assigneeId = clean(installation.assigneeId)
 
-                if !selectedUserId.isEmpty {
-                    if assigneeId != selectedUserId { continue }
-                } else if !canSeeAll && assigneeId != currentUserId {
-                    continue
-                }
-
-                let row = CalendarWorkRow(
-                    id: "installation:\(installation.id)",
-                    dateKey: dateKey,
-                    title: "Монтаж: \(safe(installation.title))",
-                    subtitle: "Статус: \(installationStatus(installation.status)) | \(safe(installation.address))"
-                )
-                map[dateKey, default: []].append(row)
+            if !selectedUserId.isEmpty {
+                if assigneeId != selectedUserId { continue }
+            } else if !canSeeAll && assigneeId != currentUserId {
+                continue
             }
+
+            let row = CalendarWorkRow(
+                id: "installation:\(installation.id)",
+                dateKey: dateKey,
+                title: "Монтаж: \(safe(installation.title))",
+                subtitle: "Статус: \(installationStatus(installation.status)) | \(safe(installation.address))"
+            )
+            map[dateKey, default: []].append(row)
         }
 
-        if eventFilter == .all || eventFilter == .avr {
-            for row in avrRows {
-                if asBool(row.fields["is_archived"]) { continue }
-                let dateCandidate = first(row, keys: ["date_from", "due_date", "planned_installation_date", "created_at"])
-                guard let dateKey = normalizedDateKey(dateCandidate) else { continue }
+        for row in avrRows {
+            if asBool(row.fields["is_archived"]) { continue }
+            let dateCandidate = first(row, keys: ["date_from", "due_date", "planned_installation_date", "created_at"])
+            guard let dateKey = normalizedDateKey(dateCandidate) else { continue }
 
-                if !selectedUserId.isEmpty {
-                    if !isAvrAssigned(to: selectedUserId, row: row) { continue }
-                } else if !canSeeAll {
-                    let createdBy = first(row, keys: ["created_by"])
-                    if !isAvrAssigned(to: currentUserId, row: row), createdBy != currentUserId {
-                        continue
-                    }
+            if !selectedUserId.isEmpty {
+                if !isAvrAssigned(to: selectedUserId, row: row) { continue }
+            } else if !canSeeAll {
+                let createdBy = first(row, keys: ["created_by"])
+                if !isAvrAssigned(to: currentUserId, row: row), createdBy != currentUserId {
+                    continue
                 }
-
-                let item = CalendarWorkRow(
-                    id: "avr:\(row.id)",
-                    dateKey: dateKey,
-                    title: "АВР: \(safe(first(row, keys: ["title", "type"])))",
-                    subtitle: "Статус: \(avrStatus(first(row, keys: ["status"]))) | \(safe(first(row, keys: ["address_text", "address", "equipment_type"])))"
-                )
-                map[dateKey, default: []].append(item)
             }
+
+            let item = CalendarWorkRow(
+                id: "avr:\(row.id)",
+                dateKey: dateKey,
+                title: "АВР: \(safe(first(row, keys: ["title", "type"])))",
+                subtitle: "Статус: \(avrStatus(first(row, keys: ["status"]))) | \(safe(first(row, keys: ["address_text", "address", "equipment_type"])))"
+            )
+            map[dateKey, default: []].append(item)
         }
 
         return map
@@ -173,13 +148,6 @@ struct CalendarView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                Picker("Тип работ", selection: $eventFilter) {
-                    ForEach(EventFilter.allCases) { filter in
-                        Text(filter.title).tag(filter)
-                    }
-                }
-                .pickerStyle(.segmented)
-
                 if managerFilterEnabled {
                     Picker("Сотрудник", selection: $selectedEmployeeId) {
                         ForEach(employeeFilters) { item in
@@ -190,10 +158,6 @@ struct CalendarView: View {
                 }
 
                 HStack {
-                    Button("Сегодня") {
-                        jumpToToday()
-                    }
-
                     Button {
                         shiftMonth(by: -1)
                     } label: {
@@ -302,13 +266,6 @@ struct CalendarView: View {
         let calendar = Calendar.current
         visibleMonth = calendar.date(byAdding: .month, value: delta, to: visibleMonth) ?? visibleMonth
         selectedDate = visibleMonth
-    }
-
-    private func jumpToToday() {
-        let today = Date()
-        selectedDate = today
-        let components = Calendar.current.dateComponents([.year, .month], from: today)
-        visibleMonth = Calendar.current.date(from: components) ?? today
     }
 
     private func loadData() async {

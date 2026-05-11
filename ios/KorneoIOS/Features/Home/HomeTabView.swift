@@ -1,4 +1,4 @@
-import SwiftUI
+﻿import SwiftUI
 
 struct HomeTabView: View {
     @EnvironmentObject private var appState: AppState
@@ -11,6 +11,12 @@ struct HomeTabView: View {
                     Label("Главная", systemImage: "house")
                 }
 
+            TasksView()
+                .tag(AppState.HomeTab.tasks)
+                .tabItem {
+                    Label("Задачи", systemImage: "checklist")
+                }
+
             ChatsView()
                 .tag(AppState.HomeTab.chats)
                 .tabItem {
@@ -20,7 +26,7 @@ struct HomeTabView: View {
             SearchHubView()
                 .tag(AppState.HomeTab.search)
                 .tabItem {
-                    Label("Поиск", systemImage: "magnifyingglass")
+                    Label("Карта", systemImage: "map")
                 }
 
             MileageView()

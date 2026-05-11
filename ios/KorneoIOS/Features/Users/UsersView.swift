@@ -4,7 +4,6 @@ struct UsersView: View {
     @EnvironmentObject private var appState: AppState
     @StateObject private var viewModel = UsersViewModel()
     @State private var searchText = ""
-    @State private var selectedRoleFilter = ""
 
     var body: some View {
         Group {
@@ -13,22 +12,11 @@ struct UsersView: View {
             } else if let error = viewModel.errorText, viewModel.users.isEmpty {
                 ContentUnavailableView("Ошибка", systemImage: "exclamationmark.triangle", description: Text(error))
             } else {
-                List {
-                    Section("Фильтр") {
-                        Picker("Роль", selection: $selectedRoleFilter) {
-                            Text("Все роли").tag("")
-                            ForEach(roleFilterOptions, id: \.rawValue) { role in
-                                Text(roleTitle(role)).tag(role.rawValue)
-                            }
-                        }
-                    }
-
-                    ForEach(filteredUsers) { user in
-                        NavigationLink {
-                            UserDetailView(user: user)
-                        } label: {
-                            UserRowView(user: user)
-                        }
+                List(filteredUsers) { user in
+                    NavigationLink {
+                        UserDetailView(user: user)
+                    } label: {
+                        UserRowView(user: user)
                     }
                 }
                 .refreshable {
@@ -44,36 +32,15 @@ struct UsersView: View {
         }
     }
 
-    private var roleFilterOptions: [Role] {
-        [.manager, .worker, .engineer, .support, .deputyHead, .admin]
-    }
-
     private var filteredUsers: [User] {
         let search = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !search.isEmpty else { return viewModel.users }
         return viewModel.users.filter { user in
-            if !selectedRoleFilter.isEmpty, user.role?.rawValue != selectedRoleFilter {
-                return false
-            }
-            if search.isEmpty {
-                return true
-            }
             let name = (user.name ?? "").lowercased()
             let email = (user.email ?? "").lowercased()
             let role = (user.role?.rawValue ?? "").lowercased()
             let phone = (user.phone ?? "").lowercased()
             return name.contains(search) || email.contains(search) || role.contains(search) || phone.contains(search)
-        }
-    }
-
-    private func roleTitle(_ role: Role?) -> String {
-        switch role {
-        case .manager: return "Менеджер"
-        case .worker: return "Рабочий"
-        case .engineer: return "Инженер"
-        case .support: return "Поддержка"
-        case .deputyHead: return "Зам. руководителя"
-        case .admin: return "Администратор"
-        case nil: return "Не указана"
         }
     }
 }
@@ -98,12 +65,12 @@ private struct UserRowView: View {
     private func roleTitle(_ role: Role?) -> String {
         switch role {
         case .manager: return "Менеджер"
-        case .worker: return "Рабочий"
+        case .worker: return "Сотрудник"
         case .engineer: return "Инженер"
         case .support: return "Поддержка"
         case .deputyHead: return "Зам. руководителя"
         case .admin: return "Администратор"
-        case nil: return "Не указана"
+        case nil: return "Неизвестно"
         }
     }
 
@@ -166,7 +133,7 @@ private struct UserDetailView: View {
     private func roleTitle(_ role: Role?) -> String {
         switch role {
         case .manager: return "Менеджер"
-        case .worker: return "Рабочий"
+        case .worker: return "Сотрудник"
         case .engineer: return "Инженер"
         case .support: return "Поддержка"
         case .deputyHead: return "Зам. руководителя"

@@ -64,20 +64,9 @@ struct GenericRecordsView: View {
         let keys = ["status", "address", "description", "created_at", "updated_at"]
         let parts = keys.compactMap { key -> String? in
             guard let value = row.fields[key]?.textValue, !value.isEmpty else { return nil }
-            return "\(displayKeyLabel(key)): \(value)"
+            return "\(key): \(value)"
         }
         return parts.joined(separator: " • ")
-    }
-
-    private func displayKeyLabel(_ key: String) -> String {
-        switch key {
-        case "status": return "Статус"
-        case "address": return "Адрес"
-        case "description": return "Описание"
-        case "created_at": return "Создано"
-        case "updated_at": return "Обновлено"
-        default: return key
-        }
     }
 }
 

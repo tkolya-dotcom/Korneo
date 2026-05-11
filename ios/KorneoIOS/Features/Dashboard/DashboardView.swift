@@ -1,4 +1,4 @@
-import SwiftUI
+﻿import SwiftUI
 
 struct DashboardView: View {
     @EnvironmentObject private var appState: AppState

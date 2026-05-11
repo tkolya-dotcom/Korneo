@@ -15,7 +15,7 @@ final class UsersViewModel: ObservableObject {
 
     func load() async {
         guard let client else {
-            errorText = "Клиент Supabase не настроен"
+            errorText = "Клиент не настроен"
             return
         }
         isLoading = true
@@ -28,4 +28,3 @@ final class UsersViewModel: ObservableObject {
         }
     }
 }
-

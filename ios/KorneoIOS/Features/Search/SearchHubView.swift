@@ -1,21 +1,26 @@
-import SwiftUI
+﻿import SwiftUI
 
 struct SearchHubView: View {
+    private enum SearchMode: Int {
+        case map = 0
+        case catalog = 1
+    }
+
     @EnvironmentObject private var appState: AppState
-    @State private var selection = 0
+    @State private var selection: SearchMode = .map
 
     var body: some View {
         NavigationStack {
             if hasMapAccess {
                 VStack {
-                    Picker("Mode", selection: $selection) {
-                        Text("Карта").tag(0)
-                        Text("Каталог").tag(1)
+                    Picker("Режим", selection: $selection) {
+                        Text("Карта").tag(SearchMode.map)
+                        Text("Каталог").tag(SearchMode.catalog)
                     }
                     .pickerStyle(.segmented)
                     .padding(.horizontal)
 
-                    if selection == 0 {
+                    if selection == .map {
                         MapScreenView()
                     } else {
                         CatalogView()

@@ -17,7 +17,7 @@ struct CommentsSectionView: View {
             if isLoading && comments.isEmpty {
                 ProgressView("Загрузка комментариев...")
             } else if comments.isEmpty {
-                Text("Пока нет комментариев")
+                Text("Комментариев пока нет")
                     .foregroundStyle(.secondary)
             } else {
                 ForEach(comments) { row in

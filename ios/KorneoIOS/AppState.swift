@@ -10,6 +10,7 @@ final class AppState: ObservableObject {
 
     enum HomeTab: Hashable {
         case home
+        case tasks
         case chats
         case search
         case mileage
@@ -30,9 +31,9 @@ final class AppState: ObservableObject {
     private let pushManager: PushNotificationManager
     private var cancellables = Set<AnyCancellable>()
 
-    init(client: SupabaseClient = SupabaseClient(), pushManager: PushNotificationManager? = nil) {
+    init(client: SupabaseClient = SupabaseClient(), pushManager: PushNotificationManager = PushNotificationManager()) {
         self.client = client
-        self.pushManager = pushManager ?? PushNotificationManager()
+        self.pushManager = pushManager
 
         NotificationCenter.default.publisher(for: .pushDeviceTokenDidUpdate)
             .receive(on: DispatchQueue.main)
