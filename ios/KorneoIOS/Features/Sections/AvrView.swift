@@ -913,7 +913,7 @@ struct AvrView: View {
 
     private func prefillForm(from row: GenericRecord) -> AvrFormData {
         let equipmentType = first(row, keys: ["equipment_type", "naimenovanie_sk"])
-        AvrFormData(
+        return AvrFormData(
             type: first(row, keys: ["type"]).isEmpty ? "AVR" : first(row, keys: ["type"]),
             title: first(row, keys: ["title"]),
             address: first(row, keys: ["address_text", "address"]),
