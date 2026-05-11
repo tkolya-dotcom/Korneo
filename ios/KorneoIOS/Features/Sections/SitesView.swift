@@ -4,6 +4,7 @@ struct SitesView: View {
     @EnvironmentObject private var appState: AppState
     @State private var rows: [GenericRecord] = []
     @State private var searchText = ""
+    @State private var districtFilter = ""
     @State private var isLoading = false
     @State private var errorText: String?
     @State private var detailRow: GenericRecord?
@@ -14,53 +15,64 @@ struct SitesView: View {
     var body: some View {
         Group {
             if isLoading && visibleRows.isEmpty {
-                ProgressView("Loading sites...")
+                ProgressView("Загрузка площадок...")
             } else if let errorText, visibleRows.isEmpty {
-                ContentUnavailableView("Error", systemImage: "exclamationmark.triangle", description: Text(errorText))
+                ContentUnavailableView("Ошибка", systemImage: "exclamationmark.triangle", description: Text(errorText))
             } else if visibleRows.isEmpty {
-                ContentUnavailableView("No sites", systemImage: "mappin.slash")
+                ContentUnavailableView("Нет площадок", systemImage: "mappin.slash")
             } else {
-                List(visibleRows) { row in
-                    Button {
-                        detailRow = row
-                    } label: {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(siteTitle(for: row))
-                                .font(.headline)
-                                .foregroundStyle(.primary)
-                            Text(siteSubtitle(for: row))
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                                .lineLimit(4)
-                        }
-                    }
-                    .buttonStyle(.plain)
-                    .contextMenu {
-                        Button("Details", systemImage: "doc.text.magnifyingglass") {
-                            detailRow = row
-                        }
-                        if canDelete {
-                            Button("Edit", systemImage: "square.and.pencil") {
-                                editRow = row
-                            }
-                            Button("Delete", systemImage: "trash", role: .destructive) {
-                                pendingDeleteRow = row
+                List {
+                    Section("Фильтр") {
+                        Picker("Район", selection: $districtFilter) {
+                            Text("Все районы").tag("")
+                            ForEach(districtOptions, id: \.self) { district in
+                                Text(district).tag(district)
                             }
                         }
                     }
-                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                        if canDelete {
-                            Button {
-                                editRow = row
-                            } label: {
-                                Label("Edit", systemImage: "square.and.pencil")
-                            }
-                            .tint(.blue)
 
-                            Button(role: .destructive) {
-                                pendingDeleteRow = row
-                            } label: {
-                                Label("Delete", systemImage: "trash")
+                    ForEach(visibleRows) { row in
+                        Button {
+                            detailRow = row
+                        } label: {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(siteTitle(for: row))
+                                    .font(.headline)
+                                    .foregroundStyle(.primary)
+                                Text(siteSubtitle(for: row))
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(4)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                        .contextMenu {
+                            Button("Детали", systemImage: "doc.text.magnifyingglass") {
+                                detailRow = row
+                            }
+                            if canDelete {
+                                Button("Редактировать", systemImage: "square.and.pencil") {
+                                    editRow = row
+                                }
+                                Button("Удалить", systemImage: "trash", role: .destructive) {
+                                    pendingDeleteRow = row
+                                }
+                            }
+                        }
+                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                            if canDelete {
+                                Button {
+                                    editRow = row
+                                } label: {
+                                    Label("Редактировать", systemImage: "square.and.pencil")
+                                }
+                                .tint(.blue)
+
+                                Button(role: .destructive) {
+                                    pendingDeleteRow = row
+                                } label: {
+                                    Label("Удалить", systemImage: "trash")
+                                }
                             }
                         }
                     }
@@ -70,8 +82,8 @@ struct SitesView: View {
                 }
             }
         }
-        .navigationTitle("Sites")
-        .searchable(text: $searchText, prompt: "Search by address, EMTS, SK, serial, inventory")
+        .navigationTitle("Площадки")
+        .searchable(text: $searchText, prompt: "Поиск по адресу, EMTS, СК, серийному и инвентарному")
         .task {
             await load()
         }
@@ -86,7 +98,7 @@ struct SitesView: View {
                 .navigationTitle(siteTitle(for: row))
                 .toolbar {
                     ToolbarItem(placement: .topBarTrailing) {
-                        Button("Close") {
+                        Button("Закрыть") {
                             detailRow = nil
                         }
                     }
@@ -104,18 +116,18 @@ struct SitesView: View {
                 ) { draft in
                     await saveSiteEdit(row: row, draft: draft)
                 }
-                .navigationTitle("Edit Site")
+                .navigationTitle("Редактирование площадки")
             }
         }
         .confirmationDialog(
-            "Delete this site?",
+            "Удалить площадку?",
             isPresented: Binding(
                 get: { pendingDeleteRow != nil },
                 set: { if !$0 { pendingDeleteRow = nil } }
             ),
             titleVisibility: .visible
         ) {
-            Button(isDeleting ? "Deleting..." : "Delete", role: .destructive) {
+            Button(isDeleting ? "Удаление..." : "Удалить", role: .destructive) {
                 guard let row = pendingDeleteRow else { return }
                 Task {
                     isDeleting = true
@@ -124,9 +136,9 @@ struct SitesView: View {
                 }
             }
             .disabled(isDeleting)
-            Button("Cancel", role: .cancel) {}
+            Button("Отмена", role: .cancel) {}
         } message: {
-            Text("This action cannot be undone.")
+            Text("Это действие нельзя отменить.")
         }
     }
 
@@ -136,10 +148,29 @@ struct SitesView: View {
 
     private var visibleRows: [GenericRecord] {
         let q = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        guard !q.isEmpty else { return rows }
         return rows.filter { row in
+            if !districtFilter.isEmpty {
+                let district = first(row, keys: ["rayon", "district"]).lowercased()
+                if district != districtFilter.lowercased() {
+                    return false
+                }
+            }
+            if q.isEmpty {
+                return true
+            }
             siteSearchBlob(for: row).lowercased().contains(q)
         }
+    }
+
+    private var districtOptions: [String] {
+        var values = Set<String>()
+        for row in rows {
+            let district = first(row, keys: ["rayon", "district"])
+            if !district.isEmpty {
+                values.insert(district)
+            }
+        }
+        return values.sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
     }
 
     private func load() async {
@@ -167,9 +198,9 @@ struct SitesView: View {
     }
 
     private func saveSiteEdit(row: GenericRecord, draft: SiteEditDraft) async -> String? {
-        guard canDelete else { return "Permission denied" }
+        guard canDelete else { return "Недостаточно прав" }
         let siteId = first(row, keys: ["id_ploshadki", "site_id", "id"])
-        guard !siteId.isEmpty else { return "Invalid record id" }
+        guard !siteId.isEmpty else { return "Некорректный идентификатор записи" }
 
         var patch: [String: JSONValue] = [:]
         putIfNotBlank(&patch, key: "servisnyy_id", value: draft.serviceId)
@@ -194,7 +225,7 @@ struct SitesView: View {
     private func siteTitle(for row: GenericRecord) -> String {
         let siteId = first(row, keys: ["id_ploshadki", "site_id", "id"])
         let emts = first(row, keys: ["emts", "servisnyy_id", "service_id"])
-        return emts.isEmpty ? "Site \(safe(siteId))" : "Site \(safe(siteId)) • \(emts)"
+        return emts.isEmpty ? "Площадка \(safe(siteId))" : "Площадка \(safe(siteId)) • \(emts)"
     }
 
     private func siteSubtitle(for row: GenericRecord) -> String {
@@ -206,24 +237,24 @@ struct SitesView: View {
         let serials = joined(row, baseKey: "serial_number", fallbackKeys: ["servisnyy_id", "service_id", "equipment_serial_number"])
         let inventories = joined(row, baseKey: "inventory_number", fallbackKeys: ["id_sk", "id_konditsionera", "equipment_inventory_number"])
         return """
-        Address: \(safe(address))
-        District: \(safe(district))
+        Адрес: \(safe(address))
+        Район: \(safe(district))
         EMTS / Service ID: \(safe(emts))
-        SK count: \(safe(skCount))
-        \(skNames.isEmpty ? "" : "SK names: \(skNames)\n")\(serials.isEmpty ? "" : "S/N: \(serials)\n")\(inventories.isEmpty ? "" : "Inventory: \(inventories)")
+        Кол-во СК: \(safe(skCount))
+        \(skNames.isEmpty ? "" : "Наименования СК: \(skNames)\n")\(serials.isEmpty ? "" : "Серийные номера: \(serials)\n")\(inventories.isEmpty ? "" : "Инвентарные номера: \(inventories)")
         """.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     private func siteDetail(for row: GenericRecord) -> String {
         var lines: [String] = []
-        appendLine(&lines, label: "Site ID", value: first(row, keys: ["id_ploshadki", "site_id", "id"]))
+        appendLine(&lines, label: "ID площадки", value: first(row, keys: ["id_ploshadki", "site_id", "id"]))
         appendLine(&lines, label: "EMTS / Service ID", value: first(row, keys: ["emts", "servisnyy_id", "service_id"]))
-        appendLine(&lines, label: "Address", value: first(row, keys: ["adres_razmeshcheniya", "adres_raspolozheniya", "address", "adres", "address_text"]))
-        appendLine(&lines, label: "District", value: first(row, keys: ["rayon", "district"]))
-        appendLine(&lines, label: "SK count", value: first(row, keys: ["kolichestvo_sk", "sk_count", "equipment_count"]))
-        appendLine(&lines, label: "SK names", value: joined(row, baseKey: "naimenovanie_sk", fallbackKeys: ["equipment_name", "name"]))
-        appendLine(&lines, label: "Serials", value: joined(row, baseKey: "serial_number", fallbackKeys: ["servisnyy_id", "service_id", "equipment_serial_number"]))
-        appendLine(&lines, label: "Inventory", value: joined(row, baseKey: "inventory_number", fallbackKeys: ["id_sk", "id_konditsionera", "equipment_inventory_number"]))
+        appendLine(&lines, label: "Адрес", value: first(row, keys: ["adres_razmeshcheniya", "adres_raspolozheniya", "address", "adres", "address_text"]))
+        appendLine(&lines, label: "Район", value: first(row, keys: ["rayon", "district"]))
+        appendLine(&lines, label: "Кол-во СК", value: first(row, keys: ["kolichestvo_sk", "sk_count", "equipment_count"]))
+        appendLine(&lines, label: "Наименования СК", value: joined(row, baseKey: "naimenovanie_sk", fallbackKeys: ["equipment_name", "name"]))
+        appendLine(&lines, label: "Серийные номера", value: joined(row, baseKey: "serial_number", fallbackKeys: ["servisnyy_id", "service_id", "equipment_serial_number"]))
+        appendLine(&lines, label: "Инвентарные номера", value: joined(row, baseKey: "inventory_number", fallbackKeys: ["id_sk", "id_konditsionera", "equipment_inventory_number"]))
         return lines.joined(separator: "\n\n")
     }
 
@@ -317,27 +348,27 @@ private struct SiteEditSheet: View {
     var body: some View {
         Form {
             if let errorText {
-                Section("Error") {
+                Section("Ошибка") {
                     Text(errorText).foregroundStyle(.red)
                 }
             }
-            Section("Main") {
+            Section("Основное") {
                 TextField("Service ID", text: $draft.serviceId)
-                TextField("Address", text: $draft.address)
-                TextField("District", text: $draft.district)
-                TextField("SK count", text: $draft.skCount)
+                TextField("Адрес", text: $draft.address)
+                TextField("Район", text: $draft.district)
+                TextField("Количество СК", text: $draft.skCount)
                     .keyboardType(.numberPad)
-                TextField("Comment", text: $draft.comment, axis: .vertical)
+                TextField("Комментарий", text: $draft.comment, axis: .vertical)
                     .lineLimit(2...5)
             }
         }
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
-                Button("Cancel") { dismiss() }
+                Button("Отмена") { dismiss() }
                     .disabled(isSaving)
             }
             ToolbarItem(placement: .topBarTrailing) {
-                Button(isSaving ? "Saving..." : "Save") {
+                Button(isSaving ? "Сохранение..." : "Сохранить") {
                     Task { await save() }
                 }
                 .disabled(isSaving)
