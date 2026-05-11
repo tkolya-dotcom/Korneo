@@ -20,8 +20,11 @@ jobs:
       PROJECT_FILE: KorneoIOS.xcodeproj
       BUNDLE_ID: ${{ secrets.APPLE_BUNDLE_ID }}
       TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-      SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+      APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+      APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
+      APPLE_API_PRIVATE_KEY: ${{ secrets.APPLE_API_PRIVATE_KEY }}
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL || secrets.VITE_SUPABASE_URL }}
+      SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY || secrets.VITE_SUPABASE_ANON_KEY }}
       DAICHI_TOKEN: ${{ secrets.DAICHI_TOKEN }}
 
     steps:
@@ -31,13 +34,21 @@ jobs:
       - name: Validate required secrets
         run: |
           set -euo pipefail
-          required=(APPLE_TEAM_ID APPLE_API_KEY_ID APPLE_API_ISSUER_ID APPLE_API_PRIVATE_KEY SUPABASE_URL SUPABASE_ANON_KEY)
+          required=(APPLE_TEAM_ID APPLE_API_KEY_ID APPLE_API_ISSUER_ID APPLE_API_PRIVATE_KEY)
           for key in "${required[@]}"; do
             if [ -z "${!key:-}" ]; then
               echo "Missing required secret: $key"
               exit 1
             fi
           done
+          if [ -z "${SUPABASE_URL:-}" ]; then
+            echo "Missing Supabase URL secret. Set SUPABASE_URL or VITE_SUPABASE_URL."
+            exit 1
+          fi
+          if [ -z "${SUPABASE_ANON_KEY:-}" ]; then
+            echo "Missing Supabase anon key secret. Set SUPABASE_ANON_KEY or VITE_SUPABASE_ANON_KEY."
+            exit 1
+          fi
           if [ -z "${BUNDLE_ID:-}" ]; then
             echo "APPLE_BUNDLE_ID is not set, using com.korneo.ios"
             echo "BUNDLE_ID=com.korneo.ios" >> "$GITHUB_ENV"
