@@ -192,14 +192,15 @@ serve(async (req) => {
     let sentCount = 0;
 
     for (const uid of userIds) {
-      // ── 1. Пробуем FCM v1 через users.fcm_token (Android) ──────────────
+      const sentFcmTokens = new Set<string>();
       const { data: user } = await supabase.from("users").select("fcm_token").eq("id", uid).single();
 
       if (user?.fcm_token) {
         try {
-          const status = await sendFCMv1(user.fcm_token, title, body, { user_id: uid });
-          if (status < 300) { sentCount++; continue; }
-          // Если токен протух — очищаем
+          const fcmToken = String(user.fcm_token).trim();
+          const status = await sendFCMv1(fcmToken, title, body, { user_id: uid });
+          sentFcmTokens.add(fcmToken);
+          if (status < 300) sentCount++;
           if (status === 404 || status === 410) {
             await supabase.from("users").update({ fcm_token: null }).eq("id", uid);
           }
@@ -208,15 +209,28 @@ serve(async (req) => {
         }
       }
 
-      // ── 2. Fallback: Web Push через user_push_subs ───────────────────
       const { data: subs } = await supabase
         .from("user_push_subs")
         .select("endpoint, p256dh, auth")
         .eq("user_id", uid);
 
       for (const sub of subs ?? []) {
-        // Пропускаем FCM-записи (p256dh='fcm') — уже обработали выше
-        if (!sub.endpoint || !sub.p256dh || sub.p256dh === "fcm") continue;
+        if (!sub.endpoint || !sub.p256dh) continue;
+        if (sub.p256dh === "fcm") {
+          const fcmToken = String(sub.endpoint).trim();
+          if (!fcmToken || sentFcmTokens.has(fcmToken)) continue;
+          try {
+            const status = await sendFCMv1(fcmToken, title, body, { user_id: uid });
+            sentFcmTokens.add(fcmToken);
+            if (status < 300) sentCount++;
+            if (status === 404 || status === 410) {
+              await supabase.from("user_push_subs").delete().eq("endpoint", sub.endpoint);
+            }
+          } catch (e) {
+            console.error("FCM subscription failed for", uid, e);
+          }
+          continue;
+        }
         try {
           const status = await sendWebPush(sub, title, body, { chat_id });
           if (status < 300) sentCount++;
@@ -228,7 +242,6 @@ serve(async (req) => {
         }
       }
     }
-
     console.log(`push-send: sent=${sentCount} to ${userIds.length} users`);
     return new Response(JSON.stringify({ success: true, sent: sentCount }), {
       headers: { ...corsHeaders, "Content-Type":"application/json" },
