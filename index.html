@@ -15445,8 +15445,14 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
         window.sendMessage = async function() {
             const input = document.getElementById('message-input');
             const text = input?.value?.trim();
-            if (!text || !messengerState.selectedChat) return;
-            const appUserId = currentUserProfile?.id || currentUser?.id;
+            const selectedChat = messengerState.selectedChat;
+            if (!text || !selectedChat?.chat_id) return;
+
+            const senderId = currentUserProfile?.id || null;
+            const authUserId = currentUser?.id || null;
+            const senderEmail = currentUserProfile?.email || currentUser?.email || null;
+            const senderName = currentUserProfile?.name || currentUser?.email || 'Вы';
+            const messageId = window.crypto?.randomUUID ? window.crypto.randomUUID() : null;
 
             const msgContent = { text };
             if (messengerState.replyTo) {
@@ -15454,97 +15460,95 @@ showModal('Заявка #' + prId.slice(0, 8), `<div style="margin-bottom:16px">
             }
 
             try {
-                const { data, error } = await supabaseClient
-                    .from('messages')
-                    .insert({
-                        chat_id: messengerState.selectedChat.chat_id,
-                        user_id: appUserId,
-                        content: msgContent
-                    })
-                    .select(`
-                        id,
-                        content,
-                        created_at,
-                        user_id,
-                        sender:user_id(name)
-                    `)
-                    .single();
-
-                if (error) throw error;
-                clearReply();
-
-                // Добавляем сообщение сразу (оптимистичное обновление)
-                const exists = messengerState.messages.some(m => m.id === data.id);
-                if (!exists) {
-                    messengerState.messages.push(data);
-                    renderMessages();
-                    // Прокручиваем к новому сообщению
-                    const messagesList = document.getElementById('messages-list');
-                    if (messagesList) messagesList.scrollTop = messagesList.scrollHeight;
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                const authToken = session?.access_token || localStorage.getItem('token');
+                if (!authToken) {
+                    throw new Error('Сессия истекла');
                 }
-                input.value = '';
 
-                // Отправить Web Push всем участникам чата (fire & forget)
-                const senderName = currentUserProfile?.name || 'Новое сообщение';
-                const { data: { session: sendSession } } = await supabaseClient.auth.getSession();
-                const sendToken = sendSession?.access_token || localStorage.getItem('token');
-                
-                console.log('🔔 Sending push notification:', {
-                    chat_id: messengerState.selectedChat.chat_id,
+                const payload = {
+                    chat_id: selectedChat.chat_id,
+                    chatId: selectedChat.chat_id,
+                    content: msgContent,
+                    type: 'text',
                     sender_name: senderName,
-                    text: text,
-                    exclude_user_id: appUserId
-                });
-                console.log('🔑 Push token:', sendToken ? `${sendToken.substring(0, 20)}...` : 'NO TOKEN');
-                
-                // 1. Отправляем Web Push
-                fetch(`${SUPABASE_URL}/functions/v1/push-send`, {
+                    sender_email: senderEmail,
+                    senderEmail: senderEmail,
+                    sender_id: senderId,
+                    senderId: senderId,
+                    user_id: senderId,
+                    userId: senderId,
+                    auth_user_id: authUserId,
+                    authUserId: authUserId,
+                    id: messageId,
+                    client_message_id: messageId,
+                    clientMessageId: messageId
+                };
+
+                const resp = await fetch(`${SUPABASE_URL}/functions/v1/chat-send`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${sendToken}`
+                        'Authorization': `Bearer ${authToken}`
                     },
-                    body: JSON.stringify({
-                        chat_id: messengerState.selectedChat.chat_id,
-                        sender_name: senderName,
-                        text: text,
-                        exclude_user_id: appUserId
-                    })
-                }).then(async r => {
-                    console.log('🔔 Push response status:', r.status);
-                    if (!r.ok) {
-                        const err = await r.text();
-                        console.warn('❌ Push send failed:', r.status, err);
-                    } else {
-                        const data = await r.json();
-                        console.log('✅ Push sent successfully:', data);
-                    }
-                }).catch(e => console.error('❌ Push send error:', e));
-                
-                // 2. Добавляем в notification_queue для offline пользователей
+                    body: JSON.stringify(payload)
+                });
+
+                const rawBody = await resp.text();
+                let result = null;
                 try {
-                    const { data: members } = await supabaseClient
-                        .from('chat_members')
-                        .select('user_id')
-                        .eq('chat_id', messengerState.selectedChat.chat_id)
-                        .neq('user_id', appUserId);
-                    
-                    for (const member of members || []) {
-                        await supabaseClient.from('notification_queue').insert({
-                            user_id: member.user_id,
-                            title: senderName,
-                            body: text.length > 100 ? text.slice(0, 100) + '…' : text,
-                            type: 'message',
-                            sent: false
-                        });
-                    }
-                } catch (e) {
-                    console.warn('Notification queue error:', e);
+                    result = rawBody ? JSON.parse(rawBody) : null;
+                } catch (_) {
+                    result = rawBody ? { error: rawBody } : null;
                 }
 
+                if (!resp.ok) {
+                    throw new Error(result?.error || `chat-send failed (${resp.status})`);
+                }
+
+                const sentMessage = result?.message;
+                if (!sentMessage?.id) {
+                    throw new Error('chat-send вернул пустой ответ');
+                }
+
+                const normalizedMessage = {
+                    ...sentMessage,
+                    chat_id: sentMessage.chat_id || selectedChat.chat_id,
+                    user_id: sentMessage.user_id || senderId || authUserId,
+                    type: sentMessage.type || 'text',
+                    content: normalizeMsgContent(sentMessage.content),
+                    sender: sentMessage.sender || { name: senderName },
+                    read_receipts: Array.isArray(sentMessage.read_receipts) ? sentMessage.read_receipts : [],
+                    job: sentMessage.job || null
+                };
+
+                clearReply();
+                input.value = '';
+
+                const existingIndex = messengerState.messages.findIndex(m => String(m.id) === String(normalizedMessage.id));
+                if (existingIndex >= 0) {
+                    messengerState.messages[existingIndex] = {
+                        ...messengerState.messages[existingIndex],
+                        ...normalizedMessage
+                    };
+                } else {
+                    messengerState.messages.push(normalizedMessage);
+                }
+                messengerState.messagesFingerprint = getMessagesFingerprint(messengerState.messages);
+                renderMessages();
+
+                const messagesList = document.getElementById('messages-list');
+                if (messagesList) messagesList.scrollTop = messagesList.scrollHeight;
             } catch (err) {
                 console.error('Error sending message:', err);
-                showToast('Ошибка отправки сообщения');
+                const message = err?.message || '';
+                if (message.includes('Forbidden')) {
+                    showToast('Нет доступа к этому чату');
+                } else if (message.includes('Сессия истекла')) {
+                    showToast('Сессия истекла, войдите снова');
+                } else {
+                    showToast('Ошибка отправки сообщения');
+                }
             }
         }
 
