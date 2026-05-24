@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
-  base: '/task-manager-app/',
+  base: './',
   server: {
     port: 3000,
     proxy: {

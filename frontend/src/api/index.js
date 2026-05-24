@@ -1,13 +1,5 @@
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('Missing Supabase configuration. Check your environment variables.');
-}
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+import { supabase } from '../config/supabase.js';
+export { supabase };
 
 // Helper to handle Supabase responses
 const handleSupabaseResponse = (data, error) => {
@@ -30,7 +22,7 @@ export const authApi = {
       
     if (userError) throw userError;
     
-    return { token: data.session.access_token, user };
+    return { token: data.session?.access_token || null, user };
   },
   
   register: async (email, password, name, role) => {
@@ -46,7 +38,7 @@ export const authApi = {
       
     if (userError) throw userError;
     
-    return { token: data.session.access_token, user };
+    return { token: data.session?.access_token || null, user };
   },
   
   getMe: async () => {

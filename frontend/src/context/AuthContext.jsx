@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { authApi } from '../api';
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { authApi, supabase, usersApi } from '../api';
 
 const AuthContext = createContext(null);
 
@@ -14,51 +14,136 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const AUTH_INIT_TIMEOUT_MS = 6000;
+
+  const isAuthLockError = (err) =>
+    typeof err?.message === 'string' &&
+    err.message.includes('auth-token') &&
+    err.message.toLowerCase().includes('lock');
+
+  const withTimeout = (promise, timeoutMs) =>
+    Promise.race([
+      promise,
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Auth operation timeout')), timeoutMs)
+      ),
+    ]);
+
+  const safeGetSession = async () => {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        return await withTimeout(supabase.auth.getSession(), 4000);
+      } catch (err) {
+        if (!isAuthLockError(err) && err?.message !== 'Auth operation timeout') {
+          throw err;
+        }
+        if (attempt === 2) throw err;
+        await new Promise((resolve) => setTimeout(resolve, 120 * (attempt + 1)));
+      }
+    }
+  };
+
+  const syncSession = async () => {
+    const {
+      data: { session },
+      error,
+    } = await safeGetSession();
+
+    if (error || !session?.access_token) {
+      localStorage.removeItem('token');
+      setUser(null);
+      return;
+    }
+
+    localStorage.setItem('token', session.access_token);
+
+    try {
+      const data = await authApi.getMe();
+      setUser(data.user);
+    } catch (err) {
+      console.error('Failed to restore auth session:', err);
+      localStorage.removeItem('token');
+      setUser(null);
+    }
+  };
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      authApi.getMe()
-        .then(data => {
-          setUser(data.user);
-        })
-        .catch(() => {
-          localStorage.removeItem('token');
-        })
-        .finally(() => {
+    let mounted = true;
+
+    const initializeAuth = async () => {
+      if (!localStorage.getItem('token')) {
+        if (mounted) setLoading(false);
+        return;
+      }
+
+      try {
+        await withTimeout(syncSession(), AUTH_INIT_TIMEOUT_MS);
+      } catch (_err) {
+        localStorage.removeItem('token');
+        setUser(null);
+      } finally {
+        if (mounted) {
           setLoading(false);
-        });
-    } else {
-      setLoading(false);
-    }
+        }
+      }
+    };
+
+    initializeAuth();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      try {
+        if (!session?.access_token) {
+          localStorage.removeItem('token');
+          setUser(null);
+          return;
+        }
+
+        localStorage.setItem('token', session.access_token);
+        const data = await authApi.getMe();
+        setUser(data.user);
+      } catch (err) {
+        if (isAuthLockError(err)) {
+          return;
+        }
+        console.error('Auth state sync error:', err);
+        localStorage.removeItem('token');
+        setUser(null);
+      }
+    });
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const login = async (email, password) => {
     const data = await authApi.login(email, password);
-    localStorage.setItem('token', data.token);
+    if (data?.token) {
+      localStorage.setItem('token', data.token);
+    }
     setUser(data.user);
     return data;
   };
 
   const register = async (email, password, name, role) => {
     const data = await authApi.register(email, password, name, role);
-    localStorage.setItem('token', data.token);
+    if (data?.token) {
+      localStorage.setItem('token', data.token);
+    }
     setUser(data.user);
     return data;
   };
 
   const logout = async () => {
     try {
-      // Call the offline API to mark user as offline before logging out
-      await fetch('/api/users/offline', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
+      await usersApi.markOffline();
     } catch (err) {
       console.error('Error marking user offline:', err);
     } finally {
+      await supabase.auth.signOut();
       localStorage.removeItem('token');
       setUser(null);
     }
@@ -71,12 +156,8 @@ export const AuthProvider = ({ children }) => {
     register,
     logout,
     isManager: user?.role === 'manager',
-    isWorker: user?.role === 'worker'
+    isWorker: user?.role === 'worker',
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
